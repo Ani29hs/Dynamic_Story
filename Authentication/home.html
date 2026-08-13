@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Page Title</title>
+</head>
+<body>
+    <h1>Hello World</h1>
+</body>
+</html>
+<script>
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user) {
+        alert("Access Denied!")
+        window.location.href = "login.html";
+    
+    }
+
+    else if (user.role !== "Reader") {
+        alert("Access denied!");
+        window.location.href = "login.html";
+       
+    }
+</script>

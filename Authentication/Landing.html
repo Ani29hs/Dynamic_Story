@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Story Engine | Interactive Branching Universe</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
+
+        :root {
+            --color-carbon: #000000;
+            --color-paper-white: #ffffff;
+            --color-sky-wash: #dceeff;
+            --color-concrete-gray: #cccccc;
+            --color-soft-mist: #e9e9e9;
+            --color-electric-blue: #4da2ff;
+            --color-mint-pop: #55db9c;
+            --color-lavender: #e9ccff;
+            --color-ember: #fb4903;
+            --color-sunburst: #ffd731;
+            --color-voltage-violet: #5c4ade;
+
+            --font-display: 'Bowlby One', cursive, sans-serif;
+            --font-ui: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+            --radius-pill: 1600px;
+            --radius-card: 24px;
+            --radius-card-lg: 36px;
+            --radius-sticker: 16px;
+
+            --border-cut: 2px solid var(--color-carbon);
+            --border-cut-thick: 3px solid var(--color-carbon);
+            --shadow-cut: 4px 4px 0px var(--color-carbon);
+            --shadow-cut-lg: 6px 6px 0px var(--color-carbon);
+            --shadow-cut-sm: 2px 2px 0px var(--color-carbon);
+
+            --transition: all 0.15s ease-in-out;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--color-sky-wash);
+            color: var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 500;
+            font-size: 15px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: var(--font-display);
+            color: var(--color-carbon);
+            text-transform: uppercase;
+            line-height: 0.9;
+        }
+
+        a {
+            color: var(--color-carbon);
+            text-decoration: none;
+        }
+
+        /* Ticker Banner */
+        .marquee-strip {
+            background: var(--color-carbon);
+            color: var(--color-paper-white);
+            padding: 10px 0;
+            overflow: hidden;
+            white-space: nowrap;
+            border-bottom: 2px solid var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.032em;
+            text-transform: uppercase;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 25s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Navigation Header */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            background: var(--color-paper-white);
+            border-bottom: 2px solid var(--color-carbon);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 22px;
+            background: var(--color-sunburst);
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            border: var(--border-cut);
+            box-shadow: var(--shadow-cut-sm);
+            transform: rotate(-1.5deg);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .nav-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: var(--radius-pill);
+            border: var(--border-cut);
+            background: var(--color-paper-white);
+            color: var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        .nav-pill:hover, .nav-pill.active {
+            background: var(--color-electric-blue);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-cut);
+        }
+
+        .login-btn {
+            background: var(--color-sunburst);
+        }
+
+        .login-btn:hover {
+            background: var(--color-voltage-violet);
+            color: var(--color-paper-white);
+        }
+
+        .user-greeting {
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            background: var(--color-paper-white);
+            border: var(--border-cut);
+            padding: 8px 16px;
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        .logout-btn {
+            background: var(--color-ember) !important;
+            color: var(--color-paper-white) !important;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #d63800 !important;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 80px 24px 60px;
+            text-align: center;
+            position: relative;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 215, 49, 0.35) 0%, transparent 25%),
+                radial-gradient(circle at 90% 80%, rgba(92, 74, 222, 0.25) 0%, transparent 30%);
+            border-bottom: 2px solid var(--color-carbon);
+        }
+
+        .hero-badge {
+            display: inline-block;
+            background: var(--color-lavender);
+            border: var(--border-cut);
+            padding: 6px 18px;
+            border-radius: var(--radius-pill);
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-cut-sm);
+            margin-bottom: 24px;
+            transform: rotate(-2deg);
+        }
+
+        .hero h1 {
+            font-size: clamp(40px, 7vw, 85px);
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            max-width: 650px;
+            margin: 0 auto 36px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-carbon);
+        }
+
+        .hero-cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .primary-btn, .secondary-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: var(--radius-pill);
+            border: var(--border-cut);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            text-transform: uppercase;
+        }
+
+        .primary-btn {
+            background: var(--color-carbon);
+            color: var(--color-paper-white);
+            box-shadow: var(--shadow-cut);
+        }
+
+        .primary-btn:hover {
+            background: var(--color-voltage-violet);
+            transform: translateY(-4px) rotate(-1deg);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        .secondary-btn {
+            background: var(--color-paper-white);
+            color: var(--color-carbon);
+            box-shadow: var(--shadow-cut);
+        }
+
+        .secondary-btn:hover {
+            background: var(--color-sunburst);
+            transform: translateY(-4px) rotate(1deg);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        /* Stats Strip */
+        .stats-section {
+            background: var(--color-paper-white);
+            border-bottom: 2px solid var(--color-carbon);
+            padding: 24px;
+        }
+
+        .stats-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            text-align: center;
+        }
+
+        .stat-card {
+            background: var(--color-sky-wash);
+            border: var(--border-cut);
+            border-radius: var(--radius-sticker);
+            padding: 20px;
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 36px;
+            color: var(--color-carbon);
+        }
+
+        .stat-label {
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--color-voltage-violet);
+        }
+
+        /* Stories Showcase Section */
+        .section-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 24px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .section-header h2 {
+            font-size: 36px;
+        }
+
+        .stories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 30px;
+        }
+
+        .story-card {
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .story-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        .story-banner {
+            height: 180px;
+            background: var(--color-voltage-violet);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            border-bottom: 2px solid var(--color-carbon);
+            position: relative;
+        }
+
+        .genre-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: var(--color-sunburst);
+            border: var(--border-cut);
+            border-radius: var(--radius-pill);
+            padding: 4px 12px;
+            font-weight: 800;
+            font-size: 11px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        .story-body {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            gap: 12px;
+        }
+
+        .story-title {
+            font-size: 22px;
+        }
+
+        .story-desc {
+            font-size: 14px;
+            color: var(--color-carbon);
+            line-height: 1.5;
+        }
+
+        .story-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: auto;
+            padding-top: 14px;
+            border-top: 2px dashed var(--color-concrete-gray);
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .rating-tag {
+            color: #d87000;
+            font-weight: 800;
+        }
+
+        /* Reader Reviews Section */
+        .reviews-section {
+            background: var(--color-paper-white);
+            border-top: 2px solid var(--color-carbon);
+            border-bottom: 2px solid var(--color-carbon);
+            padding: 60px 24px;
+        }
+
+        .reviews-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .review-card {
+            background: var(--color-sky-wash);
+            border: var(--border-cut);
+            border-radius: var(--radius-card);
+            padding: 24px;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .review-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        .review-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--color-sunburst);
+            border: var(--border-cut);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 18px;
+        }
+
+        .user-name {
+            font-weight: 800;
+            font-size: 15px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--color-voltage-violet);
+            font-weight: 700;
+        }
+
+        .review-text {
+            font-size: 14px;
+            font-style: italic;
+            line-height: 1.5;
+        }
+
+        .review-stars {
+            color: var(--color-carbon);
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            padding: 30px 24px;
+            text-align: center;
+            background: var(--color-paper-white);
+            border-top: 2px solid var(--color-carbon);
+            font-weight: 800;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Rolling Announcement Strip -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; BRANCHING NARRATIVES &bull; 100+ ENDINGS &bull; READER REVIEWS &bull;&nbsp;
+            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; BRANCHING NARRATIVES &bull; 100+ ENDINGS &bull; READER REVIEWS &bull;&nbsp;
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <div class="logo">
+            ⚡ <span>STORY ENGINE</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-pill active">🏠 Home</a></li>
+            <li><a href="#stories" class="nav-pill">📖 Explore Stories</a></li>
+            <li><a href="#reviews" class="nav-pill">⭐ Reader Reviews</a></li>
+            <li id="navAuthContainer">
+                <a href="login.html" class="nav-pill login-btn">🔑 Login</a>
+            </li>
+        </ul>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-badge">🚀 Interactive Branching Universe</div>
+        <h1>YOUR CHOICES.<br>YOUR DESTINY.</h1>
+        <p>Step into immersive branching narratives where every choice reshapes the plot, unlocks hidden paths, and determines the ultimate ending.</p>
+        
+        <div class="hero-cta" id="heroCtaContainer">
+            <a href="reader/stories.html" class="primary-btn">
+                📖 Start Reading Stories
+            </a>
+            <a href="login.html" class="secondary-btn">
+                🔑 Reader Login
+            </a>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">24+</div>
+                <div class="stat-label">Interactive Stories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">180+</div>
+                <div class="stat-label">Choice Nodes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4.9★</div>
+                <div class="stat-label">Reader Rating</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">12k+</div>
+                <div class="stat-label">Endings Unlocked</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sample Stories Showcase Section -->
+    <section id="stories" class="section-container">
+        <div class="section-header">
+            <div>
+                <h2>FEATURED ADVENTURES</h2>
+                <p style="font-weight: 700;">Hand-crafted multi-path stories built with our dynamic graph engine.</p>
+            </div>
+            <a href="reader/stories.html" class="secondary-btn" style="font-size: 13px; padding: 10px 20px;">
+                View All Stories &rarr;
+            </a>
+        </div>
+
+        <div class="stories-grid">
+            <!-- Story Card 1 -->
+            <article class="story-card">
+                <div class="story-banner" style="background: var(--color-voltage-violet);">
+                    <span>🤖</span>
+                    <span class="genre-badge">Sci-Fi / Cyberpunk</span>
+                </div>
+                <div class="story-body">
+                    <h3 class="story-title">NEON REBELLION 2099</h3>
+                    <p class="story-desc">In a dystopian mega-city ruled by rogue AI, lead the digital resistance or betray your team for corporate immunity.</p>
+                    <div class="story-meta">
+                        <span class="rating-tag">★ 4.9 (320 reviews)</span>
+                        <span>8 Endings</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Story Card 2 -->
+            <article class="story-card">
+                <div class="story-banner" style="background: var(--color-ember);">
+                    <span>🏰</span>
+                    <span class="genre-badge">Dark Fantasy</span>
+                </div>
+                <div class="story-body">
+                    <h3 class="story-title">THE CRIMSON CITADEL</h3>
+                    <p class="story-desc">Navigate deadly political intrigue, dark magic rituals, and dragon covenants to claim the vacant throne of Oakhaven.</p>
+                    <div class="story-meta">
+                        <span class="rating-tag">★ 4.8 (210 reviews)</span>
+                        <span>12 Endings</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Story Card 3 -->
+            <article class="story-card">
+                <div class="story-banner" style="background: var(--color-mint-pop);">
+                    <span>🕵️</span>
+                    <span class="genre-badge">Mystery Thriller</span>
+                </div>
+                <div class="story-body">
+                    <h3 class="story-title">SHADOWS AT BLACKWOOD</h3>
+                    <p class="story-desc">Investigate a chilling Victorian murder mystery. Every suspect lies, and one single wrong decision leads to your doom.</p>
+                    <div class="story-meta">
+                        <span class="rating-tag">★ 5.0 (450 reviews)</span>
+                        <span>6 Endings</span>
+                    </div>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <!-- Reader Reviews & Testimonials Section -->
+    <section id="reviews" class="reviews-section">
+        <div class="section-container" style="padding: 0 0 40px 0;">
+            <div class="section-header">
+                <div>
+                    <h2>WHAT READERS ARE SAYING</h2>
+                    <p style="font-weight: 700;">Real reviews from interactive story enthusiasts around the world.</p>
+                </div>
+            </div>
+
+            <div class="reviews-grid">
+                <!-- Review 1 -->
+                <div class="review-card">
+                    <div class="review-user">
+                        <div class="avatar">A</div>
+                        <div>
+                            <div class="user-name">Alex Rivera</div>
+                            <div class="user-role">Avid Reader</div>
+                        </div>
+                    </div>
+                    <div class="review-stars">★★★★★</div>
+                    <p class="review-text">"The choices genuinely feel meaningful! Ending #4 in Neon Rebellion blew my mind. Couldn't put it down."</p>
+                </div>
+
+                <!-- Review 2 -->
+                <div class="review-card" style="background: var(--color-paper-white);">
+                    <div class="review-user">
+                        <div class="avatar" style="background: var(--color-mint-pop);">S</div>
+                        <div>
+                            <div class="user-name">Sophia Chen</div>
+                            <div class="user-role">Story Explorer</div>
+                        </div>
+                    </div>
+                    <div class="review-stars">★★★★★</div>
+                    <p class="review-text">"The Neo-brutalist Slush theme UI is gorgeous! Smooth transitions and crisp branching narrative options."</p>
+                </div>
+
+                <!-- Review 3 -->
+                <div class="review-card">
+                    <div class="review-user">
+                        <div class="avatar" style="background: var(--color-lavender);">M</div>
+                        <div>
+                            <div class="user-name">Marcus Vance</div>
+                            <div class="user-role">RPG Enthusiast</div>
+                        </div>
+                    </div>
+                    <div class="review-stars">★★★★★</div>
+                    <p class="review-text">"Replaying stories to unlock every single ending is so addictive. The graph logic is top-tier interactive fiction!"</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        ⚡ Dynamic Story Engine &bull; Interactive Reader Portal &bull; Slush Theme Design
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            let user = null;
+            try {
+                user = JSON.parse(localStorage.getItem("user"));
+            } catch (e) {}
+
+            let navAuthContainer = document.getElementById("navAuthContainer");
+            let heroCtaContainer = document.getElementById("heroCtaContainer");
+
+            if (user) {
+                // User is logged in -> Login button disappears & profile/logout appears
+                if (navAuthContainer) {
+                    navAuthContainer.innerHTML = `
+                        <span class="user-greeting">👤 Hi, ${user.name || 'User'}</span>
+                        ${user.role === 'Admin' ? '<a href="admin/admin.html" class="nav-pill" style="background: var(--color-mint-pop);">🛠️ Admin</a>' : ''}
+                        <button onclick="handleLogout()" class="nav-pill logout-btn">🚪 Logout</button>
+                    `;
+                }
+
+                if (heroCtaContainer) {
+                    heroCtaContainer.innerHTML = `
+                        <a href="reader/stories.html" class="primary-btn">
+                            📖 Explore All Stories
+                        </a>
+                        ${user.role === 'Admin' ? `
+                            <a href="admin/admin.html" class="secondary-btn">
+                                🛠️ Admin Dashboard
+                            </a>
+                        ` : `
+                            <button onclick="handleLogout()" class="secondary-btn">
+                                🚪 Logout
+                            </button>
+                        `}
+                    `;
+                }
+            }
+        });
+
+        function handleLogout() {
+            localStorage.removeItem("user");
+            alert("Logged out successfully!");
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

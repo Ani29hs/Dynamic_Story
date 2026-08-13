@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
+
+        :root {
+            --color-carbon: #000000;
+            --color-paper-white: #ffffff;
+            --color-sky-wash: #dceeff;
+            --color-sunburst: #ffd731;
+            --color-voltage-violet: #5c4ade;
+            --color-electric-blue: #4da2ff;
+            --font-display: 'Bowlby One', cursive, sans-serif;
+            --font-ui: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+            --radius-pill: 1600px;
+            --radius-card: 24px;
+            --radius-sticker: 16px;
+            --border-cut: 2px solid #000000;
+            --border-cut-thick: 3px solid #000000;
+            --shadow-cut: 4px 4px 0px #000000;
+            --shadow-cut-lg: 8px 8px 0px #000000;
+            --shadow-cut-sm: 2px 2px 0px #000000;
+            --transition: all 0.15s ease-in-out;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--color-sky-wash);
+            color: var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 500;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background-image: 
+                radial-gradient(circle at 10% 10%, rgba(255, 215, 49, 0.35) 0%, transparent 20%),
+                radial-gradient(circle at 90% 90%, rgba(92, 74, 222, 0.25) 0%, transparent 25%);
+        }
+
+        form {
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: var(--shadow-cut-lg);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        form::before {
+            content: "REGISTER";
+            display: block;
+            font-family: var(--font-display);
+            font-size: 24px;
+            text-transform: uppercase;
+            color: var(--color-carbon);
+            text-align: center;
+            background: var(--color-sunburst);
+            padding: 10px 16px;
+            border: var(--border-cut);
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-cut-sm);
+            margin-bottom: 10px;
+            transform: rotate(-1.5deg);
+        }
+
+        label {
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--color-carbon);
+            margin-top: 4px;
+            margin-bottom: -6px;
+            display: block;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--color-paper-white);
+            border: var(--border-cut);
+            border-radius: var(--radius-sticker);
+            color: var(--color-carbon);
+            font-family: var(--font-ui);
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: var(--shadow-cut-sm);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--color-voltage-violet);
+            background: var(--color-sky-wash);
+            box-shadow: var(--shadow-cut);
+            transform: translateY(-2px);
+        }
+
+        /* Eye Icon Password Wrapper */
+        .password-container {
+            position: relative;
+            width: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-container input {
+            padding-right: 48px;
+        }
+
+        .eye-toggle {
+            position: absolute;
+            right: 10px;
+            background: var(--color-paper-white);
+            border: var(--border-cut);
+            border-radius: var(--radius-pill);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            box-shadow: var(--shadow-cut-sm);
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .eye-toggle:hover {
+            background: var(--color-sunburst);
+            transform: scale(1.08);
+        }
+
+        input[type="Submit"],
+        input[type="submit"] {
+            margin-top: 14px;
+            width: 100%;
+            padding: 14px 24px;
+            background: var(--color-carbon);
+            color: var(--color-paper-white);
+            border: var(--border-cut);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+        }
+
+        input[type="Submit"]:hover,
+        input[type="submit"]:hover {
+            background: var(--color-voltage-violet);
+            color: var(--color-paper-white);
+            transform: translateY(-3px) rotate(-0.5deg);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        input[type="Submit"]:active,
+        input[type="submit"]:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        /* Login Redirect Pill Button */
+        .login-redirect-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--color-paper-white);
+            color: var(--color-carbon);
+            border: var(--border-cut);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            text-decoration: none;
+            box-shadow: var(--shadow-cut-sm);
+            transition: var(--transition);
+            margin-top: 4px;
+        }
+
+        .login-redirect-btn:hover {
+            background: var(--color-sunburst);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-cut);
+        }
+    </style>
+</head>
+<body>
+    <form onsubmit="handleRegister(event);return false;">
+        <label for="">Name</label>
+        <input type="text" id="name" placeholder="Enter name">
+        
+        <label for="">Email</label>
+        <input type="email" id="email" placeholder="Enter email">
+        
+        <label for="">Create Password</label>
+        <div class="password-container">
+            <input type="password" placeholder="Create Password" id="password">
+            <button type="button" class="eye-toggle" onclick="togglePassword('password', 'eyeSymbol1')" aria-label="Toggle password visibility">
+                <span id="eyeSymbol1">👁️</span>
+            </button>
+        </div>
+
+        <label for="">Confirm Password</label>
+        <div class="password-container">
+            <input type="password" placeholder="Confirm Password" id="cpassword">
+            <button type="button" class="eye-toggle" onclick="togglePassword('cpassword', 'eyeSymbol2')" aria-label="Toggle confirm password visibility">
+                <span id="eyeSymbol2">👁️</span>
+            </button>
+        </div>
+
+        <input type="Submit" value="REGISTER">
+
+        <a href="login.html" class="login-redirect-btn">
+            Already registered? Login here
+        </a>
+    </form>
+</body>
+</html>
+
+<script>
+    function togglePassword(inputId, eyeSymbolId) {
+        let passwordInput = document.getElementById(inputId);
+        let eyeSymbol = document.getElementById(eyeSymbolId);
+        if (passwordInput.type === "password") {
+            passwordInput.type = "text";
+            eyeSymbol.textContent = "🙈";
+        } else {
+            passwordInput.type = "password";
+            eyeSymbol.textContent = "👁️";
+        }
+    }
+
+    let handleRegister=async(event)=>{
+        event.preventDefault()
+
+        let name = document.getElementById("name")
+        let email =  document.getElementById("email")
+        let createPassword = document.getElementById("password")
+        let confirmPassword = document.getElementById("cpassword")
+
+        let response = await fetch(`http://localhost:3000/Users?email=${email.value}`)
+
+        let data = await response.json()
+
+        if(data.length>0){
+            alert("This email is already registered")
+            return
+        }
+
+        if(createPassword.value!=confirmPassword.value){
+            alert("Password does not match")
+            return
+        }
+
+        let userObject ={
+            name:name.value,
+            email:email.value,
+            password:createPassword.value,
+            role:"Reader"
+        }
+
+        await fetch("http://localhost:3000/Users",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify(userObject)
+        })
+
+        alert("User registered")
+        window.location.replace("login.html")
+    }
+</script>
