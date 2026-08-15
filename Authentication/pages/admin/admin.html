@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Dynamic Story Engine</title>
+
+    <link rel="stylesheet" href="../../css/admin.css">
+    
+</head>
+<script>
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    if (!user) {
+     
+        window.location.href = "../auth/login.html";
+    }
+    else if (user.role !== "Admin") {
+
+        window.location.href = "../reader/home.html";
+    }
+</script>
+<body>
+
+    <!-- Marquee Banner Strip -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            🛠️ ADMIN DASHBOARD &bull; MANAGE STORIES &bull; DIRECTED GRAPH VALIDATOR &bull; NODE SCENE BUILDER &bull;&nbsp;
+            🛠️ ADMIN DASHBOARD &bull; MANAGE STORIES &bull; DIRECTED GRAPH VALIDATOR &bull; NODE SCENE BUILDER &bull;&nbsp;
+        </div>
+    </div>
+
+    <!-- Admin Navigation Header -->
+    <header class="navbar">
+        <div class="logo">
+            ⚡ <span>STORY ENGINE ADMIN</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../../Landing.html" class="nav-pill">🏠 Home</a></li>
+            <li><a href="admin.html" class="nav-pill active">🛠️ Dashboard</a></li>
+            <li><a href="../reader/stories.html" class="nav-pill">📖 Reader View</a></li>
+            <li><button onclick="handleLogout()" class="nav-pill logout-btn">🚪 Logout</button></li>
+        </ul>
+    </header>
+
+    <!-- Admin Main Container -->
+    <div class="admin-container">
+        <main>
+            <!-- Dashboard Title & Actions Bar -->
+            <div class="dashboard-title">
+                <div>
+                    <h2>STORY MANAGEMENT DASHBOARD</h2>
+                    <p style="font-weight: 700; color: var(--color-carbon);">Create, edit, validate graph structures, and publish interactive branching stories.</p>
+                </div>
+                <div class="header-actions">
+                    <button id="seedSampleBtn" class="secondary-btn">
+                        📥 Restore Sample Story
+                    </button>
+                    <button id="createStoryBtn" class="primary-btn" onclick="redirectStory()">
+                        + Create New Story
+                    </button>
+                </div>
+            </div>
+
+            <section id="storiesContainer" class="stories-container">
+              
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        Dynamic Story Engine &bull; Admin Portal &bull; Slush Theme
+    </footer>
+
+</body>
+</html>
+<script>
+
+    function redirectStory(){
+        window.location.href = "add_stories.html"
+    }
+
+    function handleLogout() {
+        localStorage.removeItem("user");
+        alert("Logged out successfully");
+        window.location.href = "../auth/login.html";
+    }
+</script>

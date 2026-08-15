@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="">
+</head>
+<body>
+    <h1>CREATE NEW STORY</h1>
+    <h4>Define narrative metadata,scene,choices, and directed graph connections</h4>
+    <button>Save Draft</button>
+    <button>Publish Story</button>
+
+    <form onsubmit="handleStory(event)">
+        <h1>STORY METADATA</h1>
+
+        <label for="">STORY TITLE</label>
+        <input type="text" placeholder="Untitled Story" id="story">
+
+        <label for="">GENRE</label>
+        <select id="genre">
+            <option value="">Select Genre</option>
+            <option value="fantasy">Fantasy</option>
+            <option value="mystery">Mystery</option>
+            <option value="horror">Horror</option>
+            <option value="adventure">Adventure</option>
+            <option value="sci-fi">Sci-Fi</option>
+        </select>
+
+        <label for="">PUBLICATION STATUS</label>
+        <select id="status">
+            <option value="draft">Draft(Private)</option>
+            <option value="published">Published(available in library)</option>
+        </select>
+
+        <label for="">STORY DESCRIPTION</label>
+        <input type="text" placeholder="Brief synopsis of the interactive adventure..." id="storyDescr">
+
+        <label for="">COVER IMAGE URL</label>
+        <input type="text" placeholder="https://images.unsplash.com/.." id="image">
+
+        <input type="Submit">
+
+    </form>
+
+    <!-- Add/Edit Node Modal -->
+    <div id="nodeModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="nodeModalTitle" style="font-size: 24px;">ADD SCENE NODE</h3>
+                <button type="button" id="closeNodeModal" class="close-btn">&times;</button>
+            </div>
+            <form id="nodeForm">
+                <input type="hidden" id="editingNodeId">
+                
+                <div class="form-group">
+                    <label for="nodeTitle">Scene Title *</label>
+                    <input type="text" id="nodeTitle" required placeholder="e.g. The Dark Forest">
+                </div>
+
+                <div class="form-group">
+                    <label for="nodeText">Scene Text / Narrative *</label>
+                    <textarea id="nodeText" rows="5" required placeholder="Describe what happens in this scene..."></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                    <div class="form-group">
+                        <label for="nodeLocation">Location Name</label>
+                        <input type="text" id="nodeLocation" placeholder="e.g. Whispering Woods">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nodeCharacters">Characters Present (Comma-separated)</label>
+                        <input type="text" id="nodeCharacters" placeholder="e.g. Traveler, Guardian">
+                    </div>
+                </div>
+
+                <div class="form-group checkbox-group" style="margin-top: 12px;">
+                    <label>
+                        <input type="checkbox" id="isEnding">
+                        <strong>THIS NODE IS A STORY ENDING</strong>
+                    </label>
+                </div>
+
+                <div id="endingTypeGroup" class="form-group hidden">
+                    <label for="endingType">Ending Classification</label>
+                    <select id="endingType">
+                        <option value="good">Good Ending</option>
+                        <option value="bad">Bad Ending</option>
+                        <option value="neutral">Neutral Ending</option>
+                        <option value="tragic">Tragic Ending</option>
+                        <option value="bittersweet">Bittersweet Ending</option>
+                        <option value="ambiguous">Ambiguous Ending</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="cancelNodeBtn" class="secondary-btn">Cancel</button>
+                    <button type="submit" onclick="handleNode(event)" class="primary-btn">Save Node</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    </body>
+</html>
+
+<script src="../../js/stories.js"></script>

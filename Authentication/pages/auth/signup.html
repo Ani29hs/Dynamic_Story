@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../../css/signup.css">
+</head>
+<body>
+    <form onsubmit="handleRegister(event);">
+        <label for="">Name</label>
+        <input type="text" id="name" placeholder="Enter name">
+        
+        <label for="">Email</label>
+        <input type="email" id="email" placeholder="Enter email">
+        
+        <label for="">Create Password</label>
+        <div class="password-container">
+            <input type="password" placeholder="Create Password" id="password">
+            <button type="button" class="eye-toggle" onclick="togglePassword('password', 'eyeSymbol1')" aria-label="Toggle password visibility">
+                <span id="eyeSymbol1">👁️</span>
+            </button>
+        </div>
+
+        <label for="">Confirm Password</label>
+        <div class="password-container">
+            <input type="password" placeholder="Confirm Password" id="cpassword">
+            <button type="button" class="eye-toggle" onclick="togglePassword('cpassword', 'eyeSymbol2')" aria-label="Toggle confirm password visibility">
+                <span id="eyeSymbol2">👁️</span>
+            </button>
+        </div>
+
+        <input type="Submit" value="REGISTER">
+
+        <a href="login.html" class="login-redirect-btn">
+            Already registered? Login here
+        </a>
+    </form>
+</body>
+</html>
+
+<script src="../../js/signup.js">
+    
+</script>

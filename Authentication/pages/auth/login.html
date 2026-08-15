@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../../css/login.css">
+</head>
+<body>
+    <script>
+        let loggedIn =JSON.parse(localStorage.getItem("user"))
+
+            if(loggedIn){
+                if(loggedIn.role==="Admin"){
+                    window.location.href="../admin/admin.html"
+                
+                }else{
+                    window.location.href="../reader/home.html"
+                }
+
+            }
+    </script>
+    <form onsubmit="handleLogin(event)">
+        <label for="">Email</label>
+        <input type="email" id="email" placeholder="Enter email">
+        <label for="">Password</label>
+        <div class="password-container">
+            <input type="password" placeholder="Create Password" id="password">
+            <button type="button" class="eye-toggle" onclick="toggleEye()" aria-label="Toggle password visibility">
+                <span id="eyeSymbol">👁️</span>
+            </button>
+        </div>
+        <input type="Submit" value="LOG IN">
+
+        <a href="signup.html" class="register-redirect-btn">
+            New User? Register Here
+        </a>
+    </form>
+
+    <script src="../../js/login.js">
+        
+    </script>
+</body>
+</html>
