@@ -3,87 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="">
+    <title>Create New Story | Dynamic Story Engine</title>
+    <!-- Linked CSS files -->
+    <link rel="stylesheet" href="../../css/stories.css">
 </head>
 <body>
-    <h1>CREATE NEW STORY</h1>
-    <h4>Define narrative metadata,scene,choices, and directed graph connections</h4>
-    <button>Save Draft</button>
-    <button>Publish Story</button>
 
-    <form onsubmit="handleStory(event)">
-        <h1>STORY METADATA</h1>
+    <!-- Marquee Banner Strip -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            ✏️ STORY EDITOR &bull; ADD SCENE VERTICES &bull; CONNECT DIRECTED CHOICE EDGES &bull; MARK ENDINGS &bull;&nbsp;
+            ✏️ STORY EDITOR &bull; ADD SCENE VERTICES &bull; CONNECT DIRECTED CHOICE EDGES &bull; MARK ENDINGS &bull;&nbsp;
+        </div>
+    </div>
 
-        <label for="">STORY TITLE</label>
-        <input type="text" placeholder="Untitled Story" id="story">
+    <!-- Header Navigation -->
+    <header class="navbar">
+        <div class="logo">
+            ⚡ <span>STORY EDITOR</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="admin.html" class="nav-pill">&larr; Back to Dashboard</a></li>
+        </ul>
+    </header>
 
-        <label for="">GENRE</label>
-        <select id="genre">
-            <option value="">Select Genre</option>
-            <option value="fantasy">Fantasy</option>
-            <option value="mystery">Mystery</option>
-            <option value="horror">Horror</option>
-            <option value="adventure">Adventure</option>
-            <option value="sci-fi">Sci-Fi</option>
-        </select>
+    <div class="admin-container">
+        <main>
+            <!-- Title Bar -->
+            <div class="editor-header">
+                <div>
+                    <h2>CREATE NEW STORY</h2>
+                    <p style="font-weight: 700; color: var(--color-carbon);">Define narrative metadata, scene, choices, and directed graph connections.</p>
+                </div>
+                <div class="header-actions">
+                    <button type="button" class="secondary-btn">Save Draft</button>
+                    <button type="button" class="primary-btn">Publish Story</button>
+                </div>
+            </div>
 
-        <label for="">PUBLICATION STATUS</label>
-        <select id="status">
-            <option value="draft">Draft(Private)</option>
-            <option value="published">Published(available in library)</option>
-        </select>
+            <!-- 1. Metadata Form Section -->
+            <section class="editor-card">
+                <h3 style="margin-bottom: 20px; font-size: 24px;">STORY METADATA</h3>
+                <form onsubmit="handleStory(event)" id="storyForm">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                        <div class="form-group">
+                            <label for="story">STORY TITLE *</label>
+                            <input type="text" placeholder="Untitled Story" id="story" required>
+                        </div>
 
-        <label for="">STORY DESCRIPTION</label>
-        <input type="text" placeholder="Brief synopsis of the interactive adventure..." id="storyDescr">
+                        <div class="form-group">
+                            <label for="genre">GENRE *</label>
+                            <select id="genre" required>
+                                <option value="">Select Genre</option>
+                                <option value="fantasy">Fantasy</option>
+                                <option value="mystery">Mystery</option>
+                                <option value="horror">Horror</option>
+                                <option value="adventure">Adventure</option>
+                                <option value="sci-fi">Sci-Fi</option>
+                            </select>
+                        </div>
 
-        <label for="">COVER IMAGE URL</label>
-        <input type="text" placeholder="https://images.unsplash.com/.." id="image">
+                        <div class="form-group">
+                            <label for="status">PUBLICATION STATUS</label>
+                            <select id="status">
+                                <option value="draft">Draft (Private)</option>
+                                <option value="published">Published (Available in Library)</option>
+                            </select>
+                        </div>
+                    </div>
 
-        <input type="Submit">
+                    <div class="form-group">
+                        <label for="storyDescr">STORY DESCRIPTION *</label>
+                        <textarea placeholder="Brief synopsis of the interactive adventure..." id="storyDescr" rows="3" required></textarea>
+                    </div>
 
-    </form>
+                    <div class="form-group">
+                        <label for="image">COVER IMAGE URL</label>
+                        <input type="url" placeholder="https://images.unsplash.com/.." id="image">
+                    </div>
 
-    <!-- Add/Edit Node Modal -->
+                    <div class="form-actions">
+                        <button type="submit" class="primary-btn">Save Story Metadata</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- 2. Scenes / Nodes Section (THIS WAS MISSING) -->
+            <section class="nodes-section">
+                <div class="nodes-header">
+                    <div>
+                        <h2 style="font-size: 32px;">STORY NODES & SCENE GRAPH</h2>
+                        <p style="font-weight: 700; color: var(--color-carbon);">Scenes represent vertices; choices represent directed edges connecting one scene to another.</p>
+                    </div>
+                    <!-- Button to open the Add Node Modal -->
+                    <button type="button" id="addNodeBtn" onclick="openNodeModal()" class="primary-btn">+ Add Scene Node</button>
+                </div>
+
+                <!-- Container where added scene cards will be rendered dynamically -->
+                <div id="nodesContainer" class="nodes-container">
+                    <!-- Dynamic Scene Node Cards render here -->
+                </div>
+            </section>
+
+            <div id="nodeHidden" class="nodes-container"></div>
+
+
+        </main>
+    </div>
+
+    <!-- 3. Add/Edit Node Modal -->
     <div id="nodeModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="nodeModalTitle" style="font-size: 24px;">ADD SCENE NODE</h3>
-                <button type="button" id="closeNodeModal" class="close-btn">&times;</button>
+                <button type="button" id="closeNodeModal" onclick="closeNodeModal()" class="close-btn">&times;</button>
             </div>
-            <form id="nodeForm">
+            <form id="nodeForm" onsubmit="handleNode(event)">
                 <input type="hidden" id="editingNodeId">
                 
                 <div class="form-group">
                     <label for="nodeTitle">Scene Title *</label>
-                    <input type="text" id="nodeTitle" required placeholder="e.g. The Dark Forest">
+                    <input type="text" id="nodeTitle"  placeholder="e.g. The Dark Forest" required>
                 </div>
 
                 <div class="form-group">
                     <label for="nodeText">Scene Text / Narrative *</label>
-                    <textarea id="nodeText" rows="5" required placeholder="Describe what happens in this scene..."></textarea>
+                    <textarea id="nodeText" rows="5"  placeholder="Describe what happens in this scene..." required></textarea>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
                     <div class="form-group">
                         <label for="nodeLocation">Location Name</label>
-                        <input type="text" id="nodeLocation" placeholder="e.g. Whispering Woods">
+                        <input type="text" id="nodeLocation" placeholder="e.g. Whispering Woods" required>
                     </div>
 
                     <div class="form-group">
                         <label for="nodeCharacters">Characters Present (Comma-separated)</label>
-                        <input type="text" id="nodeCharacters" placeholder="e.g. Traveler, Guardian">
+                        <input type="text" id="nodeCharacters" placeholder="e.g. Traveler, Guardian" required>
                     </div>
                 </div>
 
                 <div class="form-group checkbox-group" style="margin-top: 12px;">
                     <label>
-                        <input type="checkbox" id="isEnding">
+                        <input type="checkbox" id="isEnding" onchange="toggleEndingGroup(this)">
                         <strong>THIS NODE IS A STORY ENDING</strong>
                     </label>
                 </div>
 
-                <div id="endingTypeGroup" class="form-group hidden">
+                <div id="endingTypeGroup" class="form-group hidden" style="display: none;">
                     <label for="endingType">Ending Classification</label>
                     <select id="endingType">
                         <option value="good">Good Ending</option>
@@ -96,15 +163,40 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" id="cancelNodeBtn" class="secondary-btn">Cancel</button>
-                    <button type="submit" onclick="handleNode(event)" class="primary-btn">Save Node</button>
+                    <button type="button" id="cancelNodeBtn" onclick="closeNodeModal()" class="secondary-btn">Cancel</button>
+                    <button type="submit" class="primary-btn">Save Node</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- Show nodes-->
 
-    </body>
+
+    <footer>
+        Dynamic Story Engine &bull; Admin Portal &bull; Slush Theme
+    </footer>
+
+    <!-- Helper JS functions to open/close modal -->
+    <script>
+        function openNodeModal() {
+            document.getElementById('nodeModal').classList.remove('hidden');
+        }
+
+        function closeNodeModal() {
+            document.getElementById('nodeModal').classList.add('hidden');
+        }
+
+        function toggleEndingGroup(checkbox) {
+            const group = document.getElementById('endingTypeGroup');
+            if (checkbox.checked) {
+                group.style.display="block"
+            } else {
+                group.style.display="none"
+            }
+        }
+
+    </script>
+    <script src="../../js/stories.js"></script>
+</body>
 </html>
-
-<script src="../../js/stories.js"></script>

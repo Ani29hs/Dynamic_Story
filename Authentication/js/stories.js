@@ -1,156 +1,239 @@
+let user = JSON.parse(localStorage.getItem("user"));
 
-let user = JSON.parse(localStorage.getItem("user"))
-
-if(!user){
-    window.location.href="../auth/signup.html"
+if (!user) {
+    window.location.href = "../auth/signup.html";
+} else if (user.role !== "Admin") {
+    window.location.href = "../reader/home.html";
 }
-else if(user.role!=="Admin"){
-    window.location.href="../reader/home.html"
-}
-let handleStory=async(event)=>{
-    event.preventDefault()
 
-    let story = document.getElementById("story")
-    let author = document.getElementById("author")
-    let genre = document.getElementById("genre")
-    let status = document.getElementById("status")
-    let description = document.getElementById("storyDescr")
-    let imageURL = document.getElementById("image")
+// 1. Read ?id= from URL parameter
+const urlParams = new URLSearchParams(window.location.search);
+const storyId = urlParams.get("id");
 
-    let user = JSON.parse(localStorage.getItem("user"))
+let currentStory = null;
 
-    let storyObject ={
-        title:story.value,
-        author:user.name,
-        genre:genre.value,
-        status:status.value,
-        description:description.value,
-        imageURL:imageURL.value,
-        nodes :[],
-        startNodeId :null
+// Initialize page data on load
+async function initPage() {
+    let nodeHidden = document.getElementById("nodeHidden");
+
+    if (storyId) {
+        // --- EDIT MODE (URL has ?id=...): Load existing story from backend ---
+        try {
+            let res = await fetch(`http://localhost:3000/Stories/${storyId}`);
+            if (res.ok) {
+                currentStory = await res.json();
+                localStorage.setItem("currentStory", JSON.stringify(currentStory));
+
+                // Populate metadata form
+                if (document.getElementById("story")) document.getElementById("story").value = currentStory.title || "";
+                if (document.getElementById("genre")) document.getElementById("genre").value = currentStory.genre || "";
+                if (document.getElementById("status")) document.getElementById("status").value = currentStory.status || "draft";
+                if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = currentStory.description || "";
+                if (document.getElementById("image")) document.getElementById("image").value = currentStory.imageURL || currentStory.coverImage || "";
+
+                showNodes(currentStory);
+                return;
+            }
+        } catch (err) {
+            console.error("Error loading story:", err);
+        }
     }
 
-    let response = await fetch("http://localhost:3000/Stories", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(storyObject)
-    })
+    // --- CREATE NEW STORY MODE (No ?id= in URL): Start clean ---
+    localStorage.removeItem("currentStory");
+    currentStory = null;
 
-    let createdStory = await response.json();
+    if (document.getElementById("storyForm")) {
+        document.getElementById("storyForm").reset();
+    }
 
-    localStorage.setItem("currentStory",JSON.stringify(createdStory))
-
-    alert("Story added")
+    if (nodeHidden) {
+        nodeHidden.innerHTML = `
+            <h3>No Scene Nodes Added</h3>
+            <p>
+                Click "+ Add Scene Node" above
+                to add the initial scene for your story.
+            </p>
+        `;
+    }
 }
 
+initPage();
 
-let handleNode = async (event) => {
-
+// 2. Handle Story Metadata Submit
+let handleStory = async (event) => {
     event.preventDefault();
 
-    // Get current story
-    let currentStory = JSON.parse(
-        localStorage.getItem("currentStory")
-    );
+    let story = document.getElementById("story");
+    let genre = document.getElementById("genre");
+    let status = document.getElementById("status");
+    let description = document.getElementById("storyDescr");
+    let imageURL = document.getElementById("image");
 
-    if (!currentStory) {
-        alert("Please create a story first");
+    let user = JSON.parse(localStorage.getItem("user"));
+
+    // Read current story ID if available
+    let existingId = currentStory && currentStory.id ? currentStory.id : storyId;
+
+    let storyObject = {
+        id: existingId ? existingId : `story_${Date.now()}`,
+        title: story.value,
+        author: user.name,
+        genre: genre.value,
+        status: status.value,
+        description: description.value,
+        imageURL: imageURL.value,
+        nodes: (currentStory && currentStory.nodes) ? currentStory.nodes : [],
+        startNodeId: (currentStory && currentStory.startNodeId) ? currentStory.startNodeId : null
+    };
+
+    let isEditing = Boolean(existingId);
+    let url = isEditing ? `http://localhost:3000/Stories/${storyObject.id}` : "http://localhost:3000/Stories";
+    let httpMethod = isEditing ? "PUT" : "POST";
+
+    let response = await fetch(url, {
+        method: httpMethod,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(storyObject)
+    });
+
+    let savedStory = await response.json();
+
+    // Save in LocalStorage
+    localStorage.setItem("currentStory", JSON.stringify(savedStory));
+    currentStory = savedStory;
+
+    // UPDATE BROWSER URL to include ?id=... so refresh keeps this story active!
+    if (!storyId) {
+        window.history.pushState({}, "", `add_stories.html?id=${savedStory.id}`);
+    }
+
+    alert(isEditing ? "Story updated successfully!" : "Story added successfully!");
+    showNodes(currentStory);
+};
+
+// 3. Handle Node Submit
+let handleNode = async (event) => {
+    event.preventDefault();
+
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+
+    if (!activeStory) {
+        alert("Please save Story Metadata first!");
         return;
     }
 
+    let nodeTitle = document.getElementById("nodeTitle").value;
+    let nodeText = document.getElementById("nodeText").value;
+    let nodeLocation = document.getElementById("nodeLocation").value;
+    let nodeCharacters = document.getElementById("nodeCharacters").value;
+    let isEnding = document.getElementById("isEnding").checked;
+    let endingType = document.getElementById("endingType").value;
 
-    // Get node form values
-    let nodeTitle =
-        document.getElementById("nodeTitle").value;
-
-    let nodeText =
-        document.getElementById("nodeText").value;
-
-    let nodeLocation =
-        document.getElementById("nodeLocation").value;
-
-    let nodeCharacters =
-        document.getElementById("nodeCharacters").value;
-
-    let isEnding =
-        document.getElementById("isEnding").checked;
-
-    let endingType =
-        document.getElementById("endingType").value;
-
-
-    // Create node
     let node = {
-
         id: crypto.randomUUID(),
-
         title: nodeTitle,
-
         text: nodeText,
-
         location: nodeLocation,
-
         characters: nodeCharacters
             .split(",")
             .map(character => character.trim())
             .filter(character => character !== ""),
-
         isEnding: isEnding,
-
-        endingType: isEnding
-            ? endingType
-            : null,
-
+        endingType: isEnding ? endingType : null,
         choices: []
+    };
+
+    activeStory.nodes.push(node);
+
+    if (activeStory.nodes.length === 1) {
+        activeStory.startNodeId = node.id;
     }
 
-
-    // Add node to story
-    currentStory.nodes.push(node)
-
-
-    // If this is the first node,
-    // make it the starting node
-    if (currentStory.nodes.length === 1) {
-
-        currentStory.startNodeId = node.id
-
-    }
-
-
-    // Update story in JSON Server
     let response = await fetch(
-        `http://localhost:3000/Stories/${currentStory.id}`,
+        `http://localhost:3000/Stories/${activeStory.id}`,
         {
             method: "PATCH",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                nodes: currentStory.nodes,
-                startNodeId: currentStory.startNodeId
+                nodes: activeStory.nodes,
+                startNodeId: activeStory.startNodeId
             })
         }
     );
 
-
     if (!response.ok) {
-        alert("Node could not be saved")
+        alert("Node could not be saved");
         return;
     }
 
+    localStorage.setItem("currentStory", JSON.stringify(activeStory));
+    currentStory = activeStory;
 
-    // Update current story in LocalStorage
-    localStorage.setItem(
-        "currentStory",
-        JSON.stringify(currentStory)
-    );
+    alert("Node added successfully");
 
+    document.getElementById("nodeForm").reset();
+    closeNodeModal();
+    showNodes(currentStory);
+};
 
-    alert("Node added successfully")
+// 4. Render Nodes List
+function showNodes(currentStory) {
+    let nodeHidden = document.getElementById("nodeHidden");
+    if (!nodeHidden) return;
 
-    document.getElementById("nodeForm").reset()
+    nodeHidden.innerHTML = "";
 
+    if (currentStory && currentStory.nodes && currentStory.nodes.length > 0) {
+        currentStory.nodes.forEach((element, index) => {
+            nodeHidden.innerHTML += `
+                <div class="node-card">
+                    <h2>Node ${index + 1}</h2>
+                    <h3>${element.title}</h3>
+                    <p>${element.text}</p>
+                    <p>
+                        <strong>Location:</strong>
+                        ${element.location || "Not specified"}
+                    </p>
+                    <button class="danger-btn" onclick="handleDelete(${index})">Delete</button>
+                </div>
+            `;
+        });
+    } else {
+        nodeHidden.innerHTML = `
+            <h3>No Scene Nodes Added</h3>
+            <p>
+                Click "+ Add Scene Node" above
+                to add the initial scene for your story.
+            </p>
+        `;
+    }
 }
+
+// 5. Handle Delete Node
+let handleDelete = async (index) => {
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+
+    activeStory.nodes.splice(index, 1);
+
+    if (activeStory.nodes.length === 0) {
+        activeStory.startNodeId = null;
+    } else {
+        activeStory.startNodeId = activeStory.nodes[0].id;
+    }
+
+    await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            nodes: activeStory.nodes,
+            startNodeId: activeStory.startNodeId
+        })
+    });
+
+    localStorage.setItem("currentStory", JSON.stringify(activeStory));
+    currentStory = activeStory;
+
+    alert("Node deleted");
+    showNodes(currentStory);
+};

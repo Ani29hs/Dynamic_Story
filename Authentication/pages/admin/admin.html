@@ -63,8 +63,11 @@
             </div>
 
             <section id="storiesContainer" class="stories-container">
-              
+              <div id="storyCard">
+                
+            </div>
             </section>
+
         </main>
     </div>
 
@@ -74,15 +77,6 @@
 
 </body>
 </html>
-<script>
+<script src="../../js/admin.js">
 
-    function redirectStory(){
-        window.location.href = "add_stories.html"
-    }
-
-    function handleLogout() {
-        localStorage.removeItem("user");
-        alert("Logged out successfully");
-        window.location.href = "../auth/login.html";
-    }
 </script>
