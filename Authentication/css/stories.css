@@ -15,11 +15,11 @@
     flex-wrap: wrap;
     gap: 16px;
     padding-bottom: 16px;
-    border-bottom: 2px solid var(--color-carbon);
+    border-bottom: 3px solid var(--color-carbon);
 }
 
 .dashboard-title h2 {
-    font-size: 32px;
+    font-size: 33px;
 }
 
 .header-actions {
@@ -124,7 +124,7 @@
     color: var(--color-carbon);
     margin-top: auto;
     padding-top: 12px;
-    border-top: 2px dashed var(--color-concrete-gray);
+    border-top: 3px dashed var(--color-concrete-gray);
 }
 
 .story-actions {
