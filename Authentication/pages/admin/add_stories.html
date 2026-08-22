@@ -1,26 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Story | Dynamic Story Engine</title>
     <!-- Linked CSS files -->
-    <link rel="stylesheet" href="../../css/stories.css">
+    <link rel="stylesheet" href="../../css/stories.css?v=3">
 </head>
+
 <body>
 
     <!-- Marquee Banner Strip -->
     <div class="marquee-strip">
         <div class="marquee-content">
-            ✏️ STORY EDITOR &bull; ADD SCENE VERTICES &bull; CONNECT DIRECTED CHOICE EDGES &bull; MARK ENDINGS &bull;&nbsp;
-            ✏️ STORY EDITOR &bull; ADD SCENE VERTICES &bull; CONNECT DIRECTED CHOICE EDGES &bull; MARK ENDINGS &bull;&nbsp;
+            ✏️ STORY EDITOR &bull; ADD SCENE VERTICES &bull; CONNECT DIRECTED CHOICE EDGES &bull; MARK ENDINGS
+            &bull;&nbsp;
+            ✏️ STORY EDITOR &bull; ADD SCENE VERTICES &bull; CONNECT DIRECTED CHOICE EDGES &bull; MARK ENDINGS
+            &bull;&nbsp;
         </div>
     </div>
 
     <!-- Header Navigation -->
     <header class="navbar">
         <div class="logo">
-            ⚡ <span>STORY EDITOR</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; vertical-align: sub; margin-right: 6px;">
+                <circle cx="4" cy="12" r="3" fill="currentColor"/>
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="18" cy="5" r="2.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="2.5" fill="currentColor"/>
+                <circle cx="18" cy="19" r="2.5" fill="currentColor"/>
+            </svg>
+            <span>STORY ENGINE EDITOR</span>
         </div>
         <ul class="nav-links">
             <li><a href="admin.html" class="nav-pill">&larr; Back to Dashboard</a></li>
@@ -33,7 +46,8 @@
             <div class="editor-header">
                 <div>
                     <h2>CREATE NEW STORY</h2>
-                    <p style="font-weight: 700; color: var(--color-carbon);">Define narrative metadata, scene, choices, and directed graph connections.</p>
+                    <p style="font-weight: 700; color: var(--color-carbon);">Define narrative metadata, scene, choices,
+                        and directed graph connections.</p>
                 </div>
                 <div class="header-actions">
                     <button type="button" class="secondary-btn">Save Draft</button>
@@ -74,7 +88,8 @@
 
                     <div class="form-group">
                         <label for="storyDescr">STORY DESCRIPTION *</label>
-                        <textarea placeholder="Brief synopsis of the interactive adventure..." id="storyDescr" rows="3" required></textarea>
+                        <textarea placeholder="Brief synopsis of the interactive adventure..." id="storyDescr" rows="3"
+                            required></textarea>
                     </div>
 
                     <div class="form-group">
@@ -93,10 +108,12 @@
                 <div class="nodes-header">
                     <div>
                         <h2 style="font-size: 32px;">STORY NODES & SCENE GRAPH</h2>
-                        <p style="font-weight: 700; color: var(--color-carbon);">Scenes represent vertices; choices represent directed edges connecting one scene to another.</p>
+                        <p style="font-weight: 700; color: var(--color-carbon);">Scenes represent vertices; choices
+                            represent directed edges connecting one scene to another.</p>
                     </div>
                     <!-- Button to open the Add Node Modal -->
-                    <button type="button" id="addNodeBtn" onclick="openNodeModal()" class="primary-btn">+ Add Scene Node</button>
+                    <button type="button" id="addNodeBtn" onclick="openNodeModal()" class="primary-btn">+ Add Scene
+                        Node</button>
                 </div>
 
                 <!-- Container where added scene cards will be rendered dynamically -->
@@ -120,15 +137,16 @@
             </div>
             <form id="nodeForm" onsubmit="handleNode(event)">
                 <input type="hidden" id="editingNodeId">
-                
+
                 <div class="form-group">
                     <label for="nodeTitle">Scene Title *</label>
-                    <input type="text" id="nodeTitle"  placeholder="e.g. The Dark Forest" required>
+                    <input type="text" id="nodeTitle" placeholder="e.g. The Dark Forest" required>
                 </div>
 
                 <div class="form-group">
                     <label for="nodeText">Scene Text / Narrative *</label>
-                    <textarea id="nodeText" rows="5"  placeholder="Describe what happens in this scene..." required></textarea>
+                    <textarea id="nodeText" rows="5" placeholder="Describe what happens in this scene..."
+                        required></textarea>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
@@ -163,7 +181,8 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="button" id="cancelNodeBtn" onclick="closeNodeModal()" class="secondary-btn">Cancel</button>
+                    <button type="button" id="cancelNodeBtn" onclick="closeNodeModal()"
+                        class="secondary-btn">Cancel</button>
                     <button type="submit" class="primary-btn">Save Node</button>
                 </div>
             </form>
@@ -177,64 +196,53 @@
 
         <div class="modal-content">
 
-        <div class="modal-header">
-            <h3>ADD CHOICE</h3>
+            <div class="modal-header">
+                <h3>ADD CHOICE</h3>
 
-            <button
-                type="button"
-                class="close-btn"
-                onclick="closeChoiceModal()">
-                &times;
-            </button>
-        </div>
-
-        <form id="choiceForm">
-
-            <!-- Node from which the choice starts -->
-            <input type="hidden" id="sourceNodeId">
-
-            <div class="form-group">
-                <label for="choiceText">
-                    CHOICE TEXT
-                </label>
-
-                <input
-                    type="text"
-                    id="choiceText"
-                    placeholder="e.g. Enter the forest"
-                    required>
-            </div>
-
-            <div class="form-group">
-                <label for="targetNodeId">
-                    TARGET NODE
-                </label>
-
-                <select id="targetNodeId" required>
-                    <option value="">
-                        Select Target Node
-                    </option>
-                </select>
-            </div>
-
-            <div class="form-actions">
-
-                <button
-                    type="button"
-                    class="secondary-btn"
-                    onclick="closeChoiceModal()">
-                    Cancel
+                <button type="button" class="close-btn" onclick="closeChoiceModal()">
+                    &times;
                 </button>
-
-                <button
-                    type="submit"
-                    class="primary-btn" onclick=" handleChoice(event)">
-                    Save Choice
-                </button>
-
             </div>
 
-        </form>
+            <form id="choiceForm">
+
+                <!-- Node from which the choice starts -->
+                <input type="hidden" id="sourceNodeId">
+                <input type="hidden" id="editingChoiceId">
+
+                <div class="form-group">
+                    <label for="choiceText">
+                        CHOICE TEXT
+                    </label>
+
+                    <input type="text" id="choiceText" placeholder="e.g. Enter the forest" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="targetNodeId">
+                        TARGET NODE
+                    </label>
+
+                    <select id="targetNodeId" required>
+                        <option value="">
+                            Select Target Node
+                        </option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+
+                    <button type="button" class="secondary-btn" onclick="closeChoiceModal()">
+                        Cancel
+                    </button>
+
+                    <button type="submit" class="primary-btn" onclick=" handleChoice(event)">
+                        Save Choice
+                    </button>
+
+                </div>
+
+            </form>
 
         </div>
 
@@ -258,9 +266,9 @@
         function toggleEndingGroup(checkbox) {
             const group = document.getElementById('endingTypeGroup');
             if (checkbox.checked) {
-                group.style.display="block"
+                group.style.display = "block"
             } else {
-                group.style.display="none"
+                group.style.display = "none"
             }
         }
 
