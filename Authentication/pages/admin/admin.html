@@ -1,45 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | Dynamic Story Engine</title>
 
     <link rel="stylesheet" href="../../css/admin.css">
-    
+    <script>
+        let user = JSON.parse(localStorage.getItem("user"));
+        if (!user) {
+            window.location.href = "../auth/login.html";
+        } else if (user.role !== "Admin") {
+            window.location.href = "../reader/stories.html";
+        }
+    </script>
 </head>
-<script>
-    let user = JSON.parse(localStorage.getItem("user"));
 
-    if (!user) {
-     
-        window.location.href = "../auth/login.html";
-    }
-    else if (user.role !== "Admin") {
-
-        window.location.href = "../reader/home.html";
-    }
-</script>
 <body>
 
     <!-- Marquee Banner Strip -->
     <div class="marquee-strip">
         <div class="marquee-content">
-            🛠️ ADMIN DASHBOARD &bull; MANAGE STORIES &bull; DIRECTED GRAPH VALIDATOR &bull; NODE SCENE BUILDER &bull;&nbsp;
-            🛠️ ADMIN DASHBOARD &bull; MANAGE STORIES &bull; DIRECTED GRAPH VALIDATOR &bull; NODE SCENE BUILDER &bull;&nbsp;
+            ADMIN DASHBOARD &bull; MANAGE STORIES &bull; DIRECTED GRAPH VALIDATOR &bull; NODE SCENE BUILDER &bull;&nbsp;
+            ADMIN DASHBOARD &bull; MANAGE STORIES &bull; DIRECTED GRAPH VALIDATOR &bull; NODE SCENE BUILDER &bull;&nbsp;
         </div>
     </div>
 
     <!-- Admin Navigation Header -->
     <header class="navbar">
         <div class="logo">
-            ⚡ <span>STORY ENGINE ADMIN</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; vertical-align: sub; margin-right: 6px;">
+                <circle cx="4" cy="12" r="3" fill="currentColor"/>
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="18" cy="5" r="2.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="2.5" fill="currentColor"/>
+                <circle cx="18" cy="19" r="2.5" fill="currentColor"/>
+            </svg>
+            <span>STORY ENGINE ADMIN</span>
         </div>
         <ul class="nav-links">
-            <li><a href="../../Landing.html" class="nav-pill">🏠 Home</a></li>
-            <li><a href="admin.html" class="nav-pill active">🛠️ Dashboard</a></li>
-            <li><a href="../reader/stories.html" class="nav-pill">📖 Reader View</a></li>
-            <li><button onclick="handleLogout()" class="nav-pill logout-btn">🚪 Logout</button></li>
+            <li><a href="../../Landing.html" class="nav-pill">Home</a></li>
+            <li><a href="admin.html" class="nav-pill active">Dashboard</a></li>
+            <li><a href="../reader/stories.html" class="nav-pill">Reader View</a></li>
+            <li id="navAuthContainer">
+                <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
+            </li>
         </ul>
     </header>
 
@@ -50,11 +58,12 @@
             <div class="dashboard-title">
                 <div>
                     <h2>STORY MANAGEMENT DASHBOARD</h2>
-                    <p style="font-weight: 700; color: var(--color-carbon);">Create, edit, validate graph structures, and publish interactive branching stories.</p>
+                    <p style="font-weight: 700; color: var(--color-carbon);">Create, edit, validate graph structures,
+                        and publish interactive branching stories.</p>
                 </div>
                 <div class="header-actions">
-                    <button id="seedSampleBtn" class="secondary-btn">
-                        📥 Restore Sample Story
+                    <button id="seedSampleBtn" class="secondary-btn" onclick="restoreSampleStory()">
+                        Restore Sample Story
                     </button>
                     <button id="createStoryBtn" class="primary-btn" onclick="redirectStory()">
                         + Create New Story
@@ -63,9 +72,6 @@
             </div>
 
             <section id="storiesContainer" class="stories-container">
-              <div id="storyCard">
-                
-            </div>
             </section>
 
         </main>
@@ -75,8 +81,7 @@
         Dynamic Story Engine &bull; Admin Portal &bull; Slush Theme
     </footer>
 
+    <script src="../../js/admin.js"></script>
 </body>
-</html>
-<script src="../../js/admin.js">
 
-</script>
+</html>

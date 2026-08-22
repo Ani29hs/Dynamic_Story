@@ -36,13 +36,18 @@
 
             // alert(`Welcome ${user.name}`)
 
-            localStorage.setItem("user",JSON.stringify(user))
+            if (user.xp === undefined) {
+                user.xp = 100;
+            }
+            if (!user.completedStories) {
+                user.completedStories = [];
+            }
 
-            if(user.role === "Admin"){
-                alert("Welcome Admin")
-                window.location.href = "../admin/admin.html"
-            }else{
-                alert(`Welcome ${user.name}`)
-                window.location.href = "../reader/home.html"
+            localStorage.setItem("user", JSON.stringify(user));
+
+            if (user.role === "Admin") {
+                window.location.href = "../admin/admin.html";
+            } else {
+                window.location.href = "../reader/stories.html";
             }
         }

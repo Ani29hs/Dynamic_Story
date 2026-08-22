@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Story Library | Dynamic Story Engine</title>
+
+    <link rel="stylesheet" href="../../css/reader.css">
+</head>
+
+<body>
+
+    <!-- Rolling Announcement Ticker -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            ⚡ INTERACTIVE STORY LIBRARY &bull; CHOOSE YOUR DESTINY &bull; TRAVERSE BRANCHING PATHS &bull; UNLOCK ENDINGS &bull;&nbsp;
+            ⚡ INTERACTIVE STORY LIBRARY &bull; CHOOSE YOUR DESTINY &bull; TRAVERSE BRANCHING PATHS &bull; UNLOCK ENDINGS &bull;&nbsp;
+        </div>
+    </div>
+
+    <header class="navbar">
+
+        <div class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; vertical-align: sub; margin-right: 6px;">
+                <circle cx="4" cy="12" r="3" fill="currentColor"/>
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="18" cy="5" r="2.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="2.5" fill="currentColor"/>
+                <circle cx="18" cy="19" r="2.5" fill="currentColor"/>
+            </svg>
+            <span>STORY LIBRARY</span>
+        </div>
+
+        <ul class="nav-links">
+            <li><a href="../../Landing.html" class="nav-pill">Home</a></li>
+            <li id="navAuthContainer">
+                <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
+            </li>
+        </ul>
+
+    </header>
+
+
+    <main class="reader-container">
+
+        <div class="library-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; margin-bottom: 32px; border-bottom: 3px solid #000; padding-bottom: 24px;">
+            <div>
+                <h1 style="font-family: var(--font-display); font-size: 38px; margin-bottom: 6px;">BRANCHING ADVENTURES</h1>
+                <p style="font-weight: 700; font-size: 16px;">
+                    Select a story and shape your destiny through your choices.
+                </p>
+            </div>
+
+            <!-- Search & Filter Controls -->
+            <div class="library-controls" style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+                <div style="position: relative;">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search by title or author..." 
+                        onkeyup="filterStories()"
+                        style="padding: 12px 20px 12px 42px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 700; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; width: 280px; background: #fff;"
+                    >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); opacity: 0.6;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+
+                <select 
+                    id="genreFilter" 
+                    onchange="filterStories()"
+                    style="padding: 12px 20px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; background: #fff; cursor: pointer;"
+                >
+                    <option value="all">All Genres</option>
+                    <option value="fantasy">Fantasy</option>
+                    <option value="cyberpunk">Cyberpunk</option>
+                    <option value="mystery">Mystery</option>
+                    <option value="sci-fi">Sci-Fi</option>
+                    <option value="adventure">Adventure</option>
+                    <option value="horror">Horror</option>
+                    <option value="romance">Romance</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+        </div>
+
+
+        <!-- Stories will appear here -->
+
+        <section id="storiesContainer" class="stories-container">
+
+        </section>
+
+
+    </main>
+
+
+    <script src="../../js/reader.js"></script>
+
+</body>
+
+</html>
