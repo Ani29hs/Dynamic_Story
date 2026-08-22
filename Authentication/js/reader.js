@@ -207,7 +207,7 @@ function filterStories() {
                         <button
                             type="button"
                             class="primary-btn"
-                            onclick="startStory('${story.id}')">
+                            onclick="openStoryDetails('${story.id}')">
                             Begin Story Experience →
                         </button>
                     </div>
@@ -228,11 +228,97 @@ function filterStories() {
 
 
 /* =====================================================
-   START STORY
+   STORY DETAIL SHOWCASE MODAL & WORLD PORTAL TRANSITION
 ===================================================== */
 
+function openStoryDetails(storyId) {
+    let story = allPublishedStories.find(s => s.id === storyId);
+    if (!story) return;
+
+    let modal = document.getElementById("storyDetailModal");
+    if (!modal) return;
+
+    let card = modal.querySelector(".story-detail-card");
+    let sceneCount = story.nodes ? story.nodes.length : 0;
+    
+    // Count endings (nodes where isEnding === true)
+    let endingsCount = 0;
+    if (story.nodes && story.nodes.length > 0) {
+        endingsCount = story.nodes.filter(n => n.isEnding).length;
+    }
+    if (endingsCount === 0) endingsCount = 1;
+
+    card.innerHTML = `
+        <img class="detail-cover-img" src="${story.imageURL || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'}" alt="${story.title}">
+        
+        <div class="detail-main-info">
+            <div>
+                <div class="detail-badges-row">
+                    <span class="badge-genre">${(story.genre || "General").toUpperCase()}</span>
+                    <span class="badge-status status-published">PUBLISHED</span>
+                </div>
+                
+                <h1 class="detail-title">${story.title}</h1>
+                <div class="detail-author">✍️ By ${(story.author || "ADMIN").toUpperCase()}</div>
+                
+                <div class="detail-description-box">
+                    ${story.description || "Immerse yourself in a dynamic choose-your-own-adventure experience where your choices determine the story."}
+                </div>
+            </div>
+
+            <div>
+                <div class="detail-stats-grid">
+                    <div class="detail-stat-box yellow">
+                        <div class="detail-stat-num">${sceneCount}</div>
+                        <div class="detail-stat-label">SCENES / NODES</div>
+                    </div>
+                    <div class="detail-stat-box green">
+                        <div class="detail-stat-num">${endingsCount}</div>
+                        <div class="detail-stat-label">UNIQUE ENDINGS</div>
+                    </div>
+                </div>
+
+                <div class="detail-actions-row">
+                    <button type="button" class="enter-world-btn" onclick="enterStoryWorld('${story.id}')">
+                        ⚡ Begin Story Experience →
+                    </button>
+                    <button type="button" class="back-library-btn" onclick="closeStoryDetails()">
+                        ← Back to Library
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    modal.classList.remove("hidden");
+}
+
+function closeStoryDetails(event) {
+    if (event) event.stopPropagation();
+    let modal = document.getElementById("storyDetailModal");
+    if (modal) {
+        modal.classList.add("hidden");
+    }
+}
+
+function enterStoryWorld(storyId) {
+    // Crazy fullscreen warp portal animation transition effect!
+    let portal = document.createElement("div");
+    portal.className = "world-portal-overlay";
+    portal.innerHTML = `
+        <div class="portal-ring"></div>
+        <h2 style="font-family: var(--font-display); font-size: 32px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;">ENTERING STORY WORLD...</h2>
+        <p style="font-weight: 700; font-size: 15px; color: var(--color-sunburst);">Prepare your choices. Shaping reality...</p>
+    `;
+    document.body.appendChild(portal);
+
+    setTimeout(() => {
+        window.location.href = `play.html?id=${storyId}`;
+    }, 650);
+}
+
 function startStory(storyId) {
-    window.location.href = `play.html?id=${storyId}`;
+    openStoryDetails(storyId);
 }
 
 
