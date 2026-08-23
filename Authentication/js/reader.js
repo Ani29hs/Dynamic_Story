@@ -117,8 +117,10 @@ function showToastNotification(title, message, icon = "🎉", duration = 4500) {
     }, duration);
 }
 
+let isToastChecking = false;
 async function checkWelcomeToast() {
-    if (!user || user.role === "Admin") return;
+    if (!user || user.role === "Admin" || isToastChecking) return;
+    isToastChecking = true;
 
     // Check 1: Check if user has a pending pitch acceptance toast from db.json
     if (user.id) {
@@ -183,8 +185,6 @@ let allPublishedStories = [];
 function loadStories() {
     let container = document.getElementById("storiesContainer");
     if (!container) return;
-
-    checkWelcomeToast();
 
     fetch("http://localhost:3000/Stories")
         .then(res => res.json())
