@@ -1137,7 +1137,8 @@ async function submitPitch() {
 
         // Award +20 XP — ONCE PER DAY
         let today = new Date().toISOString().slice(0, 10); // "2026-08-23"
-        let lastXpDay = localStorage.getItem("lastPitchXpDay");
+        let xpKey = "lastPitchXpDay_" + (user ? (user.id || user.email || user.name) : "guest");
+        let lastXpDay = localStorage.getItem(xpKey);
         let xpAwarded = false;
 
         if (lastXpDay !== today && user && user.id) {
@@ -1145,7 +1146,7 @@ async function submitPitch() {
             let updatedXp = currentXp + 20;
             user.xp = updatedXp;
             localStorage.setItem("user", JSON.stringify(user));
-            localStorage.setItem("lastPitchXpDay", today);
+            localStorage.setItem(xpKey, today);
 
             fetch("http://localhost:3000/Users/" + user.id, {
                 method: "PATCH",
