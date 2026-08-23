@@ -50,8 +50,8 @@
                         and directed graph connections.</p>
                 </div>
                 <div class="header-actions">
-                    <button type="button" class="secondary-btn">Save Draft</button>
-                    <button type="button" class="primary-btn">Publish Story</button>
+                    
+                    <button type="button" class="primary-btn" onclick="publishStory()" id="publishStoryBtn">🚀 Publish Story</button>
                 </div>
             </div>
 
@@ -66,6 +66,11 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="author">AUTHOR NAME *</label>
+                            <input type="text" placeholder="e.g. Admin / Detective Reyes" id="author" required>
+                        </div>
+
+                        <div class="form-group">
                             <label for="genre">GENRE *</label>
                             <select id="genre" required>
                                 <option value="">Select Genre</option>
@@ -77,13 +82,7 @@
                             </select>
                         </div>
 
-                        <div class="form-group">
-                            <label for="status">PUBLICATION STATUS</label>
-                            <select id="status">
-                                <option value="draft">Draft (Private)</option>
-                                <option value="published">Published (Available in Library)</option>
-                            </select>
-                        </div>
+
                     </div>
 
                     <div class="form-group">

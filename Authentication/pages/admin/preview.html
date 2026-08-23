@@ -1,0 +1,179 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Story Preview | Dynamic Story Engine</title>
+
+    <link rel="stylesheet" href="../../css/admin.css">
+    <link rel="stylesheet" href="../../css/reader.css">
+    <style>
+        /* Extra responsive refinements for Preview mode */
+        .preview-header-card {
+            background: var(--color-paper-white);
+            border: 3px solid #000;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 6px 6px 0px #000;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .preview-story-info {
+            flex: 1 1 300px;
+            min-width: 0;
+        }
+
+        .preview-story-title {
+            font-family: var(--font-display);
+            font-size: clamp(22px, 3.5vw, 32px);
+            margin-bottom: 4px;
+            word-break: break-word;
+            line-height: 1.1;
+        }
+
+        .preview-controls-box {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            flex: 1 1 280px;
+            min-width: 0;
+        }
+
+        .preview-switch-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 180px;
+            max-width: 100%;
+        }
+
+        .preview-select-input {
+            width: 100%;
+            max-width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #000;
+            border-radius: 100px;
+            font-weight: 700;
+            font-size: 13px;
+            background: var(--color-sky-wash);
+            cursor: pointer;
+            outline: none;
+            box-sizing: border-box;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            box-shadow: 2px 2px 0px #000;
+        }
+
+        .preview-select-input:focus {
+            border-color: var(--color-voltage-violet);
+            box-shadow: 4px 4px 0px #000;
+        }
+
+        .scene-badge-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+
+        @media (max-width: 600px) {
+            .preview-header-card {
+                padding: 18px 16px;
+            }
+
+            .preview-controls-box {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+
+            .preview-controls-box button {
+                width: 100%;
+            }
+
+            .play-card {
+                padding: 24px 18px !important;
+            }
+
+            .scene-badge-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Rolling Announcement Ticker -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            👑 ADMIN STORY PREVIEW &bull; TEST BRANCHING PATHS &bull; VALIDATE SCENE EDGES &bull; SIMULATE READER EXPERIENCE &bull;&nbsp;
+            👑 ADMIN STORY PREVIEW &bull; TEST BRANCHING PATHS &bull; VALIDATE SCENE EDGES &bull; SIMULATE READER EXPERIENCE &bull;&nbsp;
+        </div>
+    </div>
+
+    <!-- Admin Navigation Header -->
+    <header class="navbar">
+        <div class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; vertical-align: sub; margin-right: 6px;">
+                <circle cx="4" cy="12" r="3" fill="currentColor"/>
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="18" cy="5" r="2.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="2.5" fill="currentColor"/>
+                <circle cx="18" cy="19" r="2.5" fill="currentColor"/>
+            </svg>
+            <span>ADMIN PREVIEW</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="admin.html" class="nav-pill">← Back to Dashboard</a></li>
+            <li><button id="editStoryBtn" class="nav-pill" style="background: var(--color-sunburst); font-weight: 800; cursor: pointer;">✏️ Edit in Builder</button></li>
+            <li id="navAuthContainer">
+                <!-- User Profile Dropdown Menu will be dynamically injected here -->
+            </li>
+        </ul>
+    </header>
+
+    <main class="reader-container" style="padding: 24px 16px; box-sizing: border-box; width: 100%; max-width: 1000px; margin: 20px auto;">
+        <!-- Story Top Info Header -->
+        <section id="storyHeader" style="margin-bottom: 24px; width: 100%;">
+            <!-- Dynamically injected -->
+        </section>
+
+        <!-- Current Scene Card & Choices -->
+        <section id="sceneContainer" style="width: 100%;">
+            <!-- Dynamically injected -->
+        </section>
+
+        <section id="choicesContainer" style="width: 100%;">
+            <!-- Dynamically injected -->
+        </section>
+
+        <div id="traversalPath" style="margin-top: 24px; width: 100%;">
+            <!-- Path history badge steps -->
+        </div>
+    </main>
+
+    <footer>
+        Dynamic Story Engine &bull; Admin Story Preview Mode
+    </footer>
+
+    <script src="../../js/preview.js"></script>
+</body>
+
+</html>

@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Story Library | Dynamic Story Engine</title>
-
     <link rel="stylesheet" href="../../css/reader.css">
 </head>
 
@@ -21,7 +19,6 @@
     </div>
 
     <header class="navbar">
-
         <div class="logo">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: inline-block; vertical-align: sub; margin-right: 6px;">
                 <circle cx="4" cy="12" r="3" fill="currentColor"/>
@@ -34,45 +31,43 @@
             </svg>
             <span>STORY LIBRARY</span>
         </div>
-
         <ul class="nav-links">
             <li><a href="../../Landing.html" class="nav-pill">Home</a></li>
             <li id="navAuthContainer">
                 <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
             </li>
         </ul>
-
     </header>
-
 
     <main class="reader-container">
 
-        <div class="library-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; margin-bottom: 32px; border-bottom: 3px solid #000; padding-bottom: 24px;">
-            <div>
-                <h1 style="font-family: var(--font-display); font-size: 38px; margin-bottom: 6px;">BRANCHING ADVENTURES</h1>
-                <p style="font-weight: 700; font-size: 16px;">
-                    Select a story and shape your destiny through your choices.
-                </p>
+        <!-- ── View Toggle Tabs ──────────────────────────── -->
+        <div style="display: flex; gap: 12px; margin-bottom: 32px; border-bottom: 3px solid #000; padding-bottom: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" id="tabLibrary" onclick="switchReaderTab('library')"
+                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #000; color: #fff; box-shadow: 3px 3px 0px #555; cursor: pointer;">
+                    📚 Story Library
+                </button>
+                <button type="button" id="tabPitch" onclick="switchReaderTab('pitch')"
+                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
+                    ✍️ Submit a Pitch
+                </button>
+                <button type="button" id="tabMyPitches" onclick="switchReaderTab('mypitches')"
+                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
+                    📋 My Pitches
+                </button>
             </div>
 
-            <!-- Search & Filter Controls -->
-            <div class="library-controls" style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
+            <!-- Search & Filter (only visible on library tab) -->
+            <div id="libraryControls" style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
                 <div style="position: relative;">
-                    <input 
-                        type="text" 
-                        id="searchInput" 
-                        placeholder="Search by title or author..." 
+                    <input type="text" id="searchInput" placeholder="Search by title or author..."
                         onkeyup="filterStories()"
-                        style="padding: 12px 20px 12px 42px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 700; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; width: 280px; background: #fff;"
-                    >
+                        style="padding: 12px 20px 12px 42px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 700; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; width: 260px; background: #fff;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); opacity: 0.6;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 </div>
-
-                <select 
-                    id="genreFilter" 
-                    onchange="filterStories()"
-                    style="padding: 12px 20px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; background: #fff; cursor: pointer;"
-                >
+                <select id="genreFilter" onchange="filterStories()"
+                    style="padding: 12px 20px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; background: #fff; cursor: pointer;">
                     <option value="all">All Genres</option>
                     <option value="fantasy">Fantasy</option>
                     <option value="cyberpunk">Cyberpunk</option>
@@ -86,17 +81,89 @@
             </div>
         </div>
 
+        <!-- ── Tab: Story Library ────────────────────────── -->
+        <div id="viewLibrary">
+            <section id="storiesContainer" class="stories-container"></section>
+        </div>
 
-        <!-- Stories will appear here -->
+        <!-- ── Tab: Submit a Pitch ───────────────────────── -->
+        <div id="viewPitch" style="display:none;">
+            <div style="max-width: 620px; margin: 0 auto;">
 
-        <section id="storiesContainer" class="stories-container">
+                <!-- Header -->
+                <div style="margin-bottom: 32px;">
+                    <h1 style="font-family: var(--font-display); font-size: 36px; margin: 0 0 8px;">✍️ PITCH A STORY</h1>
+                    <p style="font-weight: 700; color: #555; font-size: 15px; line-height: 1.6;">
+                        Got a story idea? Submit your pitch — the admin will review it and might build it into a full interactive adventure!
+                    </p>
+                    <div id="pitchXpBadge" style="display: inline-flex; align-items: center; gap: 8px; background: #ffde59; border: 2.5px solid #000; border-radius: 100px; padding: 6px 18px; margin-top: 12px; box-shadow: 3px 3px 0px #000;">
+                        <span style="font-weight: 900; font-size: 14px;">⭐ +20 XP</span>
+                        <span style="font-size: 12px; font-weight: 700; color: #555;">once per day</span>
+                    </div>
+                </div>
 
-        </section>
+                <!-- Alert banners -->
+                <div id="pitchFormError" style="display:none; background:#fff0f0; border: 2.5px solid #e00; border-radius: 14px; padding: 12px 18px; font-weight: 700; color: #c00; margin-bottom: 20px; font-size: 14px;"></div>
+                <div id="pitchFormSuccess" style="display:none; background:#f0fff4; border: 2.5px solid #22c55e; border-radius: 14px; padding: 12px 18px; font-weight: 700; color: #166534; margin-bottom: 20px; font-size: 14px;"></div>
 
+                <!-- Form card -->
+                <div style="background: #fff; border: 2.5px solid #000; border-radius: 24px; box-shadow: 6px 6px 0px #000; padding: 36px; display: flex; flex-direction: column; gap: 20px;">
+
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 8px; letter-spacing: 0.5px;">STORY TITLE *</label>
+                        <input type="text" id="pitchTitle" placeholder="e.g. The Last Oracle of Ashveil" maxlength="80"
+                            style="width: 100%; padding: 14px 18px; border: 2.5px solid #000; border-radius: 14px; font-family: var(--font-ui); font-weight: 700; font-size: 15px; box-sizing: border-box; outline: none; transition: box-shadow 0.15s;"
+                            onfocus="this.style.boxShadow='4px 4px 0px #000'" onblur="this.style.boxShadow='none'">
+                    </div>
+
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 8px; letter-spacing: 0.5px;">GENRE</label>
+                        <select id="pitchGenre"
+                            style="width: 100%; padding: 14px 18px; border: 2.5px solid #000; border-radius: 14px; font-family: var(--font-ui); font-weight: 800; font-size: 15px; box-sizing: border-box; outline: none; background: #fff; cursor: pointer;">
+                            <option value="fantasy">🧙 Fantasy</option>
+                            <option value="mystery">🔍 Mystery</option>
+                            <option value="horror">👻 Horror</option>
+                            <option value="adventure">⚔️ Adventure</option>
+                            <option value="sci-fi">🚀 Sci-Fi</option>
+                            <option value="cyberpunk">🤖 Cyberpunk</option>
+                            <option value="romance">💌 Romance</option>
+                            <option value="general">📖 General</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 8px; letter-spacing: 0.5px;">YOUR PITCH *</label>
+                        <textarea id="pitchDescription" placeholder="Paint the picture — who is the main character, what world are they in, and what impossible choice do they face? (min 20 characters)" maxlength="600" rows="6"
+                            oninput="document.getElementById('pitchCharCount').textContent = this.value.length + ' / 600'"
+                            style="width: 100%; padding: 14px 18px; border: 2.5px solid #000; border-radius: 14px; font-family: var(--font-ui); font-weight: 600; font-size: 14px; box-sizing: border-box; outline: none; resize: vertical; line-height: 1.7; transition: box-shadow 0.15s;"
+                            onfocus="this.style.boxShadow='4px 4px 0px #000'" onblur="this.style.boxShadow='none'"></textarea>
+                        <div id="pitchCharCount" style="text-align: right; font-size: 12px; font-weight: 800; color: #999; margin-top: 6px;">0 / 600</div>
+                    </div>
+
+                    <button type="button" onclick="submitPitch()" id="pitchSubmitBtn"
+                        style="width: 100%; padding: 16px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-display); font-size: 18px; background: #ffde59; box-shadow: 5px 5px 0px #000; cursor: pointer; font-weight: 900; transition: transform 0.12s, box-shadow 0.12s; letter-spacing: 0.5px;"
+                        onmouseover="this.style.transform='translate(-2px,-2px)'; this.style.boxShadow='7px 7px 0px #000';"
+                        onmouseout="this.style.transform=''; this.style.boxShadow='5px 5px 0px #000';">
+                        🚀 SUBMIT MY PITCH
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Tab: My Pitches ───────────────────────────── -->
+        <div id="viewMyPitches" style="display:none;">
+            <div style="margin-bottom: 28px;">
+                <h1 style="font-family: var(--font-display); font-size: 36px; margin: 0 0 8px;">📋 MY PITCHES</h1>
+                <p style="font-weight: 700; color: #555; font-size: 15px;">Track all your submitted story ideas and see admin feedback.</p>
+            </div>
+            <div id="myPitchesContainer" style="display: flex; flex-direction: column; gap: 16px;">
+                <p style="font-weight: 700; color: #888;">Loading your pitches...</p>
+            </div>
+        </div>
 
     </main>
 
-    <!-- Story Detail Showcase Modal (Matching Screenshot 2) -->
+    <!-- Story Detail Showcase Modal -->
     <div id="storyDetailModal" class="story-detail-modal-overlay hidden" onclick="closeStoryDetails(event)">
         <div class="story-detail-card" onclick="event.stopPropagation()">
             <!-- JS dynamically injects story details -->

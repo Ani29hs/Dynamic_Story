@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -44,7 +44,6 @@
         <ul class="nav-links">
             <li><a href="../../Landing.html" class="nav-pill">Home</a></li>
             <li><a href="admin.html" class="nav-pill active">Dashboard</a></li>
-            <li><a href="../reader/stories.html" class="nav-pill">Reader View</a></li>
             <li id="navAuthContainer">
                 <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
             </li>
@@ -71,10 +70,58 @@
                 </div>
             </div>
 
+            <!-- Tab Switcher -->
+            <div id="adminTabs" style="display: flex; gap: 12px; margin-bottom: 28px;">
+                <button type="button" id="tabStories" onclick="switchTab('stories')"
+                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #000; color: #fff; box-shadow: 3px 3px 0px #555; cursor: pointer;">
+                    📚 Stories
+                </button>
+                <button type="button" id="tabPitches" onclick="switchTab('pitches')"
+                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
+                    ✍️ Reader Pitches
+                </button>
+            </div>
+
+            <!-- Stories Tab -->
             <section id="storiesContainer" class="stories-container">
             </section>
 
+            <!-- Reader Pitches Tab -->
+            <section id="pitchesContainer" style="display:none; flex-direction: column; gap: 16px;">
+            </section>
+
         </main>
+    </div>
+
+        <!-- Story Description Showcase Modal -->
+    <div id="descriptionModal" onclick="if(event.target===this)closeDescriptionModal()" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(6px); align-items: center; justify-content: center; z-index: 2000; padding: 20px;">
+        <div class="story-detail-card" onclick="event.stopPropagation()" style="background: #fff; border: 3px solid #000; border-radius: 24px; box-shadow: 8px 8px 0px #000; max-width: 820px; width: 95%; display: grid; grid-template-columns: 280px 1fr; gap: 0; overflow: hidden; position: relative;">
+            <button type="button" onclick="closeDescriptionModal()" style="position: absolute; top: 14px; right: 16px; background: #fff; border: 2px solid #000; border-radius: 50%; width: 34px; height: 34px; font-weight: 900; cursor: pointer; z-index: 10; font-size: 16px; display: flex; align-items: center; justify-content: center;">✕</button>
+            <div style="background: #000; height: 100%; min-height: 340px;">
+                <img id="modalCover" src="" alt="Cover" style="width: 100%; height: 100%; object-fit: cover; display: block;" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'">
+            </div>
+            <div style="padding: 32px; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; max-height: 80vh;">
+                <div>
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                        <span id="modalGenre" class="badge-genre">FANTASY</span>
+                        <span id="modalStatus" class="badge-status status-published">PUBLISHED</span>
+                    </div>
+                    <h2 id="modalTitle" style="font-family: var(--font-display); font-size: 26px; margin: 0 0 6px;">Story Title</h2>
+                    <div id="modalAuthor" class="author-tag" style="margin-bottom: 16px; color: #5c4ade; font-weight: 800; font-size: 13px;">BY ADMIN</div>
+                    <div id="modalDescription" style="font-size: 14px; color: #333; line-height: 1.7; white-space: pre-line; max-height: 220px; overflow-y: auto; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 16px; font-weight: 500;"></div>
+                </div>
+                <div>
+                    <div class="stat-lockup-box" style="margin-bottom: 16px; background: #ffde59; border: 2px solid #000; border-radius: 12px; padding: 10px 16px; box-shadow: 3px 3px 0px #000; display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span><strong id="modalSceneCount">0</strong> SCENES / NODES</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" id="modalEditBtn" class="primary-btn" style="padding: 10px 22px; font-size: 13px; font-weight: 800; border-radius: 100px;">✏️ Edit Story</button>
+                        <button type="button" onclick="closeDescriptionModal()" class="secondary-btn" style="padding: 10px 22px; font-size: 13px; font-weight: 800; border-radius: 100px; background: #fff;">← Back to Dashboard</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <footer>

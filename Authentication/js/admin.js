@@ -1,4 +1,4 @@
-function redirectStory() {
+﻿function redirectStory() {
     window.location.href = "add_stories.html";
 }
 
@@ -69,9 +69,9 @@ function renderAdminProfileHeader() {
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                         Admin Dashboard
                     </a>
-                    <a href="../reader/stories.html" class="dropdown-item">
+                    <a href="preview.html" class="dropdown-item">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                        Reader View
+                        Story Preview
                     </a>
                     <hr style="border: 0; border-top: 2px solid #000; margin: 6px 0;">
                     <button type="button" class="dropdown-item logout-item" onclick="handleLogout()">
@@ -109,6 +109,7 @@ async function loadStories() {
     if (!response.ok) return;
 
     let stories = await response.json();
+    currentAdminStories = stories;
     let container = document.getElementById("storiesContainer");
 
     if (!container) return;
@@ -132,11 +133,16 @@ async function loadStories() {
         stories.forEach((element) => {
             let nodeCount = element.nodes ? element.nodes.length : 0;
             let statusClass = element.status === "published" ? "status-published" : "status-draft";
-            let statusText = element.status === "published" ? "PUBLISHED" : "DRAFT";
+            let statusText = element.status === "published" ? "🌐 PUBLISHED" : "🔒 DRAFT (PRIVATE)";
 
             let coverImg = element.imageURL || element.coverImage
                 ? `<img src="${element.imageURL || element.coverImage}" alt="${element.title}" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'">`
                 : `<div class="no-image" style="display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 800; color: #666;">No Cover Image</div>`;
+
+            let rawDesc = element.description || "No description provided.";
+            let isLong = rawDesc.length > 110;
+            let truncatedDesc = isLong ? rawDesc.substring(0, 110) + "..." : rawDesc;
+            let readMoreBtnHtml = isLong ? ` <button type="button" class="view-more-btn" onclick="openDescriptionModal('${element.id}')">Read More &rarr;</button>` : ``;
 
             container.innerHTML += `
                 <div class="story-card">
@@ -150,22 +156,21 @@ async function loadStories() {
                         </div>
                         <h3>${element.title || "Untitled Story"}</h3>
                         <div class="author-tag" style="margin-bottom: 10px;">BY ${(element.author || "ADMIN").toUpperCase()}</div>
-                        <p class="story-description">
-                            ${element.description || "No description provided."}
-                        </p>
+                        <p class="story-description">${truncatedDesc}${readMoreBtnHtml}</p>
                         <div class="stat-lockup-box">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                             <span><strong>${nodeCount}</strong> SCENES / NODES</span>
                         </div>
                     </div>
                     <div class="story-actions">
-                        <button class="secondary-btn" onclick="editStory('${element.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                            Edit Story
+                        <button type="button" class="btn-edit" onclick="editStory('${element.id}')">
+                            ✏️ Edit
                         </button>
-                        <button class="danger-btn delete-btn" onclick="deleteStory('${element.id}')">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            Delete
+                        <button type="button" class="btn-preview" onclick="previewStory('${element.id}')">
+                            👁️ Preview
+                        </button>
+                        <button type="button" class="btn-delete" onclick="deleteStory('${element.id}')">
+                            🗑️ Delete
                         </button>
                     </div>
                 </div>
@@ -306,3 +311,257 @@ async function restoreSampleStory() {
 // Initial load
 document.addEventListener("DOMContentLoaded", loadStories);
 loadStories();
+
+
+/* =====================================================
+   DESCRIPTION MODAL POPUP FOR ADMIN
+===================================================== */
+let currentAdminStories = [];
+
+function openDescriptionModal(storyId) {
+    let story = currentAdminStories.find(s => String(s.id) === String(storyId));
+    if (!story) return;
+
+    let modal = document.getElementById("descriptionModal");
+    if (!modal) return;
+
+    let sceneCount = story.nodes ? (Array.isArray(story.nodes) ? story.nodes.length : Object.keys(story.nodes).length) : 0;
+
+    let modalTitle = document.getElementById("modalTitle");
+    let modalAuthor = document.getElementById("modalAuthor");
+    let modalGenre = document.getElementById("modalGenre");
+    let modalStatus = document.getElementById("modalStatus");
+    let modalDescription = document.getElementById("modalDescription");
+    let modalCover = document.getElementById("modalCover");
+    let modalSceneCount = document.getElementById("modalSceneCount");
+    let modalEditBtn = document.getElementById("modalEditBtn");
+
+    if (modalTitle) modalTitle.textContent = story.title || "Untitled";
+    if (modalAuthor) modalAuthor.textContent = "BY " + (story.author || "ADMIN").toUpperCase();
+    if (modalGenre) modalGenre.textContent = (story.genre || "GENERAL").toUpperCase();
+    if (modalStatus) {
+        modalStatus.textContent = (story.status || "DRAFT").toUpperCase();
+        modalStatus.className = "badge-status " + (story.status === "published" ? "status-published" : "status-draft");
+    }
+    if (modalDescription) {
+        modalDescription.textContent = story.description || "No description provided.";
+        modalDescription.style.display = "block";
+    }
+    if (modalCover) modalCover.src = story.imageURL || story.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
+    if (modalSceneCount) modalSceneCount.textContent = sceneCount;
+
+    if (modalEditBtn) modalEditBtn.onclick = () => { closeDescriptionModal(); editStory(story.id); };
+
+    modal.style.display = "flex";
+}
+
+
+
+
+
+/* =====================================================
+   ADMIN TABS: Stories vs Reader Pitches
+===================================================== */
+
+function switchTab(tab) {
+    let storiesSection = document.getElementById("storiesContainer");
+    let pitchesSection = document.getElementById("pitchesContainer");
+    let tabStories = document.getElementById("tabStories");
+    let tabPitches = document.getElementById("tabPitches");
+
+    if (tab === "stories") {
+        storiesSection.style.display = "";
+        pitchesSection.style.display = "none";
+        tabStories.style.background = "#000";
+        tabStories.style.color = "#fff";
+        tabPitches.style.background = "#fff";
+        tabPitches.style.color = "#000";
+    } else {
+        storiesSection.style.display = "none";
+        pitchesSection.style.display = "flex";
+        tabStories.style.background = "#fff";
+        tabStories.style.color = "#000";
+        tabPitches.style.background = "#000";
+        tabPitches.style.color = "#fff";
+        loadReaderPitches();
+    }
+}
+
+async function loadReaderPitches() {
+    let container = document.getElementById("pitchesContainer");
+    if (!container) return;
+    container.innerHTML = '<p style="font-weight: 700; color: #888; padding: 16px;">Loading pitches...</p>';
+
+    try {
+        let res = await fetch("http://localhost:3000/ReaderStories");
+        let rawPitches = res.ok ? await res.json() : [];
+        // Filter out pitches hidden from admin queue
+        let pitches = rawPitches.filter(p => !p.adminHidden);
+
+        if (pitches.length === 0) {
+            container.innerHTML = '<div style="border: 3px dashed #000; border-radius: 24px; padding: 48px; text-align: center; background: #fff; box-shadow: 6px 6px 0px #000;"><h2 style="font-family: var(--font-display);">NO PITCHES YET</h2><p style="font-weight: 700;">No pending or active story pitches in your queue.</p></div>';
+            return;
+        }
+
+        container.innerHTML = pitches.map(p => {
+            let isPending = !p.status || p.status === "pending";
+            let isDecided = p.status === "approved" || p.status === "rejected";
+            let statusColor = p.status === "approved" ? "#39d39f" : p.status === "rejected" ? "#ff6b6b" : "#ffde59";
+            let statusText = (p.status || "pending").toUpperCase();
+            let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
+
+            let actionsHtml = "";
+            if (isPending) {
+                actionsHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 130px;">
+                        <button onclick="updatePitchStatus('${p.id}', 'approved')" style="padding: 8px 16px; border: 2px solid #000; border-radius: 100px; background: #39d39f; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">✅ Approve</button>
+                        <button onclick="updatePitchStatus('${p.id}', 'rejected')" style="padding: 8px 16px; border: 2px solid #000; border-radius: 100px; background: #ff6b6b; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">✕ Reject</button>
+                        <button onclick="deletePitch('${p.id}')" style="padding: 8px 16px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">🗑 Remove</button>
+                    </div>
+                `;
+            } else {
+                let existingComment = p.adminComment || "";
+                actionsHtml = `
+                    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 200px; max-width: 240px;">
+                        <label style="font-weight: 800; font-size: 12px; color: #555;">📝 ADMIN COMMENT</label>
+                        <textarea id="comment_${p.id}" placeholder="e.g. Will consider, Great idea!, Needs more detail..." rows="3" style="padding: 10px 12px; border: 2px solid #000; border-radius: 12px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; resize: none; outline: none; line-height: 1.5;">${existingComment}</textarea>
+                        <button onclick="saveAdminComment('${p.id}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">💾 Save Comment</button>
+                        <button onclick="deletePitch('${p.id}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">🗑 Remove</button>
+                    </div>
+                `;
+            }
+
+            let commentDisplayHtml = (isDecided && p.adminComment) ? `
+                <div style="margin-top: 10px; background: #f8f8f8; border: 1.5px solid #ddd; border-radius: 100px; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #444;">
+                    💬 <em>${p.adminComment}</em>
+                </div>
+            ` : "";
+
+            return `
+                <div style="background: #fff; border: 2.5px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 4px 4px 0px #000; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
+                            <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800;">${(p.genre || "general").toUpperCase()}</span>
+                            <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800;">${statusText}</span>
+                        </div>
+                        <h3 style="font-family: var(--font-display); font-size: 20px; margin: 0 0 8px;">${p.title}</h3>
+                        <p style="font-size: 13px; color: #444; font-weight: 600; margin: 0 0 8px; line-height: 1.6;">${p.description}</p>
+                        <div style="font-size: 12px; font-weight: 700; color: #666;">
+                            By <strong>${p.submittedBy || "Unknown"}</strong>${dateStr ? " &bull; " + dateStr : ""}
+                        </div>
+                        ${commentDisplayHtml}
+                    </div>
+                    ${actionsHtml}
+                </div>
+            `;
+        }).join("");
+    } catch(e) {
+        container.innerHTML = '<p style="font-weight: 700; color: red; padding: 16px;">Error loading pitches. Make sure json-server is running.</p>';
+    }
+}
+
+async function updatePitchStatus(pitchId, status) {
+    let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: status })
+    });
+    if (res.ok) {
+        loadReaderPitches();
+    } else {
+        alert("Failed to update pitch status.");
+    }
+}
+
+async function saveAdminComment(pitchId) {
+    let textarea = document.getElementById("comment_" + pitchId);
+    if (!textarea) return;
+    let comment = textarea.value.trim();
+
+    let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adminComment: comment })
+    });
+    if (res.ok) {
+        loadReaderPitches();
+    } else {
+        alert("Failed to save comment.");
+    }
+}
+
+async function deletePitch(pitchId) {
+    if (!confirm("Remove this pitch from your admin queue? (The reader will still see it marked as REJECTED).")) return;
+
+    let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            status: "rejected",
+            adminComment: "Pitch rejected by admin.",
+            adminHidden: true
+        })
+    });
+
+    if (res.ok) {
+        loadReaderPitches();
+    } else {
+        alert("Failed to remove pitch.");
+    }
+
+
+}
+
+/* =====================================================
+   MODAL & NAVIGATION UTILITIES
+===================================================== */
+
+window.openDescriptionModal = function(storyId) {
+    let story = currentAdminStories.find(s => String(s.id) === String(storyId));
+    if (!story) return;
+
+    let modal = document.getElementById("descriptionModal");
+    if (!modal) return;
+
+    let sceneCount = story.nodes ? (Array.isArray(story.nodes) ? story.nodes.length : Object.keys(story.nodes).length) : 0;
+
+    let modalTitle = document.getElementById("modalTitle");
+    let modalAuthor = document.getElementById("modalAuthor");
+    let modalGenre = document.getElementById("modalGenre");
+    let modalStatus = document.getElementById("modalStatus");
+    let modalDescription = document.getElementById("modalDescription");
+    let modalCover = document.getElementById("modalCover");
+    let modalSceneCount = document.getElementById("modalSceneCount");
+    let modalEditBtn = document.getElementById("modalEditBtn");
+
+    if (modalTitle) modalTitle.textContent = story.title || "Untitled";
+    if (modalAuthor) modalAuthor.textContent = "BY " + (story.author || "ADMIN").toUpperCase();
+    if (modalGenre) modalGenre.textContent = (story.genre || "GENERAL").toUpperCase();
+    if (modalStatus) {
+        modalStatus.textContent = (story.status || "DRAFT").toUpperCase();
+        modalStatus.className = "badge-status " + (story.status === "published" ? "status-published" : "status-draft");
+    }
+    if (modalDescription) modalDescription.textContent = story.description || "No description provided.";
+    if (modalCover) modalCover.src = story.imageURL || story.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
+    if (modalSceneCount) modalSceneCount.textContent = sceneCount;
+
+    if (modalEditBtn) {
+        modalEditBtn.onclick = function() {
+            window.closeDescriptionModal();
+            editStory(story.id);
+        };
+    }
+
+    modal.style.display = "flex";
+};
+
+window.closeDescriptionModal = function() {
+    let modal = document.getElementById("descriptionModal");
+    if (modal) {
+        modal.style.display = "none";
+    }
+};
+
+window.previewStory = function(storyId) {
+    window.location.href = "preview.html?id=" + storyId;
+};

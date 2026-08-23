@@ -26,6 +26,7 @@ async function initPage() {
 
                 // Populate metadata form
                 if (document.getElementById("story")) document.getElementById("story").value = currentStory.title || "";
+                if (document.getElementById("author")) document.getElementById("author").value = currentStory.author || "";
                 if (document.getElementById("genre")) document.getElementById("genre").value = currentStory.genre || "";
                 if (document.getElementById("status")) document.getElementById("status").value = currentStory.status || "draft";
                 if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = currentStory.description || "";
@@ -65,24 +66,25 @@ let handleStory = async (event) => {
     event.preventDefault();
 
     let story = document.getElementById("story");
+    let authorEl = document.getElementById("author");
     let genre = document.getElementById("genre");
-    let status = document.getElementById("status");
     let description = document.getElementById("storyDescr");
     let imageURL = document.getElementById("image");
-
     let user = JSON.parse(localStorage.getItem("user"));
 
-    // Read current story ID if available
     let existingId = currentStory && currentStory.id ? currentStory.id : storyId;
+
+    // Saving metadata defaults to draft (private)
+    let currentStatus = (currentStory && currentStory.status === "published") ? "published" : "draft";
 
     let storyObject = {
         id: existingId ? existingId : `story_${Date.now()}`,
-        title: story.value,
-        author: user.name,
-        genre: genre.value,
-        status: status.value,
-        description: description.value,
-        imageURL: imageURL.value,
+        title: story ? story.value : "Untitled",
+        author: (authorEl && authorEl.value.trim()) ? authorEl.value.trim() : (user ? user.name : "Admin"),
+        genre: genre ? genre.value : "general",
+        status: currentStatus,
+        description: description ? description.value : "",
+        imageURL: imageURL ? imageURL.value : "",
         nodes: (currentStory && currentStory.nodes) ? currentStory.nodes : [],
         startNodeId: (currentStory && currentStory.startNodeId) ? currentStory.startNodeId : null
     };
@@ -98,18 +100,10 @@ let handleStory = async (event) => {
     });
 
     let savedStory = await response.json();
-
-    // Save in LocalStorage
-    localStorage.setItem("currentStory", JSON.stringify(savedStory));
     currentStory = savedStory;
+    localStorage.setItem("currentStory", JSON.stringify(savedStory));
 
-    // UPDATE BROWSER URL to include ?id=... so refresh keeps this story active!
-    if (!storyId) {
-        window.history.pushState({}, "", `add_stories.html?id=${savedStory.id}`);
-    }
-
-    alert(isEditing ? "Story updated successfully!" : "Story added successfully!");
-    showNodes(currentStory);
+    alert("💾 Story metadata saved as " + (currentStatus === "published" ? "PUBLISHED!" : "DRAFT (Private)!"));
 };
 
 // 3. Handle Node Submit
@@ -792,7 +786,12 @@ let handleChoice = async (event) => {
         document.getElementById("editingChoiceId").value;
 
     let choiceText =
-        document.getElementById("choiceText").value;
+        document.getElementById("choiceText").value.trim();
+
+    if (!choiceText) {
+        alert("Choice text cannot be empty. Please enter a choice.");
+        return;
+    }
 
     let targetNodeId =
         document.getElementById("targetNodeId").value;
@@ -884,3 +883,46 @@ let handleChoice = async (event) => {
 
     showNodes(currentStory);
 };
+
+/* =====================================================
+   PUBLISH STORY FUNCTION
+===================================================== */
+
+
+async function publishStory() {
+    let existingId = (currentStory && currentStory.id) ? currentStory.id : storyId;
+
+    let storyInput = document.getElementById("story");
+    let titleVal = storyInput ? storyInput.value.trim() : "";
+
+    if (!existingId && !titleVal) {
+        alert("⚠️ Cannot Publish! Please fill out and save Story Metadata first.");
+        return;
+    }
+
+    // Check node requirement — MUST have at least 1 node
+    let currentNodes = (currentStory && currentStory.nodes) ? (Array.isArray(currentStory.nodes) ? currentStory.nodes : Object.keys(currentStory.nodes)) : [];
+    if (currentNodes.length === 0) {
+        alert("⚠️ Cannot Publish Story! You must add at least 1 Scene Node before publishing.");
+        return;
+    }
+
+    try {
+        let response = await fetch("http://localhost:3000/Stories/" + (existingId || currentStory.id), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "published" })
+        });
+
+        if (response.ok) {
+            let updated = await response.json();
+            currentStory = updated;
+            localStorage.setItem("currentStory", JSON.stringify(currentStory));
+            alert("🎉 Story Published Successfully! It is now live in the Story Library.");
+        } else {
+            alert("Could not publish story. Please try again.");
+        }
+    } catch (e) {
+        alert("Error connecting to server to publish story.");
+    }
+}

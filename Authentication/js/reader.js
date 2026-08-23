@@ -1,4 +1,4 @@
-let user = null;
+﻿let user = null;
 try {
     user = JSON.parse(localStorage.getItem("user"));
     if (user) {
@@ -12,7 +12,7 @@ try {
 }
 
 // Reader must be logged in
-if (!user ) {
+if (!user || user.role !== "Reader") {
     window.location.href = "../auth/login.html";
 }
 
@@ -119,17 +119,17 @@ function showToastNotification(title, message, icon = "🎉", duration = 4500) {
 
 function checkWelcomeToast() {
     if (!user || user.role === "Admin") return;
-    
+
     let userKey = "welcome_toast_shown_" + (user.id || user.email || user.name);
-    
+
     // Only show ONCE for a brand NEW user account (stored in localStorage)
     if (!localStorage.getItem(userKey)) {
         localStorage.setItem(userKey, "true");
         let activeXp = (user.xp !== undefined) ? user.xp : 100;
         setTimeout(() => {
             showToastNotification(
-                "WELCOME EXPLORER!", 
-                `Welcome, ${user.name || 'Reader'}! You earned +${activeXp} XP starting bonus! ⭐`, 
+                "WELCOME EXPLORER!",
+                `Welcome, ${user.name || 'Reader'}! You earned +${activeXp} XP starting bonus! ⭐`,
                 "🎉"
             );
         }, 400);
@@ -199,7 +199,7 @@ function filterStories() {
                         </div>
                         <h2>${story.title}</h2>
                         <div class="author-tag" style="margin-bottom: 10px; font-weight: 800; color: var(--color-voltage-violet);">✍️ BY ${(story.author || "ADMIN").toUpperCase()}</div>
-                        <p>${story.description || ""}</p>
+                        <p class="story-description">${(story.description || "").length > 110 ? (story.description || "").substring(0, 110) + '... <button type="button" class="view-more-btn" onclick="openStoryDetails(\'' + story.id + '\')">Read More &rarr;</button>' : (story.description || "")}</p>
                         <div class="stat-lockup-box" style="margin-bottom: 20px;">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                             <span><strong>${sceneCount}</strong> SCENES / NODES</span>
@@ -240,7 +240,7 @@ function openStoryDetails(storyId) {
 
     let card = modal.querySelector(".story-detail-card");
     let sceneCount = story.nodes ? story.nodes.length : 0;
-    
+
     // Count endings (nodes where isEnding === true)
     let endingsCount = 0;
     if (story.nodes && story.nodes.length > 0) {
@@ -302,19 +302,7 @@ function closeStoryDetails(event) {
 }
 
 function enterStoryWorld(storyId) {
-    // Crazy fullscreen warp portal animation transition effect!
-    let portal = document.createElement("div");
-    portal.className = "world-portal-overlay";
-    portal.innerHTML = `
-        <div class="portal-ring"></div>
-        <h2 style="font-family: var(--font-display); font-size: 32px; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px;">ENTERING STORY WORLD...</h2>
-        <p style="font-weight: 700; font-size: 15px; color: var(--color-sunburst);">Prepare your choices. Shaping reality...</p>
-    `;
-    document.body.appendChild(portal);
-
-    setTimeout(() => {
-        window.location.href = `play.html?id=${storyId}`;
-    }, 650);
+    window.location.href = `play.html?id=${storyId}`;
 }
 
 function startStory(storyId) {
@@ -386,6 +374,17 @@ async function loadStory() {
             return;
         }
 
+        if (user && user.id) {
+            try {
+                let uRes = await fetch(`http://localhost:3000/Users/${user.id}`);
+                if (uRes.ok) {
+                    let freshUser = await uRes.json();
+                    user.xp = freshUser.xp !== undefined ? freshUser.xp : user.xp;
+                    user.completedStories = freshUser.completedStories || user.completedStories || [];
+                    localStorage.setItem("user", JSON.stringify(user));
+                }
+            } catch(e) {}
+        }
         const userId = user ? (user.id || user.name) : "guest";
         const storageKey = getSessionStorageKey(userId, storyId);
 
@@ -489,6 +488,7 @@ async function createNewSession(startingNode, userId) {
         storyId: storyId,
         currentNodeId: startingNode.id,
         traversalPath: traversalPath,
+        visitedNodeIds: [startingNode.id],
         freeRetreatUsed: isFreeUsed,
         xp: userXp,
         alreadyClaimed: false,
@@ -594,12 +594,19 @@ function showStory() {
 
     let decisions = Math.max(traversalPath.length - 1, 0);
     let pathLength = traversalPath.length;
+    let visitedIds = (storySession && storySession.visitedNodeIds) ? storySession.visitedNodeIds : [];
 
-    /* TOP STAT BADGES (MATCHING SCREENSHOTS) */
+    /* TOP STAT BADGES */
     storyHeader.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
             <span class="stat-pill-yellow">DECISIONS MADE: ${decisions}</span>
-            <span class="stat-pill-green">PATH LENGTH: ${pathLength} SCENE(S)</span>
+            <span class="stat-pill-green">SCENE: ${pathLength}</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 16px;">
+            ${traversalPath.map((item, i) => `
+                <span style="background:#fff; border:2px solid #000; border-radius:100px; padding:3px 12px; font-size:12px; font-weight:800; box-shadow:2px 2px 0 #000;">${i + 1}. ${item.title}</span>
+                ${i < traversalPath.length - 1 ? '<span style="font-weight:900;">→</span>' : ''}
+            `).join('')}
         </div>
     `;
 
@@ -608,13 +615,23 @@ function showStory() {
         pathContainer.innerHTML = "";
     }
 
-    /* ENDING NODE CARD (MATCHING SCREENSHOT 2) */
+    /* ENDING NODE CARD */
     if (currentNode.isEnding) {
+        // Hide top stat bar and breadcrumb on ending screen
+        storyHeader.innerHTML = "";
+
         storySession.ended = true;
         storySession.currentNodeId = currentNode.id;
         storySession.endingType = currentNode.endingType;
 
-        let xpMsg = storySession.alreadyClaimed
+        // Colour-code the ending badge by type
+        let endType = (currentNode.endingType || "good").toLowerCase();
+        let endingBg = endType === "good" ? "#34d399" : endType === "tragic" ? "#fb923c" : "#f87171";
+
+        let endingEmoji = endType === "good" ? "🏆" : endType === "tragic" ? "😢" : "💀";
+
+        let isAlreadyCompleted = user && user.completedStories && user.completedStories.some(id => String(id) === String(storyId));
+        let xpMsg = isAlreadyCompleted || storySession.alreadyClaimed
             ? `<p style="color: #555; font-weight: 800; font-size: 14px; margin: 12px 0;">🏁 Story Completed! (XP already earned for this story)</p>`
             : `<p style="color: #1b5e20; font-weight: 800; font-size: 16px; margin: 12px 0;">🎉 +${COMPLETION_XP} XP Earned for Completing Story!</p>`;
 
@@ -623,8 +640,8 @@ function showStory() {
         choicesContainer.innerHTML = `
             <div class="story-card ending-card" style="border: 3px solid #000; border-radius: 24px; padding: 32px; box-shadow: 6px 6px 0px #000; background: #fff;">
                 <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
-                    <div style="background: var(--color-green); padding: 8px 20px; border-radius: 100px; border: 2px solid #000; font-weight: 800; font-size: 13px; color: #000; text-transform: uppercase;">
-                        🏁 ${currentNode.endingType ? currentNode.endingType.toUpperCase() : "GOOD"} ENDING
+                    <div style="background: ${endingBg}; padding: 8px 20px; border-radius: 100px; border: 2px solid #000; font-weight: 800; font-size: 13px; color: #000; text-transform: uppercase;">
+                        ${endingEmoji} ${endType.toUpperCase()} ENDING
                     </div>
 
                     <h1 style="font-family: var(--font-display); font-size: 34px; margin: 18px 0 14px 0; text-transform: uppercase; color: #000;">${currentNode.title || "THE END"}</h1>
@@ -664,7 +681,7 @@ function showStory() {
         return;
     }
 
-    /* NORMAL READING NODE (MATCHING SCREENSHOT 1) */
+
     let locationText = currentNode.location ? currentNode.location.toUpperCase() : "UNKNOWN";
     let charsText = (currentNode.characters && currentNode.characters.length > 0)
         ? `👥 PRESENT: ${currentNode.characters.join(", ").toUpperCase()}`
@@ -688,11 +705,20 @@ function showStory() {
 
     let choicesHTML = "";
     if (currentNode.choices && currentNode.choices.length > 0) {
-        choicesHTML = currentNode.choices.map(choice => `
-            <button type="button" class="primary-btn choice-btn-slush" onclick="selectChoice('${choice.targetNodeId}', '${choice.text.replace(/'/g, "\\'")}')">
-                <span>${choice.text}</span> <span style="font-size: 18px; font-weight: 900;">→</span>
-            </button>
-        `).join("");
+        choicesHTML = currentNode.choices.map(choice => {
+            let isVisited = visitedIds.includes(choice.targetNodeId);
+            let visitedBadge = isVisited
+                ? `<span style="font-size:11px; font-weight:900; background:#000; color:#fff; padding:2px 8px; border-radius:100px; margin-left:8px; letter-spacing:0.05em;">VISITED</span>`
+                : "";
+            let btnStyle = isVisited
+                ? `background: #f0f0f0; color: #555; border-color: #999; box-shadow: 2px 2px 0 #999; opacity: 0.85;`
+                : ``;
+            return `
+                <button type="button" class="primary-btn choice-btn-slush" style="${btnStyle}" onclick="selectChoice('${choice.targetNodeId}', '${choice.text.replace(/'/g, "\\'")}')"> 
+                    <span>${choice.text}</span>${visitedBadge} <span style="font-size: 18px; font-weight: 900;">→</span>
+                </button>
+            `;
+        }).join("");
     } else {
         choicesHTML = `
             <p style="font-style: italic; color: #666; font-weight: 700; text-align: center; margin: 16px 0;">No choice options available for this scene yet.</p>
@@ -796,6 +822,18 @@ function retreat() {
         showToastNotification("TIME-WARP RETREAT!", `Rewound 1 scene back! -${RETREAT_COST} XP used. ⭐`, "⏪");
     }
 
+    // Sync user retreat XP and free retreat token to db.json backend
+    if (user && user.id) {
+        fetch(`http://localhost:3000/Users/${user.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                xp: user.xp,
+                usedFreeRetreatStories: user.usedFreeRetreatStories
+            })
+        }).catch(e => console.warn("Could not sync retreat XP to db.json:", e));
+    }
+
     traversalPath.pop();
 
     let previous = traversalPath[traversalPath.length - 1];
@@ -843,7 +881,7 @@ function restartStory() {
 
     storySession.currentNodeId = startingNode.id;
     storySession.traversalPath = traversalPath;
-    
+
     storySession.freeRetreatUsed = isFreeUsed;
     storySession.xp = activeXp;
     storySession.ended = startingNode.isEnding || false;
@@ -885,6 +923,12 @@ function selectChoice(targetNodeId, choiceText) {
         choiceText: choiceText
     });
 
+    // Track visited node IDs so choices can show VISITED badge
+    if (!storySession.visitedNodeIds) storySession.visitedNodeIds = [];
+    if (!storySession.visitedNodeIds.includes(nextNode.id)) {
+        storySession.visitedNodeIds.push(nextNode.id);
+    }
+
     storySession.currentNodeId = nextNode.id;
     storySession.traversalPath = traversalPath;
 
@@ -899,7 +943,9 @@ function selectChoice(targetNodeId, choiceText) {
             user.completedStories = [];
         }
 
-        if (!user.completedStories.includes(storyId)) {
+        let isAlreadyCompleted = user.completedStories.some(id => String(id) === String(storyId));
+
+        if (!isAlreadyCompleted) {
             user.completedStories.push(storyId);
             let currentXp = (user.xp !== undefined) ? user.xp : STARTING_XP;
             let updatedXp = currentXp + COMPLETION_XP;
@@ -907,6 +953,18 @@ function selectChoice(targetNodeId, choiceText) {
             localStorage.setItem("user", JSON.stringify(user));
             storySession.xp = updatedXp;
             storySession.alreadyClaimed = false;
+
+            // Sync user completion & XP to db.json backend permanently
+            if (user.id) {
+                fetch(`http://localhost:3000/Users/${user.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        xp: updatedXp,
+                        completedStories: user.completedStories
+                    })
+                }).catch(e => console.warn("Could not sync user XP to db.json:", e));
+            }
 
             showToastNotification(
                 "STORY COMPLETED!",
@@ -955,3 +1013,226 @@ loadStories();
 
 // Story Player
 loadStory();
+
+
+/* =====================================================
+   READER TAB SWITCHING
+===================================================== */
+
+function switchReaderTab(tab) {
+    let views = ["library", "pitch", "mypitches"];
+    let tabs = { library: "tabLibrary", pitch: "tabPitch", mypitches: "tabMyPitches" };
+    let viewIds = { library: "viewLibrary", pitch: "viewPitch", mypitches: "viewMyPitches" };
+    let controls = document.getElementById("libraryControls");
+
+    views.forEach(t => {
+        let viewEl = document.getElementById(viewIds[t]);
+        let tabEl = document.getElementById(tabs[t]);
+        if (viewEl) viewEl.style.display = (t === tab) ? "" : "none";
+        if (tabEl) {
+            tabEl.style.background = (t === tab) ? "#000" : "#fff";
+            tabEl.style.color = (t === tab) ? "#fff" : "#000";
+            tabEl.style.boxShadow = (t === tab) ? "3px 3px 0px #555" : "3px 3px 0px #000";
+        }
+    });
+
+    if (controls) controls.style.display = (tab === "library") ? "flex" : "none";
+
+    if (tab === "mypitches") loadMyPitches();
+
+    // Reset pitch form on switch
+    if (tab === "pitch") {
+        let errEl = document.getElementById("pitchFormError");
+        let sucEl = document.getElementById("pitchFormSuccess");
+        if (errEl) errEl.style.display = "none";
+        if (sucEl) sucEl.style.display = "none";
+    }
+}
+
+/* =====================================================
+   STORY PITCH SUBMISSION SYSTEM
+===================================================== */
+
+async function submitPitch() {
+    let title = (document.getElementById("pitchTitle").value || "").trim();
+    let genre = document.getElementById("pitchGenre").value;
+    let description = (document.getElementById("pitchDescription").value || "").trim();
+
+    let errorEl = document.getElementById("pitchFormError");
+    let successEl = document.getElementById("pitchFormSuccess");
+    errorEl.style.display = "none";
+    successEl.style.display = "none";
+
+    if (!title) {
+        errorEl.textContent = "⚠️ Please enter a story title.";
+        errorEl.style.display = "block";
+        return;
+    }
+    if (description.length < 20) {
+        errorEl.textContent = "⚠️ Please write a more detailed pitch (at least 20 characters).";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    let btn = document.getElementById("pitchSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Submitting...";
+
+    let pitch = {
+        title: title,
+        genre: genre,
+        description: description,
+        submittedBy: user ? user.name : "Anonymous",
+        submittedById: user ? (user.id || null) : null,
+        status: "pending",
+        submittedAt: new Date().toISOString()
+    };
+
+    try {
+        let response = await fetch("http://localhost:3000/ReaderStories", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pitch)
+        });
+
+        if (!response.ok) throw new Error("Server error");
+
+        let savedPitch = await response.json();
+
+        // Award +20 XP — ONCE PER DAY
+        let today = new Date().toISOString().slice(0, 10); // "2026-08-23"
+        let lastXpDay = localStorage.getItem("lastPitchXpDay");
+        let xpAwarded = false;
+
+        if (lastXpDay !== today && user && user.id) {
+            let currentXp = user.xp !== undefined ? user.xp : 100;
+            let updatedXp = currentXp + 20;
+            user.xp = updatedXp;
+            localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("lastPitchXpDay", today);
+
+            fetch("http://localhost:3000/Users/" + user.id, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ xp: updatedXp })
+            }).catch(e => {});
+
+            xpAwarded = true;
+        }
+
+        // Clear form
+        document.getElementById("pitchTitle").value = "";
+        document.getElementById("pitchDescription").value = "";
+        document.getElementById("pitchCharCount").textContent = "0 / 600";
+        document.getElementById("pitchGenre").value = "fantasy";
+
+        successEl.textContent = xpAwarded
+            ? "🎉 Pitch submitted! The admin will review your idea. +20 XP awarded!"
+            : "✅ Pitch submitted! The admin will review your idea. (Daily XP already earned today)";
+        successEl.style.display = "block";
+
+        btn.disabled = false;
+        btn.textContent = "🚀 SUBMIT MY PITCH";
+
+        // Auto switch to My Pitches after 2s
+        setTimeout(() => {
+            switchReaderTab("mypitches");
+        }, 2000);
+
+    } catch(e) {
+        errorEl.textContent = "❌ Could not submit pitch. Check your connection and try again.";
+        errorEl.style.display = "block";
+        btn.disabled = false;
+        btn.textContent = "🚀 SUBMIT MY PITCH";
+    }
+}
+
+async function loadMyPitches() {
+    if (!user) return;
+
+    let container = document.getElementById("myPitchesContainer");
+    if (!container) return;
+    container.innerHTML = '<p style="font-weight: 700; color: #888;">Loading your pitches...</p>';
+
+    try {
+        // Always fetch fresh from backend — do NOT use localStorage cache for status
+        let response = await fetch("http://localhost:3000/ReaderStories?submittedById=" + (user.id || ""));
+        let pitches = response.ok ? await response.json() : [];
+
+        if (pitches.length === 0) {
+            container.innerHTML = `
+                <div style="border: 3px dashed #000; border-radius: 24px; padding: 48px 24px; text-align: center; background: #fff; box-shadow: 6px 6px 0px #000;">
+                    <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 12px;">NO PITCHES YET</h2>
+                    <p style="font-weight: 700; color: #555; margin-bottom: 20px;">You haven't submitted any story pitches yet.</p>
+                    <button onclick="switchReaderTab('pitch')" style="padding: 12px 28px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-display); font-size: 16px; background: #ffde59; box-shadow: 4px 4px 0px #000; cursor: pointer; font-weight: 900;">✍️ Submit My First Pitch</button>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = pitches.map(p => {
+            let statusColor = p.status === "approved" ? "#39d39f" : p.status === "rejected" ? "#ff6b6b" : "#ffde59";
+            let statusText = (p.status || "pending").toUpperCase();
+            let statusIcon = p.status === "approved" ? "✅" : p.status === "rejected" ? "✕" : "⏳";
+            let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
+
+            let adminCommentHtml = (p.adminComment) ? `
+                <div style="margin-top: 14px; background: ${p.status === "approved" ? "#f0fff4" : p.status === "rejected" ? "#fff0f0" : "#fffbeb"}; border: 2px solid ${p.status === "approved" ? "#22c55e" : p.status === "rejected" ? "#ff6b6b" : "#f59e0b"}; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #333; line-height: 1.6;">
+                    💬 <span style="font-weight: 900;">Admin:</span> <em>${p.adminComment}</em>
+                </div>
+            ` : (p.status === "pending" ? `
+                <div style="margin-top: 14px; background: #fffbeb; border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #92400e;">
+                    ⏳ Awaiting admin review...
+                </div>
+            ` : "");
+
+            return `
+                <div style="background: #fff; border: 2.5px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 4px 4px 0px #000;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                                <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 3px 12px; font-size: 12px; font-weight: 800;">${(p.genre || "general").toUpperCase()}</span>
+                                <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 3px 12px; font-size: 12px; font-weight: 800;">${statusIcon} ${statusText}</span>
+                            </div>
+                            <h3 style="font-family: var(--font-display); font-size: 20px; margin: 0 0 8px;">${p.title}</h3>
+                            <p style="font-size: 14px; color: #444; font-weight: 600; margin: 0; line-height: 1.7;">${p.description}</p>
+                            ${adminCommentHtml}
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                            <div style="font-size: 12px; font-weight: 800; color: #888; white-space: nowrap;">${dateStr}</div>
+                            <button onclick="deleteMyPitch('${p.id}')" style="padding: 6px 14px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui); color: #e00;" title="Delete pitch permanently">
+                                🗑 Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+    } catch(e) {
+        container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 8px;">Could not load pitches. Check your connection.</p>';
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    switchReaderTab("library");
+});
+
+
+/* Reader function to permanently delete their pitch */
+async function deleteMyPitch(pitchId) {
+    if (!confirm("Are you sure you want to delete this pitch from your list?")) return;
+
+    try {
+        let res = await fetch("http://localhost:3000/ReaderStories/" + pitchId, {
+            method: "DELETE"
+        });
+        if (res.ok) {
+            loadMyPitches();
+        } else {
+            alert("Could not delete pitch.");
+        }
+    } catch(e) {
+        alert("Error connecting to server.");
+    }
+}

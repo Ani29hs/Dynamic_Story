@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
 
 :root {
     --color-carbon: #000000;
@@ -109,7 +109,7 @@ a {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 18px 5%;
+    padding: 16px 5%;
     background: var(--color-paper-white);
     border-bottom: var(--border-cut);
     box-shadow: 0 4px 0 var(--color-carbon);
@@ -149,8 +149,7 @@ a {
     color: var(--color-carbon);
     font-family: var(--font-ui);
     font-weight: 800;
-    font-size: 13px;
-    letter-spacing: 0.03em;
+    font-size: 14px;
     transition: var(--transition);
     box-shadow: var(--shadow-cut-sm);
     cursor: pointer;
@@ -158,19 +157,7 @@ a {
 
 .nav-pill:hover,
 .nav-pill.active {
-    background: var(--color-electric-blue);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-cut);
-}
-
-.nav-pill.logout-btn {
-    background: var(--color-ember);
-    color: var(--color-paper-white);
-}
-
-.nav-pill.logout-btn:hover {
-    background: #d62828;
-    color: var(--color-paper-white);
+    background: var(--color-sunburst);
     transform: translateY(-2px);
     box-shadow: var(--shadow-cut);
 }
@@ -181,36 +168,33 @@ a {
 
 .primary-btn,
 .secondary-btn,
-.danger-btn,
-.cta-btn {
+.danger-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 11px 20px;
+    padding: 10px 16px;
     border-radius: var(--radius-pill);
     font-family: var(--font-ui);
     font-weight: 800;
     font-size: 13px;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    letter-spacing: 0.02em;
     cursor: pointer;
     border: var(--border-cut);
     transition: var(--transition);
+    text-transform: uppercase;
+    box-shadow: var(--shadow-cut-sm);
+    text-align: center;
     white-space: nowrap;
 }
 
-.primary-btn,
-.cta-btn {
+.primary-btn {
     background: var(--color-carbon);
     color: var(--color-paper-white);
-    box-shadow: var(--shadow-cut-sm);
 }
 
-.primary-btn:hover,
-.cta-btn:hover {
+.primary-btn:hover {
     background: var(--color-voltage-violet);
-    color: var(--color-paper-white);
     transform: translateY(-2px);
     box-shadow: var(--shadow-cut);
 }
@@ -218,12 +202,10 @@ a {
 .secondary-btn {
     background: var(--color-paper-white);
     color: var(--color-carbon);
-    box-shadow: var(--shadow-cut-sm);
 }
 
 .secondary-btn:hover {
     background: var(--color-sunburst);
-    color: var(--color-carbon);
     transform: translateY(-2px);
     box-shadow: var(--shadow-cut);
 }
@@ -231,31 +213,29 @@ a {
 .danger-btn {
     background: var(--color-ember);
     color: var(--color-paper-white);
-    box-shadow: var(--shadow-cut-sm);
 }
 
 .danger-btn:hover {
-    background: #d62828;
-    color: var(--color-paper-white);
+    background: #e63939;
     transform: translateY(-2px);
     box-shadow: var(--shadow-cut);
 }
 
 /* =========================
-   BADGES & LOCKUPS
+   BADGES & META
 ========================= */
 
 .badge-genre {
     display: inline-flex;
     align-items: center;
     padding: 5px 12px;
-    background: var(--color-sunburst);
     border: 2px solid #000;
     border-radius: 100px;
     font-weight: 800;
     font-size: 11px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    background: var(--color-sunburst);
     box-shadow: 2px 2px 0px #000;
     color: #000;
 }
@@ -298,12 +278,12 @@ a {
     background: var(--color-sky-wash);
     border: 2px solid #000;
     border-radius: 12px;
-    padding: 10px 16px;
+    padding: 10px 14px;
     box-shadow: 3px 3px 0px #000;
     font-size: 12px;
     font-weight: 800;
     color: #000;
-    margin-top: 10px;
+    margin-top: auto;
 }
 
 /* =========================
@@ -311,17 +291,18 @@ a {
 ========================= */
 
 .admin-container {
-    max-width: 1200px;
+    max-width: 1240px;
     margin: 36px auto;
     padding: 0 24px;
     width: 100%;
+    flex: 1;
 }
 
 .dashboard-title {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 36px;
+    margin-bottom: 32px;
     flex-wrap: wrap;
     gap: 20px;
     padding-bottom: 20px;
@@ -329,13 +310,14 @@ a {
 }
 
 .dashboard-title h2 {
-    font-size: 32px;
+    font-size: 30px;
 }
 
 .header-actions {
     display: flex;
     align-items: center;
     gap: 14px;
+    flex-wrap: wrap;
 }
 
 /* =========================
@@ -344,9 +326,10 @@ a {
 
 .stories-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 380px));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 28px;
     width: 100%;
+    align-items: stretch;
 }
 
 .story-card {
@@ -358,6 +341,7 @@ a {
     flex-direction: column;
     box-shadow: var(--shadow-cut);
     transition: var(--transition);
+    height: 100%;
 }
 
 .story-card:hover {
@@ -366,7 +350,7 @@ a {
 }
 
 .story-card-image {
-    height: 200px;
+    height: 180px;
     width: 100%;
     overflow: hidden;
     background: var(--color-sky-wash);
@@ -378,10 +362,24 @@ a {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+}
+
+.no-image {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 16px;
+    background: var(--color-lavender);
+    text-align: center;
+    padding: 16px;
 }
 
 .story-card-content {
-    padding: 24px;
+    padding: 24px 22px 18px 22px;
     flex-grow: 1;
     display: flex;
     flex-direction: column;
@@ -389,27 +387,78 @@ a {
 }
 
 .story-card-content h3 {
-    font-size: 24px;
+    font-size: 20px;
     font-family: var(--font-display);
+    line-height: 1.2;
+    margin-bottom: 2px;
+    word-break: break-word;
 }
 
 .story-description {
     color: var(--color-carbon);
     font-size: 14px;
     line-height: 1.5;
+    margin-bottom: 12px;
+    font-weight: 500;
 }
 
 .story-actions {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 18px;
-    background: var(--color-soft-mist);
-    border-top: 3px solid var(--color-carbon);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: #f1f5f9;
+    border-top: 2.5px solid #000;
+    padding: 14px 16px;
+    margin-top: auto;
 }
 
-.story-actions .delete-btn {
-    grid-column: span 1;
+.story-actions .secondary-btn,
+.story-actions .danger-btn {
+    padding: 9px 4px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-align: center;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 100px;
+}
+
+.preview-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--color-sunburst);
+    color: var(--color-carbon);
+    border: var(--border-cut);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-ui);
+    font-weight: 800;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: var(--shadow-cut-sm);
+    transition: var(--transition);
+    text-decoration: none;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.preview-btn:hover {
+    background: var(--color-voltage-violet);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px #000;
+}
+
+.story-actions .secondary-btn,
+.story-actions .danger-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+    width: 100%;
 }
 
 /* =========================
@@ -470,58 +519,6 @@ footer {
     font-size: 13px;
     border-top: 3px solid var(--color-carbon);
     background: var(--color-paper-white);
-}
-
-/* =========================
-   RESPONSIVE (MOBILE & TABLET)
-========================= */
-
-@media (max-width: 768px) {
-    .navbar {
-        flex-direction: column;
-        gap: 14px;
-        padding: 14px 16px;
-        text-align: center;
-    }
-
-    .nav-links {
-        width: 100%;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-
-    .admin-container {
-        padding: 0 16px;
-        margin: 20px auto;
-    }
-
-    .dashboard-title {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-
-    .dashboard-title h2 {
-        font-size: 24px;
-    }
-
-    .header-actions {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .header-actions button {
-        width: 100%;
-    }
-
-    .stories-container {
-        grid-template-columns: 1fr;
-        gap: 20px;
-    }
-
-    .story-actions {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* =========================
@@ -658,4 +655,178 @@ footer {
 .dropdown-item.logout-item:hover {
     background: var(--color-ember);
     color: #fff;
+}
+
+/* =========================
+   RESPONSIVE (MOBILE & TABLET)
+========================= */
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        gap: 14px;
+        padding: 14px 16px;
+        text-align: center;
+    }
+
+    .nav-links {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .admin-container {
+        padding: 0 16px;
+        margin: 20px auto;
+    }
+
+    .dashboard-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .dashboard-title h2 {
+        font-size: 24px;
+    }
+
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .header-actions button {
+        width: 100%;
+    }
+
+    .stories-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .story-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: #f1f5f9;
+    border-top: 2.5px solid #000;
+    padding: 14px 16px;
+    margin-top: auto;
+}
+
+.story-actions .secondary-btn,
+.story-actions .danger-btn {
+    padding: 10px 6px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-align: center;
+    justify-content: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 100px;
+}
+}
+
+/* View More Popup Button */
+.view-more-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-voltage-violet);
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0 4px;
+    margin-left: 4px;
+    text-decoration: underline;
+    display: inline-block;
+    font-family: var(--font-ui);
+}
+
+.view-more-btn:hover {
+    color: var(--color-carbon);
+}
+
+
+
+.detail-description-box, .description-modal-body { white-space: pre-line; line-height: 1.75; font-size: 15px; max-height: 240px; overflow-y: auto; }
+
+
+.story-actions button {
+    padding: 8px 4px !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    justify-content: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    border-radius: 100px !important;
+    box-sizing: border-box !important;
+}
+
+
+/* Story Action Card Footer Buttons */
+.story-actions button,
+.story-actions .btn-edit,
+.story-actions .btn-preview,
+.story-actions .btn-delete,
+.story-actions .secondary-btn,
+.story-actions .danger-btn {
+    padding: 9px 4px !important;
+    font-family: var(--font-ui, sans-serif) !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    justify-content: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    border-radius: 100px !important;
+    border: 2px solid #000 !important;
+    box-shadow: 2px 2px 0px #000 !important;
+    cursor: pointer !important;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.1s !important;
+}
+
+/* Edit button - Clean White */
+.story-actions .btn-edit,
+.story-actions .secondary-btn:first-child {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+.story-actions .btn-edit:hover,
+.story-actions .secondary-btn:first-child:hover {
+    background: #f4f4f5 !important;
+    transform: translate(-1px, -1px) !important;
+    box-shadow: 3px 3px 0px #000 !important;
+}
+
+/* Preview button - Soft Indigo */
+.story-actions .btn-preview,
+.story-actions .secondary-btn:nth-child(2) {
+    background: #e0e7ff !important;
+    color: #1e1b4b !important;
+}
+.story-actions .btn-preview:hover,
+.story-actions .secondary-btn:nth-child(2):hover {
+    background: #c7d2fe !important;
+    transform: translate(-1px, -1px) !important;
+    box-shadow: 3px 3px 0px #000 !important;
+}
+
+/* Delete button - Soft Red */
+.story-actions .btn-delete,
+.story-actions .danger-btn {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+}
+.story-actions .btn-delete:hover,
+.story-actions .danger-btn:hover {
+    background: #fca5a5 !important;
+    transform: translate(-1px, -1px) !important;
+    box-shadow: 3px 3px 0px #000 !important;
 }
