@@ -524,14 +524,12 @@ async function saveAdminComment(pitchId) {
 }
 
 async function deletePitch(pitchId) {
-    if (!confirm("Remove this pitch from your admin queue? (The reader will still see it marked as REJECTED).")) return;
+    if (!confirm("Remove this pitch from your admin queue? (The reader will keep seeing their status: Approved/Rejected).")) return;
 
     let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            status: "rejected",
-            adminComment: "Pitch rejected by admin.",
             adminHidden: true
         })
     });
@@ -541,8 +539,6 @@ async function deletePitch(pitchId) {
     } else {
         alert("Failed to remove pitch.");
     }
-
-
 }
 
 /* =====================================================
