@@ -600,3 +600,10 @@ window.closeDescriptionModal = function() {
 window.previewStory = function(storyId) {
     window.location.href = "preview.html?id=" + storyId;
 };
+window.createStoryFromPitch = function(pitchId, encodedTitle, encodedDesc, genre) {
+    let title = decodeURIComponent(encodedTitle);
+    let desc = decodeURIComponent(encodedDesc);
+    let prefill = { pitchId: pitchId, title: title, description: desc, genre: genre };
+    localStorage.setItem("pitchPrefill", JSON.stringify(prefill));
+    window.location.href = "add_stories.html?fromPitch=" + pitchId;
+};
