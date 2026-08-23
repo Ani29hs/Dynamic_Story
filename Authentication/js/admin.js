@@ -395,11 +395,10 @@ async function loadReaderPitches() {
     try {
         let res = await fetch("http://localhost:3000/ReaderStories");
         let rawPitches = res.ok ? await res.json() : [];
-        // Filter out pitches hidden from admin queue
         let pitches = rawPitches.filter(p => !p.adminHidden);
 
         if (pitches.length === 0) {
-            container.innerHTML = '<div style="border: 3px dashed #000; border-radius: 24px; padding: 48px; text-align: center; background: #fff; box-shadow: 6px 6px 0px #000;"><h2 style="font-family: var(--font-display);">NO PITCHES YET</h2><p style="font-weight: 700;">No pending or active story pitches in your queue.</p></div>';
+            container.innerHTML = '<div style="border: 3px dashed #000; border-radius: 24px; padding: 48px; text-align: center; background: #fff; box-shadow: 6px 6px 0px #000;"><h2 style="font-family: var(--font-display);">NO PITCHES YET</h2><p style="font-weight: 700; color: #555;">No pending or active story pitches in your queue.</p></div>';
             return;
         }
 
@@ -409,55 +408,54 @@ async function loadReaderPitches() {
             let statusColor = p.status === "approved" ? "#39d39f" : p.status === "rejected" ? "#ff6b6b" : "#ffde59";
             let statusText = (p.status || "pending").toUpperCase();
             let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
+            let existingComment = p.adminComment || "";
 
             let actionsHtml = "";
             if (isPending) {
                 actionsHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 130px;">
-                        <button onclick="updatePitchStatus('${p.id}', 'approved')" style="padding: 8px 16px; border: 2px solid #000; border-radius: 100px; background: #39d39f; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">✅ Approve</button>
-                        <button onclick="updatePitchStatus('${p.id}', 'rejected')" style="padding: 8px 16px; border: 2px solid #000; border-radius: 100px; background: #ff6b6b; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">✕ Reject</button>
-                        <button onclick="deletePitch('${p.id}')" style="padding: 8px 16px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">🗑 Remove</button>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px;">
+                        <button onclick="updatePitchStatus('${p.id}', 'approved')" style="padding: 9px 20px; border: 2px solid #000; border-radius: 100px; background: #39d39f; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui);">✅ Approve Pitch (+30 XP to Reader)</button>
+                        <button onclick="updatePitchStatus('${p.id}', 'rejected')" style="padding: 9px 20px; border: 2px solid #000; border-radius: 100px; background: #ff6b6b; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui);">✕ Reject</button>
+                        <button onclick="deletePitch('${p.id}')" style="padding: 9px 18px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui); color: #555;">🗑 Remove</button>
                     </div>
                 `;
             } else {
-                let existingComment = p.adminComment || "";
                 actionsHtml = `
-                    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 200px; max-width: 240px;">
-                        <label style="font-weight: 800; font-size: 12px; color: #555;">📝 ADMIN COMMENT</label>
-                        <textarea id="comment_${p.id}" placeholder="e.g. Will consider, Great idea!, Needs more detail..." rows="3" style="padding: 10px 12px; border: 2px solid #000; border-radius: 12px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; resize: none; outline: none; line-height: 1.5;">${existingComment}</textarea>
-                        <button onclick="saveAdminComment('${p.id}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">💾 Save Comment</button>
-                        ${p.status === 'approved' ? `<button onclick="createStoryFromPitch('${p.id}', '${encodeURIComponent(p.title)}', '${encodeURIComponent(p.description || '')}', '${p.genre || 'fantasy'}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #000; color: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #555; font-family: var(--font-ui);">✨ Create Story</button>` : ''}
-                        <button onclick="deletePitch('${p.id}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">🗑 Remove</button>
+                    <div style="margin-top: 16px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px;">
+                        <label style="font-weight: 800; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">📝 ADMIN COMMENT FOR READER</label>
+                        <textarea id="comment_${p.id}" placeholder="Leave feedback or comment for reader (e.g. Loved the idea!)..." rows="2" style="width: 100%; padding: 10px 14px; border: 2px solid #000; border-radius: 10px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; resize: none; outline: none; box-sizing: border-box; background: #fff;">${existingComment}</textarea>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button onclick="saveAdminComment('${p.id}')" style="padding: 8px 18px; border: 2px solid #000; border-radius: 100px; background: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">💾 Save Comment</button>
+                            <button onclick="deletePitch('${p.id}')" style="padding: 8px 18px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui); color: #555;">🗑 Remove</button>
+                        </div>
                     </div>
                 `;
             }
 
-            let commentDisplayHtml = (isDecided && p.adminComment) ? `
-                <div style="margin-top: 10px; background: #f8f8f8; border: 1.5px solid #ddd; border-radius: 100px; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #444;">
-                    💬 <em>${p.adminComment}</em>
-                </div>
-            ` : "";
-
             return `
-                <div style="background: #fff; border: 2.5px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 4px 4px 0px #000; display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
-                            <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800;">${(p.genre || "general").toUpperCase()}</span>
-                            <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800;">${statusText}</span>
+                <div style="background: #fff; border: 3px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 6px 6px 0px #000; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800; color: #1e1b4b;">${(p.genre || "general").toUpperCase()}</span>
+                            <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800;">${statusText}</span>
                         </div>
-                        <h3 style="font-family: var(--font-display); font-size: 20px; margin: 0 0 8px;">${p.title}</h3>
-                        <p style="font-size: 13px; color: #444; font-weight: 600; margin: 0 0 8px; line-height: 1.6;">${p.description}</p>
-                        <div style="font-size: 12px; font-weight: 700; color: #666;">
-                            By <strong>${p.submittedBy || "Unknown"}</strong>${dateStr ? " &bull; " + dateStr : ""}
+                        <div style="font-size: 13px; font-weight: 800; color: #64748b;">
+                            By <strong style="color: #0f172a;">${p.submittedBy || "Reader"}</strong> ${dateStr ? '• ' + dateStr : ''}
                         </div>
-                        ${commentDisplayHtml}
+                    </div>
+                    <div>
+                        <h3 style="font-family: var(--font-display); font-size: 22px; margin: 4px 0 8px; color: #000;">${p.title}</h3>
+                        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; font-size: 14px; color: #334155; font-weight: 500; line-height: 1.6;">
+                            ${p.description}
+                        </div>
                     </div>
                     ${actionsHtml}
                 </div>
             `;
         }).join("");
+
     } catch(e) {
-        container.innerHTML = '<p style="font-weight: 700; color: red; padding: 16px;">Error loading pitches. Make sure json-server is running.</p>';
+        container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 16px;">Could not load pitches.</p>';
     }
 }
 
@@ -599,11 +597,4 @@ window.closeDescriptionModal = function() {
 
 window.previewStory = function(storyId) {
     window.location.href = "preview.html?id=" + storyId;
-};
-window.createStoryFromPitch = function(pitchId, encodedTitle, encodedDesc, genre) {
-    let title = decodeURIComponent(encodedTitle);
-    let desc = decodeURIComponent(encodedDesc);
-    let prefill = { pitchId: pitchId, title: title, description: desc, genre: genre };
-    localStorage.setItem("pitchPrefill", JSON.stringify(prefill));
-    window.location.href = "add_stories.html?fromPitch=" + pitchId;
 };

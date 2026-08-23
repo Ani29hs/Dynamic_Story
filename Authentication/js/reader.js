@@ -1191,9 +1191,11 @@ async function loadMyPitches() {
     container.innerHTML = '<p style="font-weight: 700; color: #888;">Loading your pitches...</p>';
 
     try {
-        // Always fetch fresh from backend — do NOT use localStorage cache for status
         let response = await fetch("http://localhost:3000/ReaderStories?submittedById=" + (user.id || ""));
         let pitches = response.ok ? await response.json() : [];
+
+        // Also sync to localStorage cache
+        localStorage.setItem("myPitches", JSON.stringify(pitches));
 
         if (pitches.length === 0) {
             container.innerHTML = `
@@ -1213,57 +1215,63 @@ async function loadMyPitches() {
             let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
 
             let adminCommentHtml = (p.adminComment) ? `
-                <div style="margin-top: 14px; background: ${p.status === "approved" ? "#f0fff4" : p.status === "rejected" ? "#fff0f0" : "#fffbeb"}; border: 2px solid ${p.status === "approved" ? "#22c55e" : p.status === "rejected" ? "#ff6b6b" : "#f59e0b"}; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #333; line-height: 1.6;">
-                    💬 <span style="font-weight: 900;">Admin:</span> <em>${p.adminComment}</em>
+                <div style="margin-top: 12px; background: ${p.status === "approved" ? "#f0fff4" : p.status === "rejected" ? "#fff0f0" : "#fffbeb"}; border: 2px solid ${p.status === "approved" ? "#22c55e" : p.status === "rejected" ? "#ff6b6b" : "#f59e0b"}; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #333; line-height: 1.6;">
+                    💬 <span style="font-weight: 900;">Admin Comment:</span> <em>${p.adminComment}</em>
                 </div>
             ` : (p.status === "pending" ? `
-                <div style="margin-top: 14px; background: #fffbeb; border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #92400e;">
+                <div style="margin-top: 12px; background: #fffbeb; border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #92400e;">
                     ⏳ Awaiting admin review...
                 </div>
             ` : "");
 
             return `
-                <div style="background: #fff; border: 2.5px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 4px 4px 0px #000;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
-                        <div style="flex: 1; min-width: 200px;">
-                            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-                                <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 3px 12px; font-size: 12px; font-weight: 800;">${(p.genre || "general").toUpperCase()}</span>
-                                <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 3px 12px; font-size: 12px; font-weight: 800;">${statusIcon} ${statusText}</span>
-                            </div>
-                            <h3 style="font-family: var(--font-display); font-size: 20px; margin: 0 0 8px;">${p.title}</h3>
-                            <p style="font-size: 14px; color: #444; font-weight: 600; margin: 0; line-height: 1.7;">${p.description}</p>
-                            ${adminCommentHtml}
+                <div style="background: #fff; border: 3px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 6px 6px 0px #000; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800; color: #1e1b4b;">${(p.genre || "general").toUpperCase()}</span>
+                            <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800;">${statusIcon} ${statusText}</span>
                         </div>
-                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
-                            <div style="font-size: 12px; font-weight: 800; color: #888; white-space: nowrap;">${dateStr}</div>
-                            <button onclick="deleteMyPitch('${p.id}')" style="padding: 6px 14px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui); color: #e00;" title="Delete pitch permanently">
-                                🗑 Delete
-                            </button>
+                        <div style="font-size: 13px; font-weight: 800; color: #64748b;">
+                            ${dateStr}
                         </div>
+                    </div>
+
+                    <div>
+                        <h3 style="font-family: var(--font-display); font-size: 22px; margin: 4px 0 8px; color: #000;">${p.title}</h3>
+                        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; font-size: 14px; color: #334155; font-weight: 500; line-height: 1.6;">
+                            ${p.description}
+                        </div>
+                        ${adminCommentHtml}
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+                        <button onclick="deleteMyPitch('${p.id}')" style="padding: 8px 18px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui); color: #dc2626;" title="Delete pitch permanently from db.json and local storage">
+                            🗑 Delete Pitch
+                        </button>
                     </div>
                 </div>
             `;
         }).join("");
 
     } catch(e) {
-        container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 8px;">Could not load pitches. Check your connection.</p>';
+        container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 16px;">Could not load pitches.</p>';
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    switchReaderTab("library");
-});
-
-
 /* Reader function to permanently delete their pitch */
 async function deleteMyPitch(pitchId) {
-    if (!confirm("Are you sure you want to delete this pitch from your list?")) return;
+    if (!confirm("Are you sure you want to delete this pitch permanently?")) return;
 
     try {
         let res = await fetch("http://localhost:3000/ReaderStories/" + pitchId, {
             method: "DELETE"
         });
         if (res.ok) {
+            // Also remove from localStorage cache
+            let cached = JSON.parse(localStorage.getItem("myPitches") || "[]");
+            let updatedCache = cached.filter(p => String(p.id) !== String(pitchId));
+            localStorage.setItem("myPitches", JSON.stringify(updatedCache));
+
             loadMyPitches();
         } else {
             alert("Could not delete pitch.");
