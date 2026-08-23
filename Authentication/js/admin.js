@@ -426,6 +426,7 @@ async function loadReaderPitches() {
                         <label style="font-weight: 800; font-size: 12px; color: #555;">📝 ADMIN COMMENT</label>
                         <textarea id="comment_${p.id}" placeholder="e.g. Will consider, Great idea!, Needs more detail..." rows="3" style="padding: 10px 12px; border: 2px solid #000; border-radius: 12px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; resize: none; outline: none; line-height: 1.5;">${existingComment}</textarea>
                         <button onclick="saveAdminComment('${p.id}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">💾 Save Comment</button>
+                        ${p.status === 'approved' ? `<button onclick="createStoryFromPitch('${p.id}', '${encodeURIComponent(p.title)}', '${encodeURIComponent(p.description || '')}', '${p.genre || 'fantasy'}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #000; color: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #555; font-family: var(--font-ui);">✨ Create Story</button>` : ''}
                         <button onclick="deletePitch('${p.id}')" style="padding: 8px 14px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">🗑 Remove</button>
                     </div>
                 `;
@@ -466,11 +467,45 @@ async function updatePitchStatus(pitchId, status) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: status })
     });
-    if (res.ok) {
-        loadReaderPitches();
-    } else {
+
+    if (!res.ok) {
         alert("Failed to update pitch status.");
+        return;
     }
+
+    // If approved, award +30 XP to the reader and queue a login toast
+    if (status === "approved") {
+        try {
+            let pitchData = await res.json();
+            let submitterId = pitchData.submittedById;
+
+            if (submitterId) {
+                // Fetch current user XP
+                let userRes = await fetch(`http://localhost:3000/Users/${submitterId}`);
+                if (userRes.ok) {
+                    let userData = await userRes.json();
+                    let newXp = (userData.xp || 100) + 30;
+
+                    // Patch user: +30 XP + pendingToast flag
+                    await fetch(`http://localhost:3000/Users/${submitterId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            xp: newXp,
+                            pendingToast: {
+                                message: "🎉 Your story pitch was ACCEPTED by the admin! +30 XP earned!",
+                                xpAwarded: 30
+                            }
+                        })
+                    });
+                }
+            }
+        } catch(e) {
+            console.warn("Could not award XP to pitch submitter:", e);
+        }
+    }
+
+    loadReaderPitches();
 }
 
 async function saveAdminComment(pitchId) {

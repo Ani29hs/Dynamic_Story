@@ -117,12 +117,48 @@ function showToastNotification(title, message, icon = "🎉", duration = 4500) {
     }, duration);
 }
 
-function checkWelcomeToast() {
+async function checkWelcomeToast() {
     if (!user || user.role === "Admin") return;
+
+    // Check 1: Check if user has a pending pitch acceptance toast from db.json
+    if (user.id) {
+        try {
+            let res = await fetch(`http://localhost:3000/Users/${user.id}`);
+            if (res.ok) {
+                let freshUser = await res.json();
+                if (freshUser.pendingToast) {
+                    let toastData = freshUser.pendingToast;
+                    user.xp = freshUser.xp;
+                    delete user.pendingToast;
+                    localStorage.setItem("user", JSON.stringify(user));
+
+                    // Clear pendingToast from db.json
+                    fetch(`http://localhost:3000/Users/${user.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ pendingToast: null })
+                    }).catch(e => {});
+
+                    setTimeout(() => {
+                        showToastNotification(
+                            "STORY PITCH ACCEPTED!",
+                            toastData.message || "🎉 Your story pitch was ACCEPTED by the admin! +30 XP earned! ⭐",
+                            "🌟",
+                            6000
+                        );
+                        renderUserProfileHeader();
+                    }, 400);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("Could not check pending toast from db.json:", e);
+        }
+    }
 
     let userKey = "welcome_toast_shown_" + (user.id || user.email || user.name);
 
-    // Only show ONCE for a brand NEW user account (stored in localStorage)
+    // Only show ONCE for a brand NEW user account
     if (!localStorage.getItem(userKey)) {
         localStorage.setItem(userKey, "true");
         let activeXp = (user.xp !== undefined) ? user.xp : 100;

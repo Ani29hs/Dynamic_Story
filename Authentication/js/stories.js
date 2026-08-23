@@ -57,6 +57,29 @@ async function initPage() {
             </p>
         `;
     }
+
+    // --- PRE-FILL FROM APPROVED PITCH ---
+    let fromPitch = urlParams.get("fromPitch");
+    if (fromPitch) {
+        let prefill = null;
+        try { prefill = JSON.parse(localStorage.getItem("pitchPrefill")); } catch(e) {}
+        if (prefill && prefill.pitchId === fromPitch) {
+            if (document.getElementById("story")) document.getElementById("story").value = prefill.title || "";
+            if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = prefill.description || "";
+            if (document.getElementById("genre")) document.getElementById("genre").value = prefill.genre || "fantasy";
+            if (document.getElementById("author")) {
+                let adminUser = JSON.parse(localStorage.getItem("user"));
+                document.getElementById("author").value = adminUser ? adminUser.name : "Admin";
+            }
+            localStorage.removeItem("pitchPrefill");
+            // Show banner
+            let banner = document.createElement("div");
+            banner.style.cssText = "background:#39d39f;border:2.5px solid #000;border-radius:16px;padding:14px 22px;margin-bottom:22px;font-weight:800;font-size:14px;box-shadow:4px 4px 0px #000;display:flex;align-items:center;gap:12px;";
+            banner.innerHTML = "✨ <span>Story pre-filled from approved reader pitch! Review the metadata, add your scenes, then publish.</span>";
+            let storyForm = document.getElementById("storyForm");
+            if (storyForm) storyForm.parentNode.insertBefore(banner, storyForm);
+        }
+    }
 }
 
 initPage();
