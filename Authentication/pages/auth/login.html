@@ -1,44 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Log In | Slush Story Engine</title>
     <link rel="stylesheet" href="../../css/login.css">
+    <!-- Lottie Web Player Library CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 </head>
+
 <body>
     <script>
-        let loggedIn =JSON.parse(localStorage.getItem("user"))
-
-            if(loggedIn){
-                if(loggedIn.role==="Admin"){
-                    window.location.href="../admin/admin.html"
-                
-                }else{
-                    window.location.href="../reader/stories.html"
-                }
-
+        let loggedIn = JSON.parse(localStorage.getItem("user"));
+        if (loggedIn) {
+            if (loggedIn.role === "Admin") {
+                window.location.href = "../admin/admin.html";
+            } else {
+                window.location.href = "../reader/stories.html";
             }
+        }
     </script>
-    <form onsubmit="handleLogin(event)">
-        <label for="">Email</label>
-        <input type="email" id="email" placeholder="Enter email" required>
-        <label for="">Password</label>
-        <div class="password-container">
-            <input type="password" placeholder="Enter Password" id="password" required>
-            <button type="button" class="eye-toggle" onclick="toggleEye()" aria-label="Toggle password visibility">
-                <span id="eyeSymbol">👁️</span>
-            </button>
+
+    <div class="login-wrapper">
+        <div class="login-card">
+            
+            <!-- Left Side: Lottie Animation Panel -->
+            <div class="lottie-panel">
+                <div id="lottieContainer"></div>
+                <div class="lottie-caption">
+                    <h3>WELCOME BACK!</h3>
+                    <p>Step into your next branching adventure.</p>
+                </div>
+            </div>
+
+            <!-- Right Side: Login Form -->
+            <div class="form-panel">
+                <h2 class="login-title">🔐 LOGIN</h2>
+                <form onsubmit="handleLogin(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" placeholder="Enter your email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-container">
+                            <input type="password" placeholder="Enter your password" id="password" required>
+                            <button type="button" class="eye-toggle" onclick="toggleEye()" aria-label="Toggle password visibility">
+                                <span id="eyeSymbol">👁️</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="submit" value="LOG IN →" style="margin-top: 8px;">
+
+                    <a href="signup.html" class="register-redirect-btn">
+                        New User? Register Here
+                    </a>
+                </form>
+            </div>
+
         </div>
-        <input type="Submit" value="LOG IN">
+    </div>
 
-        <a href="signup.html" class="register-redirect-btn">
-            New User? Register Here
-        </a>
-    </form>
-
-    <script src="../../js/login.js">
-        
-    </script>
+    <script src="../../js/login.js"></script>
 </body>
+
 </html>

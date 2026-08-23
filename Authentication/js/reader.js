@@ -1,3 +1,20 @@
+
+function calculateRatingStats(story) {
+    let ratings = story.ratings || [];
+    if (!Array.isArray(ratings)) ratings = [];
+    if (ratings.length === 0) {
+        return { avg: "0.0", count: 0, display: "⭐ 5.0 (New)", starText: "⭐ 5.0 (New)" };
+    }
+    let total = ratings.reduce((sum, r) => sum + (typeof r === 'number' ? r : (r.stars || 0)), 0);
+    let avg = (total / ratings.length).toFixed(1);
+    return {
+        avg,
+        count: ratings.length,
+        display: `⭐ ${avg} (${ratings.length})`,
+        starText: `⭐ ${avg} (${ratings.length} ${ratings.length === 1 ? 'rating' : 'ratings'})`
+    };
+}
+
 ﻿let user = null;
 try {
     user = JSON.parse(localStorage.getItem("user"));
@@ -244,7 +261,7 @@ function filterStories() {
                             type="button"
                             class="primary-btn"
                             onclick="openStoryDetails('${story.id}')">
-                            Begin Story Experience →
+                            VIEW DETAILS & READ
                         </button>
                     </div>
                 </div>
@@ -316,7 +333,7 @@ function openStoryDetails(storyId) {
 
                 <div class="detail-actions-row">
                     <button type="button" class="enter-world-btn" onclick="enterStoryWorld('${story.id}')">
-                        ⚡ Begin Story Experience →
+                        ⚡ BEGIN STORY EXPERIENCE →
                     </button>
                     <button type="button" class="back-library-btn" onclick="closeStoryDetails()">
                         ← Back to Library
@@ -676,6 +693,9 @@ function showStory() {
         choicesContainer.innerHTML = `
             <div class="story-card ending-card" style="border: 3px solid #000; border-radius: 24px; padding: 32px; box-shadow: 6px 6px 0px #000; background: #fff;">
                 <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
+                    <!-- Top Badge Lottie Animation - plays once when story ends -->
+                    <div id="endingBadgeLottie" style="width: 160px; height: 160px; margin: 0 auto -8px auto; pointer-events: none;"></div>
+
                     <div style="background: ${endingBg}; padding: 8px 20px; border-radius: 100px; border: 2px solid #000; font-weight: 800; font-size: 13px; color: #000; text-transform: uppercase;">
                         ${endingEmoji} ${endType.toUpperCase()} ENDING
                     </div>
@@ -703,6 +723,21 @@ function showStory() {
 
                     ${xpMsg}
 
+                    <div style="background: #fffbeb; border: 2.5px solid #000; border-radius: 18px; padding: 18px 24px; box-shadow: 4px 4px 0px #000; margin: 20px 0 10px 0; text-align: center; width: 100%; box-sizing: border-box;">
+                        <h4 style="font-family: var(--font-display); font-size: 18px; margin: 0 0 4px 0; text-transform: uppercase;">RATE THIS STORY</h4>
+                        <div style="font-size: 13px; color: #555; font-weight: 700; margin-bottom: 10px;">
+                            Avg Rating: <strong style="color: #000;">${(calculateRatingStats(currentStory)).display}</strong>
+                        </div>
+                        <div id="starRatingContainer_${currentStory.id}" style="display: flex; justify-content: center; gap: 10px; font-size: 32px; cursor: pointer;">
+                            <span onclick="submitStoryRating('${currentStory.id}', 1)" style="transition: transform 0.1s; cursor: pointer;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">⭐</span>
+                            <span onclick="submitStoryRating('${currentStory.id}', 2)" style="transition: transform 0.1s; cursor: pointer;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">⭐</span>
+                            <span onclick="submitStoryRating('${currentStory.id}', 3)" style="transition: transform 0.1s; cursor: pointer;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">⭐</span>
+                            <span onclick="submitStoryRating('${currentStory.id}', 4)" style="transition: transform 0.1s; cursor: pointer;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">⭐</span>
+                            <span onclick="submitStoryRating('${currentStory.id}', 5)" style="transition: transform 0.1s; cursor: pointer;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">⭐</span>
+                        </div>
+                        <p id="ratingFeedback_${currentStory.id}" style="margin: 8px 0 0 0; font-weight: 800; font-size: 13px; color: #16a34a; display: none;"></p>
+                    </div>
+
                     <div style="display: flex; gap: 16px; width: 100%; margin-top: 14px; flex-wrap: wrap;">
                         <button type="button" class="primary-btn" onclick="restartStory()" style="flex: 1; background: var(--color-violet); color: #fff;">
                             🔄 Play Again
@@ -714,6 +749,22 @@ function showStory() {
                 </div>
             </div>
         `;
+
+        // ── Play Top Badge Lottie when story ends ─────────────────────────────
+        setTimeout(function() {
+            if (typeof lottie === "undefined") return;
+            const badgeEl = document.getElementById("endingBadgeLottie");
+            if (!badgeEl) return;
+            lottie.destroy("endingBadgeAnim");
+            lottie.loadAnimation({
+                container: badgeEl,
+                renderer: "svg",
+                loop: false,
+                autoplay: true,
+                name: "endingBadgeAnim",
+                path: "../../css/Top Badge animation.json"
+            });
+        }, 100);
         return;
     }
 
@@ -1210,50 +1261,54 @@ async function loadMyPitches() {
         }
 
         container.innerHTML = pitches.map(p => {
-            let statusColor = p.status === "approved" ? "#39d39f" : p.status === "rejected" ? "#ff6b6b" : "#ffde59";
+            let statusBg = p.status === "approved" ? "#dcfce7" : p.status === "rejected" ? "#fee2e2" : "#fef3c7";
+            let statusBorder = p.status === "approved" ? "#86efac" : p.status === "rejected" ? "#fca5a5" : "#fde047";
+            let statusColor = p.status === "approved" ? "#166534" : p.status === "rejected" ? "#991b1b" : "#92400e";
             let statusText = (p.status || "pending").toUpperCase();
             let statusIcon = p.status === "approved" ? "✅" : p.status === "rejected" ? "✕" : "⏳";
             let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
 
             let adminCommentHtml = (p.adminComment) ? `
-                <div style="margin-top: 12px; background: ${p.status === "approved" ? "#f0fff4" : p.status === "rejected" ? "#fff0f0" : "#fffbeb"}; border: 2px solid ${p.status === "approved" ? "#22c55e" : p.status === "rejected" ? "#ff6b6b" : "#f59e0b"}; border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; color: #333; line-height: 1.6;">
-                    💬 <span style="font-weight: 900;">Admin Comment:</span> <em>${p.adminComment}</em>
+                <div style="margin-top: 14px; background: ${p.status === "approved" ? "#f0fff4" : p.status === "rejected" ? "#fff5f5" : "#fffbeb"}; border: 1.5px solid ${p.status === "approved" ? "#bbf7d0" : p.status === "rejected" ? "#fecdd3" : "#fde68a"}; border-radius: 12px; padding: 12px 16px; font-size: 13.5px; font-weight: 600; color: #1e293b; line-height: 1.6;">
+                    💬 <span style="font-weight: 800; color: #0f172a;">Admin Comment:</span> <span style="font-style: italic;">"${p.adminComment}"</span>
                 </div>
             ` : (p.status === "pending" ? `
-                <div style="margin-top: 12px; background: #fffbeb; border: 1.5px dashed #f59e0b; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #92400e;">
-                    ⏳ Awaiting admin review...
+                <div style="margin-top: 14px; background: #fffbeb; border: 1px dashed #f59e0b; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #92400e; display: flex; align-items: center; gap: 8px;">
+                    ⏳ <span>Awaiting admin review & feedback...</span>
                 </div>
             ` : "");
 
             return `
-                <div style="background: #fff; border: 3px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 6px 6px 0px #000; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; width: 100%; word-break: break-word; overflow-wrap: anywhere; transition: transform 0.2s ease;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800; color: #1e1b4b;">${(p.genre || "general").toUpperCase()}</span>
-                            <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800;">${statusIcon} ${statusText}</span>
+                            <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.3px;">${(p.genre || "general").toUpperCase()}</span>
+                            <span style="background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorder}; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">${statusIcon} ${statusText}</span>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #64748b;">
+                        <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-left: auto;">
                             ${dateStr}
                         </div>
                     </div>
 
-                    <div>
-                        <h3 style="font-family: var(--font-display); font-size: 22px; margin: 4px 0 8px; color: #000;">${p.title}</h3>
-                        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; font-size: 14px; color: #334155; font-weight: 500; line-height: 1.6;">
+                    <div style="word-break: break-word; overflow-wrap: anywhere; width: 100%;">
+                        <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 4px 0 10px; line-height: 1.3; font-family: var(--font-ui, sans-serif);">${p.title}</h3>
+                        
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; font-size: 14px; color: #334155; font-weight: 500; line-height: 1.65; word-break: break-word; overflow-wrap: anywhere; box-sizing: border-box; width: 100%;">
                             ${p.description}
                         </div>
+                        
                         ${adminCommentHtml}
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
-                        <button onclick="deleteMyPitch('${p.id}')" style="padding: 8px 18px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui); color: #dc2626;" title="Delete pitch permanently from db.json and local storage">
+                    <div style="display: flex; justify-content: flex-end; margin-top: 2px;">
+                        <button type="button" onclick="deleteMyPitch('${p.id}')" style="padding: 8px 18px; border: 1px solid #fee2e2; border-radius: 100px; background: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer; color: #ef4444; transition: all 0.2s ease;" title="Delete pitch permanently">
                             🗑 Delete Pitch
                         </button>
                     </div>
                 </div>
             `;
         }).join("");
-
     } catch(e) {
         container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 16px;">Could not load pitches.</p>';
     }
@@ -1279,5 +1334,69 @@ async function deleteMyPitch(pitchId) {
         }
     } catch(e) {
         alert("Error connecting to server.");
+    }
+}
+
+/* =====================================================
+   DYNAMIC STORY RATING SYSTEM
+===================================================== */
+async function submitStoryRating(storyId, stars) {
+    if (!user) {
+        alert("Please login to rate stories!");
+        return;
+    }
+
+    let feedbackEl = document.getElementById("ratingFeedback_" + storyId);
+    let starsContainer = document.getElementById("starRatingContainer_" + storyId);
+
+    try {
+        let res = await fetch("http://localhost:3000/Stories/" + storyId);
+        if (!res.ok) return;
+
+        let story = await res.json();
+        let ratings = story.ratings || [];
+        if (!Array.isArray(ratings)) ratings = [];
+
+        let existingIndex = ratings.findIndex(r => typeof r === 'object' && String(r.userId) === String(user.id));
+        if (existingIndex !== -1) {
+            ratings[existingIndex].stars = stars;
+        } else {
+            ratings.push({ userId: user.id, stars: stars });
+        }
+
+        let patchRes = await fetch("http://localhost:3000/Stories/" + storyId, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ratings: ratings })
+        });
+
+        if (patchRes.ok) {
+            let updatedStory = await patchRes.json();
+            if (currentStory && String(currentStory.id) === String(storyId)) {
+                currentStory.ratings = updatedStory.ratings;
+            }
+            let newStats = calculateRatingStats(updatedStory);
+
+            if (feedbackEl) {
+                feedbackEl.style.display = "block";
+                feedbackEl.innerHTML = "⭐ Rated " + stars + " Stars! Avg: <strong>" + newStats.avg + "</strong> (" + newStats.count + " ratings)";
+            }
+
+            if (starsContainer) {
+                let starSpans = starsContainer.querySelectorAll("span");
+                starSpans.forEach((s, idx) => {
+                    s.style.opacity = (idx < stars) ? "1" : "0.3";
+                });
+            }
+
+            if (typeof showToastNotification === 'function') {
+                showToastNotification("RATING SUBMITTED!", "Thank you for rating " + stars + " Stars! ⭐", "⭐");
+            }
+            if (typeof loadStories === 'function') {
+                loadStories();
+            }
+        }
+    } catch(e) {
+        console.warn("Could not submit rating:", e);
     }
 }

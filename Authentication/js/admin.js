@@ -1,3 +1,20 @@
+﻿
+function calculateRatingStats(story) {
+    let ratings = story.ratings || [];
+    if (!Array.isArray(ratings)) ratings = [];
+    if (ratings.length === 0) {
+        return { avg: "0.0", count: 0, display: "⭐ 5.0 (New)", starText: "⭐ 5.0 (New)" };
+    }
+    let total = ratings.reduce((sum, r) => sum + (typeof r === 'number' ? r : (r.stars || 0)), 0);
+    let avg = (total / ratings.length).toFixed(1);
+    return {
+        avg,
+        count: ratings.length,
+        display: `⭐ ${avg} (${ratings.length})`,
+        starText: `⭐ ${avg} (${ratings.length} ${ratings.length === 1 ? 'rating' : 'ratings'})`
+    };
+}
+
 ﻿function redirectStory() {
     window.location.href = "add_stories.html";
 }
@@ -36,7 +53,7 @@ async function deleteStory(storyId) {
 
 function handleLogout() {
     localStorage.removeItem("user");
-    window.location.href = "../auth/login.html";
+    window.location.href = "../../Landing.html"
 }
 
 function renderAdminProfileHeader() {
@@ -153,6 +170,7 @@ async function loadStories() {
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
                             <span class="badge-genre">${(element.genre || "General").toUpperCase()}</span>
                             <span class="badge-status ${statusClass}">${statusText}</span>
+                            <span style="background: #ffde59; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800; color: #000;">${(calculateRatingStats(element)).display}</span>
                         </div>
                         <h3>${element.title || "Untitled Story"}</h3>
                         <div class="author-tag" style="margin-bottom: 10px;">BY ${(element.author || "ADMIN").toUpperCase()}</div>
@@ -349,6 +367,11 @@ function openDescriptionModal(storyId) {
     }
     if (modalCover) modalCover.src = story.imageURL || story.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
     if (modalSceneCount) modalSceneCount.textContent = sceneCount;
+    let rStats = calculateRatingStats(story);
+    let modalRatingAvg = document.getElementById("modalRatingAvg");
+    let modalRatingCount = document.getElementById("modalRatingCount");
+    if (modalRatingAvg) modalRatingAvg.textContent = rStats.avg;
+    if (modalRatingCount) modalRatingCount.textContent = rStats.count;
 
     if (modalEditBtn) modalEditBtn.onclick = () => { closeDescriptionModal(); editStory(story.id); };
 
@@ -404,8 +427,9 @@ async function loadReaderPitches() {
 
         container.innerHTML = pitches.map(p => {
             let isPending = !p.status || p.status === "pending";
-            let isDecided = p.status === "approved" || p.status === "rejected";
-            let statusColor = p.status === "approved" ? "#39d39f" : p.status === "rejected" ? "#ff6b6b" : "#ffde59";
+            let statusBg = p.status === "approved" ? "#dcfce7" : p.status === "rejected" ? "#fee2e2" : "#fef3c7";
+            let statusBorder = p.status === "approved" ? "#86efac" : p.status === "rejected" ? "#fca5a5" : "#fde047";
+            let statusColor = p.status === "approved" ? "#166534" : p.status === "rejected" ? "#991b1b" : "#92400e";
             let statusText = (p.status || "pending").toUpperCase();
             let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
             let existingComment = p.adminComment || "";
@@ -414,38 +438,38 @@ async function loadReaderPitches() {
             if (isPending) {
                 actionsHtml = `
                     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px;">
-                        <button onclick="updatePitchStatus('${p.id}', 'approved')" style="padding: 9px 20px; border: 2px solid #000; border-radius: 100px; background: #39d39f; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui);">✅ Approve Pitch (+30 XP to Reader)</button>
-                        <button onclick="updatePitchStatus('${p.id}', 'rejected')" style="padding: 9px 20px; border: 2px solid #000; border-radius: 100px; background: #ff6b6b; color: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui);">✕ Reject</button>
-                        <button onclick="deletePitch('${p.id}')" style="padding: 9px 18px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 3px 3px 0px #000; font-family: var(--font-ui); color: #555;">🗑 Remove</button>
+                        <button onclick="updatePitchStatus('${p.id}', 'approved')" style="padding: 9px 22px; border: none; border-radius: 100px; background: #22c55e; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);">✅ Approve Pitch (+30 XP)</button>
+                        <button onclick="updatePitchStatus('${p.id}', 'rejected')" style="padding: 9px 22px; border: none; border-radius: 100px; background: #ef4444; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);">✕ Reject</button>
+                        <button onclick="deletePitch('${p.id}')" style="padding: 8px 18px; border: 1px solid #cbd5e1; border-radius: 100px; background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; color: #64748b;">🗑 Remove</button>
                     </div>
                 `;
             } else {
                 actionsHtml = `
-                    <div style="margin-top: 16px; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px;">
+                    <div style="margin-top: 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 16px;">
                         <label style="font-weight: 800; font-size: 12px; color: #475569; display: block; margin-bottom: 6px;">📝 ADMIN COMMENT FOR READER</label>
-                        <textarea id="comment_${p.id}" placeholder="Leave feedback or comment for reader (e.g. Loved the idea!)..." rows="2" style="width: 100%; padding: 10px 14px; border: 2px solid #000; border-radius: 10px; font-family: var(--font-ui); font-size: 13px; font-weight: 600; resize: none; outline: none; box-sizing: border-box; background: #fff;">${existingComment}</textarea>
+                        <textarea id="comment_${p.id}" placeholder="Leave feedback for reader (e.g. Loved the idea!)..." rows="2" style="width: 100%; padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-family: var(--font-ui, sans-serif); font-size: 13.5px; font-weight: 500; resize: none; outline: none; box-sizing: border-box; background: #fff;">${existingComment}</textarea>
                         <div style="display: flex; gap: 10px; margin-top: 10px;">
-                            <button onclick="saveAdminComment('${p.id}')" style="padding: 8px 18px; border: 2px solid #000; border-radius: 100px; background: #ffde59; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui);">💾 Save Comment</button>
-                            <button onclick="deletePitch('${p.id}')" style="padding: 8px 18px; border: 2px solid #000; border-radius: 100px; background: #fff; font-weight: 800; font-size: 12px; cursor: pointer; box-shadow: 2px 2px 0px #000; font-family: var(--font-ui); color: #555;">🗑 Remove</button>
+                            <button onclick="saveAdminComment('${p.id}')" style="padding: 8px 20px; border: none; border-radius: 100px; background: #4f46e5; color: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">💾 Save Comment</button>
+                            <button onclick="deletePitch('${p.id}')" style="padding: 8px 18px; border: 1px solid #cbd5e1; border-radius: 100px; background: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer; color: #64748b;">🗑 Remove</button>
                         </div>
                     </div>
                 `;
             }
 
             return `
-                <div style="background: #fff; border: 3px solid #000; border-radius: 20px; padding: 24px 28px; box-shadow: 6px 6px 0px #000; display: flex; flex-direction: column; gap: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 20px; padding: 24px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01); display: flex; flex-direction: column; gap: 14px; box-sizing: border-box; width: 100%; word-break: break-word; overflow-wrap: anywhere;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            <span style="background: #e0e7ff; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800; color: #1e1b4b;">${(p.genre || "general").toUpperCase()}</span>
-                            <span style="background: ${statusColor}; border: 1.5px solid #000; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800;">${statusText}</span>
+                            <span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 700;">${(p.genre || "general").toUpperCase()}</span>
+                            <span style="background: ${statusBg}; color: ${statusColor}; border: 1px solid ${statusBorder}; border-radius: 100px; padding: 4px 14px; font-size: 12px; font-weight: 800;">${statusText}</span>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #64748b;">
+                        <div style="font-size: 13px; font-weight: 600; color: #64748b; margin-left: auto;">
                             By <strong style="color: #0f172a;">${p.submittedBy || "Reader"}</strong> ${dateStr ? '• ' + dateStr : ''}
                         </div>
                     </div>
-                    <div>
-                        <h3 style="font-family: var(--font-display); font-size: 22px; margin: 4px 0 8px; color: #000;">${p.title}</h3>
-                        <div style="background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; font-size: 14px; color: #334155; font-weight: 500; line-height: 1.6;">
+                    <div style="word-break: break-word; overflow-wrap: anywhere; width: 100%;">
+                        <h3 style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 4px 0 10px; line-height: 1.3; font-family: var(--font-ui, sans-serif);">${p.title}</h3>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px 18px; font-size: 14px; color: #334155; font-weight: 500; line-height: 1.65; word-break: break-word; overflow-wrap: anywhere; box-sizing: border-box; width: 100%;">
                             ${p.description}
                         </div>
                     </div>
@@ -453,7 +477,6 @@ async function loadReaderPitches() {
                 </div>
             `;
         }).join("");
-
     } catch(e) {
         container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 16px;">Could not load pitches.</p>';
     }

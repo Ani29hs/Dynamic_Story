@@ -51,3 +51,19 @@
                 window.location.href = "../reader/stories.html";
             }
         }
+
+/* =====================================================
+   LOTTIE ANIMATION INITIALIZATION (css/Login.json)
+===================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+    let container = document.getElementById("lottieContainer");
+    if (container && typeof lottie !== "undefined") {
+        lottie.loadAnimation({
+            container: container,
+            renderer: "svg",
+            loop: true,
+            autoplay: true,
+            path: "../../css/Welcome.json"
+        });
+    }
+});

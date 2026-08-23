@@ -889,6 +889,24 @@
             }
         }
     </style>
+
+<style>
+@keyframes floatHeader {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+@keyframes heroEntrance {
+    0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hero-section, .landing-container, header {
+    animation: heroEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.badge-pill, .floating-badge {
+    animation: floatHeader 3s ease-in-out infinite;
+}
+</style>
+
 </head>
 
 <body>
@@ -1401,6 +1419,211 @@
             window.location.reload();
         }
     </script>
+
+    <!-- SECRET ADMIN QUICK-LOGIN MODAL | Trigger: 3x Backtick | Only when no user logged in -->
+    <div id="adminQuickLoginModal" onclick="handleAdminModalOverlayClick(event)">
+        <div class="admin-login-card">
+            <button class="admin-modal-close" onclick="closeAdminQuickLogin()" title="Close (Esc)">&#x2715;</button>
+            <div class="admin-lock-icon">&#x1F510;</div>
+            <h2 class="admin-modal-title">ADMIN ACCESS</h2>
+            <p class="admin-modal-subtitle">Enter your admin password to continue.</p>
+            <input type="password" id="adminSecretPwd" class="admin-pwd-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="off" spellcheck="false">
+            <div id="adminLoginError">&#x274C; Wrong password. Try again.</div>
+            <button class="admin-login-btn" onclick="handleAdminQuickLogin()">LOGIN AS ADMIN &#x2192;</button>
+        </div>
+    </div>
+
+    <style>
+        #adminQuickLoginModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0,0,0,0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #adminQuickLoginModal.admin-modal-visible {
+            display: flex;
+        }
+        .admin-login-card {
+            position: relative;
+            background: #ffffff;
+            border: 3px solid #000000;
+            border-radius: 28px;
+            padding: 44px 40px 36px 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 10px 10px 0px #000000;
+            text-align: center;
+            animation: adminModalPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes adminModalPop {
+            0%   { opacity: 0; transform: scale(0.8) translateY(30px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .admin-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: #f1f5f9;
+            border: 2px solid #000;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .admin-modal-close:hover { background: #ffde59; transform: scale(1.1); }
+        .admin-lock-icon { font-size: 44px; margin-bottom: 12px; animation: lockBounce 1.4s ease-in-out; }
+        @keyframes lockBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            30% { transform: translateY(-10px) rotate(-8deg); }
+            60% { transform: translateY(-4px) rotate(6deg); }
+        }
+        .admin-modal-title { font-family: 'Bowlby One', sans-serif; font-size: 26px; color: #000; margin: 0 0 6px 0; }
+        .admin-modal-subtitle { font-size: 13.5px; font-weight: 600; color: #64748b; margin: 0 0 24px 0; }
+        .admin-pwd-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2.5px solid #000;
+            border-radius: 14px;
+            font-size: 18px;
+            letter-spacing: 4px;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            box-shadow: 3px 3px 0px #000;
+            transition: all 0.15s ease;
+            box-sizing: border-box;
+            background: #f8fafc;
+        }
+        .admin-pwd-input:focus { border-color: #5c4ade; box-shadow: 4px 4px 0px #5c4ade; background: #fff; }
+        @keyframes adminShake {
+            0%, 100% { transform: translateX(0); }
+            15%, 55% { transform: translateX(-9px); }
+            35%, 75% { transform: translateX(9px); }
+        }
+        .admin-input-shake { animation: adminShake 0.42s ease !important; border-color: #ef4444 !important; box-shadow: 3px 3px 0px #ef4444 !important; }
+        #adminLoginError { display: none; margin: 10px 0 0 0; padding: 10px 14px; background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 10px; font-size: 13px; font-weight: 700; color: #ef4444; }
+        .admin-login-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px 24px;
+            background: #000;
+            color: #fff;
+            border: 2.5px solid #000;
+            border-radius: 100px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #000;
+            transition: all 0.15s ease;
+        }
+        .admin-login-btn:hover { background: #5c4ade; border-color: #5c4ade; transform: translate(-2px,-2px); box-shadow: 6px 6px 0px #5c4ade; }
+        .admin-login-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0px #000; }
+    </style>
+
+    <script>
+        (function() {
+            var _backtickCount = 0;
+            var _backtickTimer = null;
+
+            document.addEventListener('keydown', function(e) {
+                if (localStorage.getItem('user')) return;
+                if (e.key === '`') {
+                    e.preventDefault();
+                    _backtickCount++;
+                    clearTimeout(_backtickTimer);
+                    _backtickTimer = setTimeout(function() { _backtickCount = 0; }, 800);
+                    if (_backtickCount >= 3) {
+                        _backtickCount = 0;
+                        clearTimeout(_backtickTimer);
+                        openAdminQuickLogin();
+                    }
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var pwdInput = document.getElementById('adminSecretPwd');
+                if (pwdInput) {
+                    pwdInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') { e.preventDefault(); handleAdminQuickLogin(); }
+                        if (e.key === 'Escape') { closeAdminQuickLogin(); }
+                    });
+                }
+            });
+        })();
+
+        function openAdminQuickLogin() {
+            var modal = document.getElementById('adminQuickLoginModal');
+            if (!modal) return;
+            modal.classList.add('admin-modal-visible');
+            setTimeout(function() {
+                var p = document.getElementById('adminSecretPwd');
+                if (p) p.focus();
+            }, 80);
+        }
+
+        function closeAdminQuickLogin() {
+            var modal = document.getElementById('adminQuickLoginModal');
+            if (modal) modal.classList.remove('admin-modal-visible');
+            var p = document.getElementById('adminSecretPwd');
+            if (p) p.value = '';
+            var e = document.getElementById('adminLoginError');
+            if (e) { e.style.display = 'none'; e.textContent = '❌ Wrong password. Try again.'; }
+            var btn = document.querySelector('.admin-login-btn');
+            if (btn) { btn.textContent = 'LOGIN AS ADMIN →'; btn.style.background = '#000'; btn.style.borderColor = '#000'; }
+        }
+
+        function handleAdminModalOverlayClick(e) {
+            if (e.target === document.getElementById('adminQuickLoginModal')) closeAdminQuickLogin();
+        }
+
+        async function handleAdminQuickLogin() {
+            var pwdInput = document.getElementById('adminSecretPwd');
+            var errEl = document.getElementById('adminLoginError');
+            var pwd = pwdInput ? pwdInput.value.trim() : '';
+            if (!pwd) {
+                if (pwdInput) { pwdInput.classList.add('admin-input-shake'); setTimeout(function(){ pwdInput.classList.remove('admin-input-shake'); }, 450); }
+                return;
+            }
+            try {
+                var res = await fetch('http://localhost:3000/Users?role=Admin');
+                if (!res.ok) throw new Error('Server error');
+                var admins = await res.json();
+                var admin = admins.find(function(u) { return u.password === pwd; });
+                if (admin) {
+                    localStorage.setItem('user', JSON.stringify(admin));
+                    var btn = document.querySelector('.admin-login-btn');
+                    if (btn) { btn.textContent = '✅ AUTHENTICATED!'; btn.style.background = '#22c55e'; btn.style.borderColor = '#22c55e'; btn.style.boxShadow = '4px 4px 0px #22c55e'; }
+                    setTimeout(function() { window.location.href = 'pages/admin/admin.html'; }, 650);
+                } else {
+                    if (errEl) { errEl.style.display = 'block'; }
+                    if (pwdInput) {
+                        pwdInput.classList.add('admin-input-shake');
+                        setTimeout(function(){ pwdInput.classList.remove('admin-input-shake'); }, 450);
+                        pwdInput.value = '';
+                        pwdInput.focus();
+                    }
+                }
+            } catch(err) {
+                if (errEl) { errEl.textContent = '⚠️ Could not connect to server.'; errEl.style.display = 'block'; }
+            }
+        }
+    </script>
 </body>
+
 
 </html>
