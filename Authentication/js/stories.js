@@ -389,16 +389,25 @@ function showNodes(currentStory) {
             if (isStart) cardClass += " is-start";
             if (element.isEnding) cardClass += " is-ending";
 
+            let cardStyle = "";
             let badgeHtml = "";
+
             if (isStart) {
                 badgeHtml = `<span class="badge-start">🚀 START NODE</span>`;
             } else if (element.isEnding) {
-                let endType = (element.endingType || "good").toUpperCase();
-                badgeHtml = `<span class="badge-ending">🏁 ${endType} ENDING</span>`;
+                let typeRaw  = (element.endingType || "good").toLowerCase();
+                let endType  = typeRaw.toUpperCase();
+                let endEmoji = typeRaw === "good" ? "🏆" : typeRaw === "bad" ? "💀" : typeRaw === "tragic" ? "😢" : "⚖️";
+                let bgBadge  = typeRaw === "good" ? "#34d399" : typeRaw === "bad" ? "#f87171" : typeRaw === "tragic" ? "#fb923c" : "#fbbf24";
+                let accent   = typeRaw === "good" ? "#22c55e" : typeRaw === "bad" ? "#ef4444" : typeRaw === "tragic" ? "#f97316" : "#f59e0b";
+                let cardBg   = typeRaw === "good" ? "#f0fff4" : typeRaw === "bad" ? "#fff0f0" : typeRaw === "tragic" ? "#fff7ed" : "#fffbeb";
+
+                badgeHtml = `<span class="badge-ending" style="background: ${bgBadge} !important;">${endEmoji} ${endType} ENDING</span>`;
+                cardStyle = `style="border-left: 8px solid ${accent} !important; background: ${cardBg} !important;"`;
             }
 
-            // "Set as Start" button — only shown on non-start nodes
-            let startBtnHtml = !isStart
+            // "Set as Start" button — only shown on regular, non-ending, non-start nodes
+            let startBtnHtml = (!isStart && !element.isEnding)
                 ? `<button type="button" class="nav-pill" onclick="setAsStartNode('${element.id}')">🚀 Set as Start</button>`
                 : "";
 
@@ -450,13 +459,13 @@ function showNodes(currentStory) {
 
             // ── Build and append the full node card ───────────────────────────
             nodeHidden.innerHTML += `
-                <div class="${cardClass}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
-                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                            <h3 style="font-size: 22px; font-weight: 800;">#${index + 1}. ${element.title}</h3>
+                <div class="${cardClass}" ${cardStyle}>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1; min-width: 260px;">
+                            <h3 style="font-size: 20px; font-weight: 800; margin: 0; line-height: 1.25;">#${index + 1}. ${element.title}</h3>
                             ${badgeHtml}
                         </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-left: auto;">
                             ${startBtnHtml}
                             <button type="button" class="nav-pill" onclick="editNode('${element.id}')">✏️ Edit Node</button>
                             <button type="button" class="danger-btn" onclick="handleDelete(${index})">🗑️ Delete Node</button>
