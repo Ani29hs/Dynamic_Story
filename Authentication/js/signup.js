@@ -78,9 +78,21 @@ let handleRegister = async (event) => {
         return;
     }
 
-    // Step e: Guard — passwords do not match
+    // Step e1: Guard — password complexity rules
+    // Rule: At least 8 chars, at least 1 letter, 1 number, and 1 special character
+    let passVal    = createPassword.value;
+    let hasLetter  = /[a-zA-Z]/.test(passVal);
+    let hasDigit   = /[0-9]/.test(passVal);
+    let hasSpecial = /[^a-zA-Z0-9]/.test(passVal);
+
+    if (passVal.length < 8 || !hasLetter || !hasDigit || !hasSpecial) {
+        alert("⚠️ Password must be at least 8 characters long and contain at least one letter, one number, and one special character (e.g. @, #, $, !).");
+        return;
+    }
+
+    // Step e2: Guard — passwords do not match
     if (createPassword.value !== confirmPassword.value) {
-        alert("Password does not match");
+        alert("Passwords do not match");
         return;
     }
 
