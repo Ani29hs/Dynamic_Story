@@ -1,4 +1,53 @@
-﻿
+
+/* ============================================================
+   admin.js
+   Page:  pages/admin/admin.html
+   Role:  Admin Dashboard — manages all stories and reader pitches.
+
+   FLOW (Top to Bottom — Page Load Order):
+   ──────────────────────────────────────
+   1.  calculateRatingStats()      Utility — compute avg star rating
+   2.  Navigation helpers          redirectStory / editStory / previewStory
+   3.  handleLogout()              Clear session → Landing.html
+   4.  renderAdminProfileHeader()  Inject avatar + dropdown in navbar
+   5.  toggleProfileDropdown()     Open/close profile menu
+   6.  Global click listener       Close dropdown on outside click
+   7.  DOMContentLoaded listener   Kick off renderAdminProfileHeader
+   8.  loadStories()               Fetch stories → render story cards
+   9.  restoreSampleStory()        Create a sample branching story
+   10. currentAdminStories []      In-memory story cache
+   11. openDescriptionModal()      Populate + show story detail modal
+   12. closeDescriptionModal()     Hide modal
+   13. switchTab()                 Toggle Stories ↔ Pitches view
+   14. loadReaderPitches()         Fetch pitches → render pitch cards
+   15. updatePitchStatus()         Approve / Reject pitch (+ XP award)
+   16. saveAdminComment()          Save admin feedback on pitch
+   17. deletePitch()               Soft-delete pitch (adminHidden flag)
+   18. window.* exports            Make modal functions globally reachable
+
+   DATA FLOW (json-server, port 3000):
+   ────────────────────────────────────
+   GET    /Stories            → fetch all stories for card grid
+   DELETE /Stories/:id        → permanently delete a story
+   POST   /Stories            → create sample story
+   GET    /ReaderStories      → fetch reader pitch queue
+   PATCH  /ReaderStories/:id  → approve / reject / comment / soft-delete
+   GET    /Users/:id          → read reader's current XP before awarding
+   PATCH  /Users/:id          → +30 XP + pendingToast on pitch approval
+   ============================================================ */
+
+
+/* ============================================================
+   SECTION 1 — UTILITY: calculateRatingStats(story)
+   Pure helper — no DOM reads, no fetch calls.
+   Accepts a story object and reads story.ratings[]
+   (each element is either a number OR { stars: number }).
+   Returns an object:
+     { avg: "4.5", count: 12, display: "⭐ 4.5 (12)", starText: "..." }
+   Returns "5.0 (New)" if the story has zero ratings.
+   Called by: loadStories() when building each story card.
+   ============================================================ */
+
 function calculateRatingStats(story) {
     let ratings = story.ratings || [];
     if (!Array.isArray(ratings)) ratings = [];
@@ -15,7 +64,17 @@ function calculateRatingStats(story) {
     };
 }
 
-﻿function redirectStory() {
+
+/* ============================================================
+   SECTION 2 — NAVIGATION HELPERS
+   Three simple redirect functions called by story card buttons.
+   redirectStory()     → add_stories.html   (create new story)
+   editStory(id)       → add_stories.html?id=<id> (edit existing)
+   deleteStory(id)     → DELETE /Stories/:id, then reload grid
+   previewStory(id)    → preview.html?id=<id> (admin story preview)
+   ============================================================ */
+
+function redirectStory() {
     window.location.href = "add_stories.html";
 }
 
@@ -33,12 +92,12 @@ async function deleteStory(storyId) {
     });
 
     if (response.ok) {
-        // Remove active session for this story from localStorage
+        // Remove the active reading session for this story from localStorage
         let user = JSON.parse(localStorage.getItem("user"));
         let userId = user ? (user.id || user.name) : "guest";
         localStorage.removeItem(`active_session_${userId}_${storyId}`);
 
-        // Remove currentStory draft if open
+        // Clear the currentStory draft if the editor had this story open
         let currentStory = JSON.parse(localStorage.getItem("currentStory"));
         if (currentStory && currentStory.id === storyId) {
             localStorage.removeItem("currentStory");
@@ -51,20 +110,43 @@ async function deleteStory(storyId) {
     }
 }
 
+
+/* ============================================================
+   SECTION 3 — LOGOUT: handleLogout()
+   Removes the "user" key from localStorage (ends the session)
+   and redirects the admin back to the public Landing page.
+   ============================================================ */
+
 function handleLogout() {
     localStorage.removeItem("user");
-    window.location.href = "../../Landing.html"
+    window.location.href = "../../Landing.html";
 }
+
+
+/* ============================================================
+   SECTION 4 — NAVBAR: renderAdminProfileHeader()
+   Reads the logged-in user from localStorage and injects the
+   profile avatar button + dropdown menu into #navAuthContainer.
+
+   Renders:
+   - User's name initial as avatar circle
+   - User's display name
+   - Dropdown with: role badge, XP badge (Readers only),
+     Admin Dashboard link, Story Preview link, Sign Out button
+   Called on: DOMContentLoaded + immediately on script parse.
+   ============================================================ */
 
 function renderAdminProfileHeader() {
     let navAuthContainer = document.getElementById("navAuthContainer");
     let user = JSON.parse(localStorage.getItem("user"));
     if (!navAuthContainer || !user) return;
 
-    let initial = user.name ? user.name.charAt(0).toUpperCase() : "A";
-    let activeXp = (user.xp !== undefined) ? user.xp : 100;
-    let roleTitle = user.role || "Admin";
-    let xpBadgeHtml = (user.role !== "Admin") ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>` : ``;
+    let initial     = user.name ? user.name.charAt(0).toUpperCase() : "A";
+    let activeXp    = (user.xp !== undefined) ? user.xp : 100;
+    let roleTitle   = user.role || "Admin";
+    let xpBadgeHtml = (user.role !== "Admin")
+        ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>`
+        : ``;
 
     navAuthContainer.innerHTML = `
         <div class="user-profile-menu-container">
@@ -101,6 +183,19 @@ function renderAdminProfileHeader() {
     `;
 }
 
+
+/* ============================================================
+   SECTION 5 — PROFILE DROPDOWN TOGGLE
+   toggleProfileDropdown(event)
+   Opens or closes #profileDropdown by toggling the "hidden" class.
+   Stops event propagation so the global document click listener
+   below does not immediately close the menu when it opens.
+
+   Global "click" listener:
+   Closes the dropdown whenever the user clicks anywhere outside
+   the .user-profile-menu-container element.
+   ============================================================ */
+
 function toggleProfileDropdown(event) {
     if (event) event.stopPropagation();
     let menu = document.getElementById("profileDropdown");
@@ -109,6 +204,7 @@ function toggleProfileDropdown(event) {
     }
 }
 
+// Close profile dropdown on any outside click
 document.addEventListener("click", (e) => {
     let menu = document.getElementById("profileDropdown");
     if (menu && !menu.classList.contains("hidden")) {
@@ -118,83 +214,122 @@ document.addEventListener("click", (e) => {
     }
 });
 
+// Initialise the profile header as soon as the DOM is ready
 document.addEventListener("DOMContentLoaded", renderAdminProfileHeader);
-renderAdminProfileHeader();
+renderAdminProfileHeader(); // Also call immediately in case DOM is already ready
+
+
+/* ============================================================
+   SECTION 6 — STORY CARD GRID: loadStories()
+   Fetches all stories from GET /Stories (json-server).
+   Stores them in currentAdminStories cache for modal lookups.
+   Renders story cards inside #storiesContainer.
+
+   Card contents:
+   - Cover image (with Unsplash fallback if none provided)
+   - Genre badge, Status badge (PUBLISHED / DRAFT)
+   - ⭐ Rating badge from calculateRatingStats()
+   - Story title, author, truncated description + "Read More" button
+   - Scene/node count stat box
+   - Action row: ✏️ Edit | 👁️ Preview | 🗑️ Delete
+
+   Empty state: Shown if /Stories returns an empty array.
+   Called on: DOMContentLoaded and after any story CRUD action.
+   ============================================================ */
 
 async function loadStories() {
     let response = await fetch("http://localhost:3000/Stories");
     if (!response.ok) return;
 
     let stories = await response.json();
-    currentAdminStories = stories;
-    let container = document.getElementById("storiesContainer");
+    currentAdminStories = stories; // Cache for modal use
 
+    let container = document.getElementById("storiesContainer");
     if (!container) return;
 
-        // 1. If no stories exist, render empty state
-        if (stories.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state" style="grid-column: 1 / -1; border: 3px dashed #000; border-radius: 24px; padding: 48px 24px; text-align: center; background: #fff; box-shadow: 6px 6px 0px #000;">
-                    <h2 style="font-family: var(--font-display); font-size: 28px; margin-bottom: 12px;">NO STORIES CREATED YET</h2>
-                    <p style="font-weight: 700; margin-bottom: 20px;">Create your first interactive branching story or restore the sample adventure.</p>
-                    <button onclick="redirectStory()" class="primary-btn" style="width: auto; padding: 12px 28px;">+ Create Story</button>
+    // Empty state — no stories in the database yet
+    if (stories.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1; border: 3px dashed #000; border-radius: 24px; padding: 48px 24px; text-align: center; background: #fff; box-shadow: 6px 6px 0px #000;">
+                <h2 style="font-family: var(--font-display); font-size: 28px; margin-bottom: 12px;">NO STORIES CREATED YET</h2>
+                <p style="font-weight: 700; margin-bottom: 20px;">Create your first interactive branching story or restore the sample adventure.</p>
+                <button onclick="redirectStory()" class="primary-btn" style="width: auto; padding: 12px 28px;">+ Create Story</button>
+            </div>
+        `;
+        return;
+    }
+
+    // Clear and rebuild the card grid
+    container.innerHTML = "";
+
+    stories.forEach((element) => {
+        let nodeCount   = element.nodes ? element.nodes.length : 0;
+        let statusClass = element.status === "published" ? "status-published" : "status-draft";
+        let statusText  = element.status === "published" ? "🌐 PUBLISHED" : "🔒 DRAFT (PRIVATE)";
+
+        // Cover image HTML — fallback to Unsplash placeholder
+        let coverImg = element.imageURL || element.coverImage
+            ? `<img src="${element.imageURL || element.coverImage}" alt="${element.title}" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'">`
+            : `<div class="no-image" style="display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 800; color: #666;">No Cover Image</div>`;
+
+        // Truncate long descriptions and add a "Read More" button
+        let rawDesc        = element.description || "No description provided.";
+        let isLong         = rawDesc.length > 110;
+        let truncatedDesc  = isLong ? rawDesc.substring(0, 110) + "..." : rawDesc;
+        let readMoreBtnHtml = isLong
+            ? ` <button type="button" class="view-more-btn" onclick="openDescriptionModal('${element.id}')">Read More &rarr;</button>`
+            : ``;
+
+        container.innerHTML += `
+            <div class="story-card">
+                <div class="story-card-image">
+                    ${coverImg}
                 </div>
-            `;
-            return;
-        }
-
-        // 2. Clear container before looping
-        container.innerHTML = "";
-
-        // 3. Loop through stories and append cards
-        stories.forEach((element) => {
-            let nodeCount = element.nodes ? element.nodes.length : 0;
-            let statusClass = element.status === "published" ? "status-published" : "status-draft";
-            let statusText = element.status === "published" ? "🌐 PUBLISHED" : "🔒 DRAFT (PRIVATE)";
-
-            let coverImg = element.imageURL || element.coverImage
-                ? `<img src="${element.imageURL || element.coverImage}" alt="${element.title}" onerror="this.src='https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'">`
-                : `<div class="no-image" style="display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 800; color: #666;">No Cover Image</div>`;
-
-            let rawDesc = element.description || "No description provided.";
-            let isLong = rawDesc.length > 110;
-            let truncatedDesc = isLong ? rawDesc.substring(0, 110) + "..." : rawDesc;
-            let readMoreBtnHtml = isLong ? ` <button type="button" class="view-more-btn" onclick="openDescriptionModal('${element.id}')">Read More &rarr;</button>` : ``;
-
-            container.innerHTML += `
-                <div class="story-card">
-                    <div class="story-card-image">
-                        ${coverImg}
+                <div class="story-card-content">
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+                        <span class="badge-genre">${(element.genre || "General").toUpperCase()}</span>
+                        <span class="badge-status ${statusClass}">${statusText}</span>
+                        <span style="background: #ffde59; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800; color: #000;">${(calculateRatingStats(element)).display}</span>
                     </div>
-                    <div class="story-card-content">
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-                            <span class="badge-genre">${(element.genre || "General").toUpperCase()}</span>
-                            <span class="badge-status ${statusClass}">${statusText}</span>
-                            <span style="background: #ffde59; border: 1.5px solid #000; border-radius: 100px; padding: 2px 10px; font-size: 12px; font-weight: 800; color: #000;">${(calculateRatingStats(element)).display}</span>
-                        </div>
-                        <h3>${element.title || "Untitled Story"}</h3>
-                        <div class="author-tag" style="margin-bottom: 10px;">BY ${(element.author || "ADMIN").toUpperCase()}</div>
-                        <p class="story-description">${truncatedDesc}${readMoreBtnHtml}</p>
-                        <div class="stat-lockup-box">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                            <span><strong>${nodeCount}</strong> SCENES / NODES</span>
-                        </div>
-                    </div>
-                    <div class="story-actions">
-                        <button type="button" class="btn-edit" onclick="editStory('${element.id}')">
-                            ✏️ Edit
-                        </button>
-                        <button type="button" class="btn-preview" onclick="previewStory('${element.id}')">
-                            👁️ Preview
-                        </button>
-                        <button type="button" class="btn-delete" onclick="deleteStory('${element.id}')">
-                            🗑️ Delete
-                        </button>
+                    <h3>${element.title || "Untitled Story"}</h3>
+                    <div class="author-tag" style="margin-bottom: 10px;">BY ${(element.author || "ADMIN").toUpperCase()}</div>
+                    <p class="story-description">${truncatedDesc}${readMoreBtnHtml}</p>
+                    <div class="stat-lockup-box">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span><strong>${nodeCount}</strong> SCENES / NODES</span>
                     </div>
                 </div>
-            `;
-        });
+                <div class="story-actions">
+                    <button type="button" class="btn-edit" onclick="editStory('${element.id}')">
+                        ✏️ Edit
+                    </button>
+                    <button type="button" class="btn-preview" onclick="previewStory('${element.id}')">
+                        👁️ Preview
+                    </button>
+                    <button type="button" class="btn-delete" onclick="deleteStory('${element.id}')">
+                        🗑️ Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    });
 }
+
+
+/* ============================================================
+   SECTION 7 — RESTORE SAMPLE STORY: restoreSampleStory()
+   Creates a fully-wired 6-node branching story in db.json.
+   Story: "The Lost Kingdom" — adventure genre, published.
+
+   Node map:
+     Village ──► Dark Forest ──► Hidden Treasure (GOOD ending)
+             │                └► Back to Village  (NEUTRAL ending)
+             └──► Ancient Castle ──► King's Victory (BAD ending)
+
+   All IDs are generated fresh via crypto.randomUUID() so the
+   story can be restored multiple times without ID conflicts.
+   Guard: Only runs if the logged-in user has role "Admin".
+   ============================================================ */
 
 async function restoreSampleStory() {
     let user = JSON.parse(localStorage.getItem("user"));
@@ -204,120 +339,82 @@ async function restoreSampleStory() {
         return;
     }
 
-    // Create node IDs first
-    let villageId = crypto.randomUUID();
-    let forestId = crypto.randomUUID();
-    let castleId = crypto.randomUUID();
+    // Generate all node IDs upfront so choices can reference them
+    let villageId  = crypto.randomUUID();
+    let forestId   = crypto.randomUUID();
+    let castleId   = crypto.randomUUID();
     let treasureId = crypto.randomUUID();
-    let returnId = crypto.randomUUID();
-    let defeatId = crypto.randomUUID();
+    let returnId   = crypto.randomUUID();
+    let defeatId   = crypto.randomUUID();
 
-    // Create nodes
+    // Define each story node
     let villageNode = {
-        id: villageId,
-        title: "The Village",
+        id: villageId, title: "The Village",
         text: "You stand at the center of a mysterious village. Two paths lie before you.",
-        location: "Village",
-        characters: ["Traveler"],
-        isEnding: false,
-        endingType: null,
+        location: "Village", characters: ["Traveler"],
+        isEnding: false, endingType: null,
         choices: [
             { id: crypto.randomUUID(), text: "Enter the Dark Forest", targetNodeId: forestId },
-            { id: crypto.randomUUID(), text: "Visit the Castle", targetNodeId: castleId }
+            { id: crypto.randomUUID(), text: "Visit the Castle",      targetNodeId: castleId }
         ]
     };
-
     let forestNode = {
-        id: forestId,
-        title: "The Dark Forest",
+        id: forestId, title: "The Dark Forest",
         text: "The trees grow taller around you. You hear something moving in the shadows.",
-        location: "Dark Forest",
-        characters: ["Traveler", "Guardian"],
-        isEnding: false,
-        endingType: null,
+        location: "Dark Forest", characters: ["Traveler", "Guardian"],
+        isEnding: false, endingType: null,
         choices: [
             { id: crypto.randomUUID(), text: "Follow the mysterious path", targetNodeId: treasureId },
-            { id: crypto.randomUUID(), text: "Turn back to the village", targetNodeId: returnId }
+            { id: crypto.randomUUID(), text: "Turn back to the village",   targetNodeId: returnId }
         ]
     };
-
     let castleNode = {
-        id: castleId,
-        title: "The Ancient Castle",
+        id: castleId, title: "The Ancient Castle",
         text: "You enter the castle and find the mysterious king waiting for you.",
-        location: "Ancient Castle",
-        characters: ["Traveler", "King"],
-        isEnding: false,
-        endingType: null,
+        location: "Ancient Castle", characters: ["Traveler", "King"],
+        isEnding: false, endingType: null,
         choices: [
             { id: crypto.randomUUID(), text: "Challenge the King", targetNodeId: defeatId }
         ]
     };
-
     let treasureNode = {
-        id: treasureId,
-        title: "The Hidden Treasure",
+        id: treasureId, title: "The Hidden Treasure",
         text: "You follow the path and discover a legendary treasure hidden beneath the ancient trees.",
-        location: "Hidden Cave",
-        characters: ["Traveler"],
-        isEnding: true,
-        endingType: "good",
-        choices: []
+        location: "Hidden Cave", characters: ["Traveler"],
+        isEnding: true, endingType: "good", choices: []
     };
-
     let returnNode = {
-        id: returnId,
-        title: "Back to the Village",
+        id: returnId, title: "Back to the Village",
         text: "You safely return to the village. Perhaps another adventure awaits you.",
-        location: "Village",
-        characters: ["Traveler"],
-        isEnding: true,
-        endingType: "neutral",
-        choices: []
+        location: "Village", characters: ["Traveler"],
+        isEnding: true, endingType: "neutral", choices: []
     };
-
     let defeatNode = {
-        id: defeatId,
-        title: "The King's Victory",
+        id: defeatId, title: "The King's Victory",
         text: "The king defeats you. Your journey ends inside the ancient castle.",
-        location: "Ancient Castle",
-        characters: ["Traveler", "King"],
-        isEnding: true,
-        endingType: "bad",
-        choices: []
+        location: "Ancient Castle", characters: ["Traveler", "King"],
+        isEnding: true, endingType: "bad", choices: []
     };
 
-    // Create complete story
+    // Assemble the complete story object
     let sampleStory = {
-        title: "The Lost Kingdom",
-        author: user.name || "Admin",
-        genre: "adventure",
-        status: "published",
+        title:       "The Lost Kingdom",
+        author:      user.name || "Admin",
+        genre:       "adventure",
+        status:      "published",
         description: "A branching adventure where your decisions determine the fate of your journey.",
-        imageURL: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23",
-        nodes: [
-            villageNode,
-            forestNode,
-            castleNode,
-            treasureNode,
-            returnNode,
-            defeatNode
-        ],
+        imageURL:    "https://images.unsplash.com/photo-1518709268805-4e9042af9f23",
+        nodes:       [villageNode, forestNode, castleNode, treasureNode, returnNode, defeatNode],
         startNodeId: villageId
     };
 
     try {
         let response = await fetch("http://localhost:3000/Stories", {
-            method: "POST",
+            method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(sampleStory)
+            body:    JSON.stringify(sampleStory)
         });
-
-        if (!response.ok) {
-            alert("Sample story could not be created");
-            return;
-        }
-
+        if (!response.ok) { alert("Sample story could not be created"); return; }
         alert("Sample story restored successfully!");
         loadStories();
     } catch (e) {
@@ -326,15 +423,33 @@ async function restoreSampleStory() {
     }
 }
 
-// Initial load
+// Initialise the story grid on page load
 document.addEventListener("DOMContentLoaded", loadStories);
-loadStories();
+loadStories(); // Also call immediately if DOM is already ready
 
 
-/* =====================================================
-   DESCRIPTION MODAL POPUP FOR ADMIN
-===================================================== */
+/* ============================================================
+   SECTION 8 — STATE: currentAdminStories []
+   In-memory cache populated by loadStories().
+   Allows openDescriptionModal() to find a story by ID instantly
+   without an additional network fetch.
+   ============================================================ */
+
 let currentAdminStories = [];
+
+
+/* ============================================================
+   SECTION 9 — DESCRIPTION MODAL
+   openDescriptionModal(storyId)
+   - Looks up the story in currentAdminStories by ID
+   - Fills all modal DOM elements: title, author, genre, status,
+     description text, cover image, scene count, rating stats
+   - Wires the "Edit" button to close modal and open editor
+   - Displays the modal overlay (display = "flex")
+
+   closeDescriptionModal()
+   - Hides the modal overlay (display = "none")
+   ============================================================ */
 
 function openDescriptionModal(storyId) {
     let story = currentAdminStories.find(s => String(s.id) === String(storyId));
@@ -343,72 +458,101 @@ function openDescriptionModal(storyId) {
     let modal = document.getElementById("descriptionModal");
     if (!modal) return;
 
-    let sceneCount = story.nodes ? (Array.isArray(story.nodes) ? story.nodes.length : Object.keys(story.nodes).length) : 0;
+    let sceneCount = story.nodes
+        ? (Array.isArray(story.nodes) ? story.nodes.length : Object.keys(story.nodes).length)
+        : 0;
 
-    let modalTitle = document.getElementById("modalTitle");
-    let modalAuthor = document.getElementById("modalAuthor");
-    let modalGenre = document.getElementById("modalGenre");
-    let modalStatus = document.getElementById("modalStatus");
+    // Populate modal fields
+    let modalTitle       = document.getElementById("modalTitle");
+    let modalAuthor      = document.getElementById("modalAuthor");
+    let modalGenre       = document.getElementById("modalGenre");
+    let modalStatus      = document.getElementById("modalStatus");
     let modalDescription = document.getElementById("modalDescription");
-    let modalCover = document.getElementById("modalCover");
-    let modalSceneCount = document.getElementById("modalSceneCount");
-    let modalEditBtn = document.getElementById("modalEditBtn");
+    let modalCover       = document.getElementById("modalCover");
+    let modalSceneCount  = document.getElementById("modalSceneCount");
+    let modalEditBtn     = document.getElementById("modalEditBtn");
+    let modalRatingAvg   = document.getElementById("modalRatingAvg");
+    let modalRatingCount = document.getElementById("modalRatingCount");
 
-    if (modalTitle) modalTitle.textContent = story.title || "Untitled";
-    if (modalAuthor) modalAuthor.textContent = "BY " + (story.author || "ADMIN").toUpperCase();
-    if (modalGenre) modalGenre.textContent = (story.genre || "GENERAL").toUpperCase();
+    if (modalTitle)       modalTitle.textContent  = story.title || "Untitled";
+    if (modalAuthor)      modalAuthor.textContent = "BY " + (story.author || "ADMIN").toUpperCase();
+    if (modalGenre)       modalGenre.textContent  = (story.genre || "GENERAL").toUpperCase();
     if (modalStatus) {
         modalStatus.textContent = (story.status || "DRAFT").toUpperCase();
-        modalStatus.className = "badge-status " + (story.status === "published" ? "status-published" : "status-draft");
+        modalStatus.className   = "badge-status " + (story.status === "published" ? "status-published" : "status-draft");
     }
     if (modalDescription) {
-        modalDescription.textContent = story.description || "No description provided.";
+        modalDescription.textContent   = story.description || "No description provided.";
         modalDescription.style.display = "block";
     }
-    if (modalCover) modalCover.src = story.imageURL || story.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
+    if (modalCover)      modalCover.src = story.imageURL || story.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
     if (modalSceneCount) modalSceneCount.textContent = sceneCount;
+
     let rStats = calculateRatingStats(story);
-    let modalRatingAvg = document.getElementById("modalRatingAvg");
-    let modalRatingCount = document.getElementById("modalRatingCount");
-    if (modalRatingAvg) modalRatingAvg.textContent = rStats.avg;
+    if (modalRatingAvg)   modalRatingAvg.textContent   = rStats.avg;
     if (modalRatingCount) modalRatingCount.textContent = rStats.count;
 
-    if (modalEditBtn) modalEditBtn.onclick = () => { closeDescriptionModal(); editStory(story.id); };
+    if (modalEditBtn) {
+        modalEditBtn.onclick = () => { closeDescriptionModal(); editStory(story.id); };
+    }
 
     modal.style.display = "flex";
 }
 
+function closeDescriptionModal() {
+    let modal = document.getElementById("descriptionModal");
+    if (modal) modal.style.display = "none";
+}
 
 
+/* ============================================================
+   SECTION 10 — TAB SWITCHER: switchTab(tab)
+   Controls which admin panel is visible:
+     "stories" → #storiesContainer visible, #pitchesContainer hidden
+     "pitches" → #pitchesContainer visible, #storiesContainer hidden
+                 + triggers loadReaderPitches() immediately
 
-
-/* =====================================================
-   ADMIN TABS: Stories vs Reader Pitches
-===================================================== */
+   Also updates the tab button styles (active = black background).
+   ============================================================ */
 
 function switchTab(tab) {
     let storiesSection = document.getElementById("storiesContainer");
     let pitchesSection = document.getElementById("pitchesContainer");
-    let tabStories = document.getElementById("tabStories");
-    let tabPitches = document.getElementById("tabPitches");
+    let tabStories     = document.getElementById("tabStories");
+    let tabPitches     = document.getElementById("tabPitches");
 
     if (tab === "stories") {
         storiesSection.style.display = "";
         pitchesSection.style.display = "none";
-        tabStories.style.background = "#000";
-        tabStories.style.color = "#fff";
-        tabPitches.style.background = "#fff";
-        tabPitches.style.color = "#000";
+        tabStories.style.background  = "#000";
+        tabStories.style.color       = "#fff";
+        tabPitches.style.background  = "#fff";
+        tabPitches.style.color       = "#000";
     } else {
         storiesSection.style.display = "none";
         pitchesSection.style.display = "flex";
-        tabStories.style.background = "#fff";
-        tabStories.style.color = "#000";
-        tabPitches.style.background = "#000";
-        tabPitches.style.color = "#fff";
+        tabStories.style.background  = "#fff";
+        tabStories.style.color       = "#000";
+        tabPitches.style.background  = "#000";
+        tabPitches.style.color       = "#fff";
         loadReaderPitches();
     }
 }
+
+
+/* ============================================================
+   SECTION 11 — READER PITCHES: loadReaderPitches()
+   Fetches all pitch records from GET /ReaderStories.
+   Excludes pitches where adminHidden === true (soft-deleted).
+   Renders each pitch as a card inside #pitchesContainer.
+
+   Pitch card contents:
+   - Genre badge + Status badge (PENDING / APPROVED / REJECTED)
+   - Submitted-by name and formatted date
+   - Story title and description body
+   - Pending pitches: Approve (+30 XP) | Reject | Remove buttons
+   - Decided pitches: Admin comment textarea + Save / Remove buttons
+   ============================================================ */
 
 async function loadReaderPitches() {
     let container = document.getElementById("pitchesContainer");
@@ -416,8 +560,10 @@ async function loadReaderPitches() {
     container.innerHTML = '<p style="font-weight: 700; color: #888; padding: 16px;">Loading pitches...</p>';
 
     try {
-        let res = await fetch("http://localhost:3000/ReaderStories");
+        let res        = await fetch("http://localhost:3000/ReaderStories");
         let rawPitches = res.ok ? await res.json() : [];
+
+        // Filter out pitches the admin has soft-deleted
         let pitches = rawPitches.filter(p => !p.adminHidden);
 
         if (pitches.length === 0) {
@@ -426,14 +572,18 @@ async function loadReaderPitches() {
         }
 
         container.innerHTML = pitches.map(p => {
-            let isPending = !p.status || p.status === "pending";
-            let statusBg = p.status === "approved" ? "#dcfce7" : p.status === "rejected" ? "#fee2e2" : "#fef3c7";
-            let statusBorder = p.status === "approved" ? "#86efac" : p.status === "rejected" ? "#fca5a5" : "#fde047";
-            let statusColor = p.status === "approved" ? "#166534" : p.status === "rejected" ? "#991b1b" : "#92400e";
-            let statusText = (p.status || "pending").toUpperCase();
-            let dateStr = p.submittedAt ? new Date(p.submittedAt).toLocaleDateString("en-IN", {day:"2-digit", month:"short", year:"numeric"}) : "";
+            let isPending     = !p.status || p.status === "pending";
+            // Status badge colours (modern soft style)
+            let statusBg      = p.status === "approved" ? "#dcfce7" : p.status === "rejected" ? "#fee2e2" : "#fef3c7";
+            let statusBorder  = p.status === "approved" ? "#86efac" : p.status === "rejected" ? "#fca5a5" : "#fde047";
+            let statusColor   = p.status === "approved" ? "#166534" : p.status === "rejected" ? "#991b1b" : "#92400e";
+            let statusText    = (p.status || "pending").toUpperCase();
+            let dateStr       = p.submittedAt
+                ? new Date(p.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+                : "";
             let existingComment = p.adminComment || "";
 
+            // Build action buttons based on pitch state
             let actionsHtml = "";
             if (isPending) {
                 actionsHtml = `
@@ -482,11 +632,33 @@ async function loadReaderPitches() {
     }
 }
 
+
+/* ============================================================
+   SECTION 12 — PITCH ACTIONS
+
+   updatePitchStatus(pitchId, status)
+   PATCHes the pitch status to "approved" or "rejected".
+   On approval:
+     1. Reads submittedById from the PATCH response
+     2. Fetches the reader's user record to get current XP
+     3. PATCHes the reader with: newXp = currentXp + 30
+        and pendingToast: { message, xpAwarded: 30 }
+        → The reader sees a toast notification on their next login
+
+   saveAdminComment(pitchId)
+   Reads textarea#comment_<id> value and PATCHes adminComment.
+
+   deletePitch(pitchId)
+   Soft-delete: PATCHes { adminHidden: true }.
+   The pitch remains in db.json but disappears from the admin queue.
+   The reader's own "My Pitches" view is unaffected.
+   ============================================================ */
+
 async function updatePitchStatus(pitchId, status) {
     let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
-        method: "PATCH",
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: status })
+        body:    JSON.stringify({ status: status })
     });
 
     if (!res.ok) {
@@ -494,27 +666,25 @@ async function updatePitchStatus(pitchId, status) {
         return;
     }
 
-    // If approved, award +30 XP to the reader and queue a login toast
+    // Award +30 XP to the reader when their pitch is approved
     if (status === "approved") {
         try {
-            let pitchData = await res.json();
+            let pitchData   = await res.json();
             let submitterId = pitchData.submittedById;
 
             if (submitterId) {
-                // Fetch current user XP
                 let userRes = await fetch(`http://localhost:3000/Users/${submitterId}`);
                 if (userRes.ok) {
                     let userData = await userRes.json();
-                    let newXp = (userData.xp || 100) + 30;
+                    let newXp    = (userData.xp || 100) + 30;
 
-                    // Patch user: +30 XP + pendingToast flag
                     await fetch(`http://localhost:3000/Users/${submitterId}`, {
-                        method: "PATCH",
+                        method:  "PATCH",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
+                        body:    JSON.stringify({
                             xp: newXp,
                             pendingToast: {
-                                message: "🎉 Your story pitch was ACCEPTED by the admin! +30 XP earned!",
+                                message:   "🎉 Your story pitch was ACCEPTED by the admin! +30 XP earned!",
                                 xpAwarded: 30
                             }
                         })
@@ -535,10 +705,11 @@ async function saveAdminComment(pitchId) {
     let comment = textarea.value.trim();
 
     let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
-        method: "PATCH",
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminComment: comment })
+        body:    JSON.stringify({ adminComment: comment })
     });
+
     if (res.ok) {
         loadReaderPitches();
     } else {
@@ -550,11 +721,9 @@ async function deletePitch(pitchId) {
     if (!confirm("Remove this pitch from your admin queue? (The reader will keep seeing their status: Approved/Rejected).")) return;
 
     let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
-        method: "PATCH",
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            adminHidden: true
-        })
+        body:    JSON.stringify({ adminHidden: true })
     });
 
     if (res.ok) {
@@ -564,56 +733,16 @@ async function deletePitch(pitchId) {
     }
 }
 
-/* =====================================================
-   MODAL & NAVIGATION UTILITIES
-===================================================== */
 
-window.openDescriptionModal = function(storyId) {
-    let story = currentAdminStories.find(s => String(s.id) === String(storyId));
-    if (!story) return;
+/* ============================================================
+   SECTION 13 — WINDOW EXPORTS
+   Expose certain functions on the global window object so they
+   can be called from inline onclick attributes in admin.html
+   that are added dynamically by loadStories() innerHTML.
+   ============================================================ */
 
-    let modal = document.getElementById("descriptionModal");
-    if (!modal) return;
-
-    let sceneCount = story.nodes ? (Array.isArray(story.nodes) ? story.nodes.length : Object.keys(story.nodes).length) : 0;
-
-    let modalTitle = document.getElementById("modalTitle");
-    let modalAuthor = document.getElementById("modalAuthor");
-    let modalGenre = document.getElementById("modalGenre");
-    let modalStatus = document.getElementById("modalStatus");
-    let modalDescription = document.getElementById("modalDescription");
-    let modalCover = document.getElementById("modalCover");
-    let modalSceneCount = document.getElementById("modalSceneCount");
-    let modalEditBtn = document.getElementById("modalEditBtn");
-
-    if (modalTitle) modalTitle.textContent = story.title || "Untitled";
-    if (modalAuthor) modalAuthor.textContent = "BY " + (story.author || "ADMIN").toUpperCase();
-    if (modalGenre) modalGenre.textContent = (story.genre || "GENERAL").toUpperCase();
-    if (modalStatus) {
-        modalStatus.textContent = (story.status || "DRAFT").toUpperCase();
-        modalStatus.className = "badge-status " + (story.status === "published" ? "status-published" : "status-draft");
-    }
-    if (modalDescription) modalDescription.textContent = story.description || "No description provided.";
-    if (modalCover) modalCover.src = story.imageURL || story.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80';
-    if (modalSceneCount) modalSceneCount.textContent = sceneCount;
-
-    if (modalEditBtn) {
-        modalEditBtn.onclick = function() {
-            window.closeDescriptionModal();
-            editStory(story.id);
-        };
-    }
-
-    modal.style.display = "flex";
-};
-
-window.closeDescriptionModal = function() {
-    let modal = document.getElementById("descriptionModal");
-    if (modal) {
-        modal.style.display = "none";
-    }
-};
-
-window.previewStory = function(storyId) {
+window.openDescriptionModal  = openDescriptionModal;
+window.closeDescriptionModal = closeDescriptionModal;
+window.previewStory          = function(storyId) {
     window.location.href = "preview.html?id=" + storyId;
 };

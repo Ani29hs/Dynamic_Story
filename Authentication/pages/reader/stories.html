@@ -32,7 +32,7 @@
             <span>STORY LIBRARY</span>
         </div>
         <ul class="nav-links">
-            <li><a href="../../Landing.html" class="nav-pill">Home</a></li>
+            <li><a href="../../Landing.html" class="tab-pill">Home</a></li>
             <li id="navAuthContainer">
                 <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
             </li>
@@ -43,20 +43,39 @@
 
         <!-- ── View Toggle Tabs ──────────────────────────── -->
         <div style="display: flex; gap: 12px; margin-bottom: 32px; border-bottom: 3px solid #000; padding-bottom: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button type="button" id="tabLibrary" onclick="switchReaderTab('library')"
-                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #000; color: #fff; box-shadow: 3px 3px 0px #555; cursor: pointer;">
-                    📚 Story Library
+            <div class="tab-nav" id="readerNavGroup">
+                <button
+                    type="button"
+                    id="tabLibrary"
+                    class="tab-pill tab-pill--dark"
+                    data-accent="#6C4CF1"
+                    onclick="switchReaderTab('library')"
+                    aria-pressed="true"
+                >
+                    <span class="tab-pill__icon">📚</span> Story Library
                 </button>
-                <button type="button" id="tabPitch" onclick="switchReaderTab('pitch')"
-                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
-                    ✍️ Submit a Pitch
+                <button
+                    type="button"
+                    id="tabPitch"
+                    class="tab-pill"
+                    data-accent="#FF8A3D"
+                    onclick="switchReaderTab('pitch')"
+                    aria-pressed="false"
+                >
+                    <span class="tab-pill__icon">🍊</span> Submit a Pitch
                 </button>
-                <button type="button" id="tabMyPitches" onclick="switchReaderTab('mypitches')"
-                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
-                    📋 My Pitches
+                <button
+                    type="button"
+                    id="tabMyPitches"
+                    class="tab-pill"
+                    data-accent="#3DB2FF"
+                    onclick="switchReaderTab('mypitches')"
+                    aria-pressed="false"
+                >
+                    <span class="tab-pill__icon">📋</span> My Pitches
                 </button>
             </div>
+            
 
             <!-- Search & Filter (only visible on library tab) -->
             <div id="libraryControls" style="display: flex; gap: 14px; flex-wrap: wrap; align-items: center;">
@@ -133,11 +152,11 @@
 
                     <div>
                         <label style="font-weight: 900; font-size: 13px; display: block; margin-bottom: 8px; letter-spacing: 0.5px;">YOUR PITCH *</label>
-                        <textarea id="pitchDescription" placeholder="Paint the picture — who is the main character, what world are they in, and what impossible choice do they face? (min 20 characters)" maxlength="600" rows="6"
-                            oninput="document.getElementById('pitchCharCount').textContent = this.value.length + ' / 600'"
+                        <textarea id="pitchDescription" placeholder="Paint the picture — who is the main character, what world are they in, and what impossible choice do they face? (Minimum 30 words required)" maxlength="600" rows="6"
+                            oninput="let w = this.value.trim() ? this.value.trim().split(/\s+/).length : 0; let el = document.getElementById('pitchCharCount'); el.textContent = w + ' / 30 words min'; el.style.color = (w >= 30) ? '#166534' : '#dc2626';"
                             style="width: 100%; padding: 14px 18px; border: 2.5px solid #000; border-radius: 14px; font-family: var(--font-ui); font-weight: 600; font-size: 14px; box-sizing: border-box; outline: none; resize: vertical; line-height: 1.7; transition: box-shadow 0.15s;"
                             onfocus="this.style.boxShadow='4px 4px 0px #000'" onblur="this.style.boxShadow='none'"></textarea>
-                        <div id="pitchCharCount" style="text-align: right; font-size: 12px; font-weight: 800; color: #999; margin-top: 6px;">0 / 600</div>
+                        <div id="pitchCharCount" style="text-align: right; font-size: 12px; font-weight: 800; color: #dc2626; margin-top: 6px;">0 / 30 words min</div>
                     </div>
 
                     <button type="button" onclick="submitPitch()" id="pitchSubmitBtn"

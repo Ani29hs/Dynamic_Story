@@ -1,46 +1,148 @@
-let user = JSON.parse(localStorage.getItem("user"));
 
-if (!user) {
-    window.location.href = "../auth/login.html";
-} else if (user.role !== "Admin") {
-    window.location.href = "../reader/stories.html";
-}
+/* ============================================================
+   stories.js
+   Page:  pages/admin/add_stories.html
+   Role:  Story Builder — Admin tool for creating and editing
+          branching stories with nodes (scenes) and choices (edges).
 
-// 1. Read ?id= from URL parameter
+   FLOW (Top to Bottom — Page Load Order):
+   ──────────────────────────────────────
+   SECTION  1  State variables          user, storyId, currentStory
+   SECTION  2  initPage()               Page init: load existing story OR start fresh
+   SECTION  3  handleStory()            Form handler: save story metadata (POST/PUT)
+   SECTION  4  handleNode()             Form handler: add or edit a scene node (PATCH)
+   SECTION  5  showNodes()              Render all scene nodes as builder cards
+   SECTION  6  setAsStartNode()         Mark a node as the story start point
+   SECTION  7  editNode()               Pre-fill node form for editing an existing node
+   SECTION  8  openChoiceModal()        Open the Add/Edit Choice modal for a node
+   SECTION  9  closeChoiceModal()       Close the Add/Edit Choice modal
+   SECTION 10  handleDeleteChoice()     Delete a specific choice from a node (PATCH)
+   SECTION 11  editChoice()             Pre-fill choice form for editing an existing choice
+   SECTION 12  handleDelete()           Delete an entire node from the story (PATCH)
+   SECTION 13  handleChoice()           Form handler: add or edit a choice on a node
+   SECTION 14  publishStory()           Set story status = "published" (makes it live)
+
+   KEY DATA STRUCTURES:
+   ─────────────────────────────────────────────────────────────
+   Story object (stored in db.json under /Stories):
+   {
+     id, title, author, genre, status, description, imageURL,
+     nodes: [ Node, ... ],
+     startNodeId: "<node_id>"
+   }
+
+   Node object (element of story.nodes[]):
+   {
+     id, title, text, location,
+     characters: [ "Name", ... ],
+     isEnding: boolean, endingType: "good" | "neutral" | "bad",
+     choices: [ Choice, ... ]
+   }
+
+   Choice object (element of node.choices[]):
+   {
+     id, text, targetNodeId
+   }
+
+   DATA FLOW (json-server, port 3000):
+   ──────────────────────────────────────
+   GET    /Stories/:id    → load existing story in edit mode
+   POST   /Stories        → create new story (first metadata save)
+   PUT    /Stories/:id    → full story replace (subsequent metadata saves)
+   PATCH  /Stories/:id    → update nodes[], startNodeId, or status
+   ============================================================ */
+
+
+/* ============================================================
+   SECTION 1 — STATE VARIABLES
+   user          — the logged-in admin from localStorage
+   urlParams     — parsed URL query string (?id=, ?fromPitch=)
+   storyId       — story ID from ?id= (null if creating a new story)
+   currentStory  — the story object being edited in this session
+                   also mirrored to localStorage as "currentStory"
+                   so the page can survive a refresh
+   ============================================================ */
+
+let user        = JSON.parse(localStorage.getItem("user"));
 const urlParams = new URLSearchParams(window.location.search);
-const storyId = urlParams.get("id");
-
+const storyId   = urlParams.get("id");
 let currentStory = null;
 
-// Initialize page data on load
+
+/* ============================================================
+   SECTION 2 — PAGE INIT: initPage()
+   Called immediately on page load. Determines which mode to run in:
+
+   EDIT MODE (?id= is present in the URL):
+   ─────────────────────────────────────────
+   1. Check localStorage for a cached "currentStory" first (fast).
+   2. If not cached, GET /Stories/:id from json-server.
+   3. Pre-fill the story metadata form (title, author, genre, etc.).
+   4. Call showNodes() to render all existing scene nodes.
+
+   CREATE MODE (no ?id= in URL):
+   ─────────────────────────────────────────
+   1. Clear any leftover "currentStory" from localStorage.
+   2. Reset the story form to blank.
+   3. Show the "No Scene Nodes" empty state in the node area.
+
+   PITCH PRE-FILL (?fromPitch= is present):
+   ─────────────────────────────────────────
+   If a reader pitch was approved, the admin arrives here with
+   ?fromPitch=<pitchId>. The pitch data is in localStorage
+   under "pitchPrefill". Pre-fill the form fields and show a
+   success banner, then clear the prefill from localStorage.
+   ============================================================ */
+
 async function initPage() {
     let nodeHidden = document.getElementById("nodeHidden");
 
+    // ── EDIT MODE: ?id= in URL ──────────────────────────────────────────────
     if (storyId) {
-        // --- EDIT MODE (URL has ?id=...): Load existing story from backend ---
+        // Step 1: Try localStorage cache first (fast path)
+        let cachedStory = null;
         try {
-            let res = await fetch(`http://localhost:3000/Stories/${storyId}`);
-            if (res.ok) {
-                currentStory = await res.json();
-                localStorage.setItem("currentStory", JSON.stringify(currentStory));
-
-                // Populate metadata form
-                if (document.getElementById("story")) document.getElementById("story").value = currentStory.title || "";
-                if (document.getElementById("author")) document.getElementById("author").value = currentStory.author || "";
-                if (document.getElementById("genre")) document.getElementById("genre").value = currentStory.genre || "";
-                if (document.getElementById("status")) document.getElementById("status").value = currentStory.status || "draft";
-                if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = currentStory.description || "";
-                if (document.getElementById("image")) document.getElementById("image").value = currentStory.imageURL || currentStory.coverImage || "";
-
-                showNodes(currentStory);
-                return;
-            }
-        } catch (err) {
-            console.error("Error loading story:", err);
+            cachedStory = JSON.parse(localStorage.getItem("currentStory"));
+        } catch (e) {
+            cachedStory = null;
         }
+
+        if (cachedStory && String(cachedStory.id) === String(storyId)) {
+            currentStory = cachedStory;
+        } else {
+            // Step 2: Fetch from json-server
+            try {
+                let res = await fetch(`http://localhost:3000/Stories/${storyId}`);
+                if (res.ok) {
+                    currentStory = await res.json();
+                    // Normalise nodes to array
+                    if (!Array.isArray(currentStory.nodes)) {
+                        currentStory.nodes = currentStory.nodes
+                            ? Object.values(currentStory.nodes)
+                            : [];
+                    }
+                    localStorage.setItem("currentStory", JSON.stringify(currentStory));
+                }
+            } catch (e) {
+                console.warn("Could not fetch story:", e);
+            }
+        }
+
+        // Step 3: Pre-fill the metadata form with existing values
+        if (currentStory) {
+            if (document.getElementById("story"))      document.getElementById("story").value      = currentStory.title       || "";
+            if (document.getElementById("author"))     document.getElementById("author").value     = currentStory.author      || "";
+            if (document.getElementById("genre"))      document.getElementById("genre").value      = currentStory.genre       || "general";
+            if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = currentStory.description || "";
+            if (document.getElementById("image"))      document.getElementById("image").value      = currentStory.imageURL    || "";
+
+            // Step 4: Render the existing scene nodes
+            showNodes(currentStory);
+        }
+        return;
     }
 
-    // --- CREATE NEW STORY MODE (No ?id= in URL): Start clean ---
+    // ── CREATE MODE: no ?id= in URL ────────────────────────────────────────
     localStorage.removeItem("currentStory");
     currentStory = null;
 
@@ -58,21 +160,24 @@ async function initPage() {
         `;
     }
 
-    // --- PRE-FILL FROM APPROVED PITCH ---
+    // ── PITCH PRE-FILL: ?fromPitch= in URL ────────────────────────────────
     let fromPitch = urlParams.get("fromPitch");
     if (fromPitch) {
         let prefill = null;
         try { prefill = JSON.parse(localStorage.getItem("pitchPrefill")); } catch(e) {}
+
         if (prefill && prefill.pitchId === fromPitch) {
-            if (document.getElementById("story")) document.getElementById("story").value = prefill.title || "";
+            // Pre-fill title, description, genre from the approved pitch
+            if (document.getElementById("story"))      document.getElementById("story").value      = prefill.title       || "";
             if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = prefill.description || "";
-            if (document.getElementById("genre")) document.getElementById("genre").value = prefill.genre || "fantasy";
+            if (document.getElementById("genre"))      document.getElementById("genre").value      = prefill.genre       || "fantasy";
             if (document.getElementById("author")) {
                 let adminUser = JSON.parse(localStorage.getItem("user"));
                 document.getElementById("author").value = adminUser ? adminUser.name : "Admin";
             }
             localStorage.removeItem("pitchPrefill");
-            // Show banner
+
+            // Show a confirmation banner above the form
             let banner = document.createElement("div");
             banner.style.cssText = "background:#39d39f;border:2.5px solid #000;border-radius:16px;padding:14px 22px;margin-bottom:22px;font-weight:800;font-size:14px;box-shadow:4px 4px 0px #000;display:flex;align-items:center;gap:12px;";
             banner.innerHTML = "✨ <span>Story pre-filled from approved reader pitch! Review the metadata, add your scenes, then publish.</span>";
@@ -84,350 +189,247 @@ async function initPage() {
 
 initPage();
 
-// 2. Handle Story Metadata Submit
+
+/* ============================================================
+   SECTION 3 — METADATA HANDLER: handleStory(event)
+   Triggered by: <form onsubmit="handleStory(event)"> (Story Metadata form)
+   Saves the story title, author, genre, description, and imageURL.
+
+   Logic:
+   - If a story ID already exists (edit mode) → PUT /Stories/:id (full replace)
+   - If no ID yet (create mode) → POST /Stories (creates new story)
+   - Status is preserved: "draft" if new, or keeps existing "published" state
+   - After save: mirrors the full story object to localStorage + currentStory
+   ============================================================ */
+
 let handleStory = async (event) => {
     event.preventDefault();
 
-    let story = document.getElementById("story");
-    let authorEl = document.getElementById("author");
-    let genre = document.getElementById("genre");
+    let story       = document.getElementById("story");
+    let authorEl    = document.getElementById("author");
+    let genre       = document.getElementById("genre");
     let description = document.getElementById("storyDescr");
-    let imageURL = document.getElementById("image");
-    let user = JSON.parse(localStorage.getItem("user"));
+    let imageURL    = document.getElementById("image");
+    let user        = JSON.parse(localStorage.getItem("user"));
 
-    let existingId = currentStory && currentStory.id ? currentStory.id : storyId;
-
-    // Saving metadata defaults to draft (private)
+    let existingId    = currentStory && currentStory.id ? currentStory.id : storyId;
     let currentStatus = (currentStory && currentStory.status === "published") ? "published" : "draft";
 
     let storyObject = {
-        id: existingId ? existingId : `story_${Date.now()}`,
-        title: story ? story.value : "Untitled",
-        author: (authorEl && authorEl.value.trim()) ? authorEl.value.trim() : (user ? user.name : "Admin"),
-        genre: genre ? genre.value : "general",
-        status: currentStatus,
+        id:          existingId ? existingId : `story_${Date.now()}`,
+        title:       story       ? story.value       : "Untitled",
+        author:      (authorEl && authorEl.value.trim()) ? authorEl.value.trim() : (user ? user.name : "Admin"),
+        genre:       genre       ? genre.value       : "general",
+        status:      currentStatus,
         description: description ? description.value : "",
-        imageURL: imageURL ? imageURL.value : "",
-        nodes: (currentStory && currentStory.nodes) ? currentStory.nodes : [],
+        imageURL:    imageURL    ? imageURL.value    : "",
+        nodes:       (currentStory && currentStory.nodes) ? currentStory.nodes : [],
         startNodeId: (currentStory && currentStory.startNodeId) ? currentStory.startNodeId : null
     };
 
-    let isEditing = Boolean(existingId);
-    let url = isEditing ? `http://localhost:3000/Stories/${storyObject.id}` : "http://localhost:3000/Stories";
+    // PUT = replace existing | POST = create new
+    let isEditing  = Boolean(existingId);
+    let url        = isEditing ? `http://localhost:3000/Stories/${storyObject.id}` : "http://localhost:3000/Stories";
     let httpMethod = isEditing ? "PUT" : "POST";
 
-    let response = await fetch(url, {
-        method: httpMethod,
+    let response   = await fetch(url, {
+        method:  httpMethod,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(storyObject)
+        body:    JSON.stringify(storyObject)
     });
 
     let savedStory = await response.json();
-    currentStory = savedStory;
+    currentStory   = savedStory;
     localStorage.setItem("currentStory", JSON.stringify(savedStory));
 
     alert("💾 Story metadata saved as " + (currentStatus === "published" ? "PUBLISHED!" : "DRAFT (Private)!"));
 };
 
-// 3. Handle Node Submit
-let handleNode = async (event) => {
 
+/* ============================================================
+   SECTION 4 — NODE HANDLER: handleNode(event)
+   Triggered by: <form onsubmit="handleNode(event)"> (Add/Edit Node modal form)
+   Adds a new scene node OR updates an existing one.
+
+   Fields read from the form:
+   - nodeTitle, nodeText, nodeLocation, nodeCharacters (CSV → array)
+   - isEnding (checkbox), endingType (dropdown)
+   - editingNodeId (hidden field — empty if adding new)
+
+   EDIT path  (editingNodeId is set):
+   - Finds the node in activeStory.nodes by ID
+   - Updates all fields EXCEPT choices (choices are never touched here)
+
+   CREATE path (editingNodeId is empty):
+   - Builds a new node object with crypto.randomUUID() as ID
+   - Pushes it to activeStory.nodes[]
+   - If it's the first node ever → sets it as startNodeId automatically
+
+   After both paths:
+   - PATCH /Stories/:id with { nodes, startNodeId }
+   - Mirrors to localStorage + currentStory
+   - Resets the form and re-renders showNodes()
+   ============================================================ */
+
+let handleNode = async (event) => {
     event.preventDefault();
 
-    let activeStory =
-        JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
 
     if (!activeStory) {
         alert("Please save Story Metadata first!");
         return;
     }
 
-
-    // Get form values
-    let nodeTitle =
-        document.getElementById("nodeTitle").value;
-
-    let nodeText =
-        document.getElementById("nodeText").value;
-
-    let nodeLocation =
-        document.getElementById("nodeLocation").value;
-
-    let nodeCharacters =
-        document.getElementById("nodeCharacters").value;
-
-    let isEnding =
-        document.getElementById("isEnding").checked;
-
-    let endingType =
-        document.getElementById("endingType").value;
-
-
-    // Check whether we are editing
-    let editingNodeId =
-        document.getElementById("editingNodeId").value;
-
-
-    // =====================================================
-    // EDIT EXISTING NODE
-    // =====================================================
+    // Read all node form fields
+    let nodeTitle      = document.getElementById("nodeTitle").value;
+    let nodeText       = document.getElementById("nodeText").value;
+    let nodeLocation   = document.getElementById("nodeLocation").value;
+    let nodeCharacters = document.getElementById("nodeCharacters").value;
+    let isEnding       = document.getElementById("isEnding").checked;
+    let endingType     = document.getElementById("endingType").value;
+    let editingNodeId  = document.getElementById("editingNodeId").value;
 
     if (editingNodeId) {
+        // ── EDIT EXISTING NODE ───────────────────────────────────────────────
+        let node = activeStory.nodes.find(node => node.id === editingNodeId);
+        if (!node) { alert("Node not found"); return; }
 
-        let node = activeStory.nodes.find(
-            node => node.id === editingNodeId
-        );
+        node.title      = nodeTitle;
+        node.text       = nodeText;
+        node.location   = nodeLocation;
+        node.characters = nodeCharacters
+            .split(",")
+            .map(c => c.trim())
+            .filter(c => c !== "");
+        node.isEnding   = isEnding;
+        node.endingType = isEnding ? endingType : null;
+        // NOTE: node.choices is intentionally NOT touched here — choices are managed separately
 
-
-        if (!node) {
-            alert("Node not found");
-            return;
-        }
-
-
-        // Update node properties
-        node.title =
-            nodeTitle;
-
-        node.text =
-            nodeText;
-
-        node.location =
-            nodeLocation;
-
-        node.characters =
-            nodeCharacters
-                .split(",")
-                .map(character => character.trim())
-                .filter(character => character !== "");
-
-        node.isEnding =
-            isEnding;
-
-        node.endingType =
-            isEnding ? endingType : null;
-
-
-        // IMPORTANT:
-        // We do NOT touch node.choices
-        // Existing choices remain safe.
-
-
-    }
-
-    // =====================================================
-    // CREATE NEW NODE
-    // =====================================================
-
-    else {
-
+    } else {
+        // ── CREATE NEW NODE ──────────────────────────────────────────────────
         let node = {
-
-            id: crypto.randomUUID(),
-
-            title: nodeTitle,
-
-            text: nodeText,
-
-            location: nodeLocation,
-
-            characters:
-                nodeCharacters
-                    .split(",")
-                    .map(character => character.trim())
-                    .filter(character => character !== ""),
-
-            isEnding:
-                isEnding,
-
-            endingType:
-                isEnding ? endingType : null,
-
-            choices: []
-
+            id:         crypto.randomUUID(),
+            title:      nodeTitle,
+            text:       nodeText,
+            location:   nodeLocation,
+            characters: nodeCharacters
+                .split(",")
+                .map(c => c.trim())
+                .filter(c => c !== ""),
+            isEnding:   isEnding,
+            endingType: isEnding ? endingType : null,
+            choices:    []           // Always starts with no choices
         };
 
-
-        // Add new node
         activeStory.nodes.push(node);
 
-
-        // First node becomes starting node
+        // First node ever → becomes the start node automatically
         if (activeStory.nodes.length === 1) {
-
-            activeStory.startNodeId =
-                node.id;
-
+            activeStory.startNodeId = node.id;
         }
-
     }
 
+    // PATCH /Stories/:id with updated nodes array
+    let response = await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+            nodes:       activeStory.nodes,
+            startNodeId: activeStory.startNodeId
+        })
+    });
 
-    // =====================================================
-    // UPDATE JSON SERVER
-    // =====================================================
+    if (!response.ok) { alert("Node could not be saved"); return; }
 
-    let response = await fetch(
-        `http://localhost:3000/Stories/${activeStory.id}`,
-        {
-            method: "PATCH",
+    // Mirror to localStorage + in-memory state
+    localStorage.setItem("currentStory", JSON.stringify(activeStory));
+    currentStory = activeStory;
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+    alert(editingNodeId ? "Node updated successfully" : "Node added successfully");
 
-            body: JSON.stringify({
+    // Reset form hidden ID, inputs, and modal title
+    if (document.getElementById("nodeForm")) document.getElementById("nodeForm").reset();
+    document.getElementById("editingNodeId").value        = "";
+    document.getElementById("nodeModalTitle").textContent = "ADD SCENE NODE";
 
-                nodes: activeStory.nodes,
+    // Close the node modal
+    document.getElementById("nodeModal").classList.add("hidden");
 
-                startNodeId:
-                    activeStory.startNodeId
-
-            })
-        }
-    );
-
-
-    if (!response.ok) {
-
-        alert("Node could not be saved");
-
-        return;
-    }
-
-
-    // =====================================================
-    // UPDATE LOCAL STORAGE
-    // =====================================================
-
-    localStorage.setItem(
-        "currentStory",
-        JSON.stringify(activeStory)
-    );
-
-    currentStory =
-        activeStory;
-
-
-    // =====================================================
-    // RESET
-    // =====================================================
-
-    alert(
-        editingNodeId
-            ? "Node updated successfully"
-            : "Node added successfully"
-    );
-
-
-    document
-        .getElementById("nodeForm")
-        .reset();
-
-
-    // Clear edit mode
-    document
-        .getElementById("editingNodeId")
-        .value = "";
-
-
-    // Reset modal title
-    document
-        .getElementById("nodeModalTitle")
-        .textContent = "ADD SCENE NODE";
-
-
-    closeNodeModal();
-
-
-    // Render updated nodes
     showNodes(currentStory);
-
 };
 
-// 4. Render Nodes List
+
+/* ============================================================
+   SECTION 5 — RENDER NODES: showNodes(currentStory)
+   Renders all scene nodes as builder cards inside #nodeHidden.
+
+   Uses standard CSS classes from stories.css:
+   - Wrapper card:  node-card (plus is-start or is-ending if applicable)
+   - Start badge:   badge-start
+   - Ending badge:  badge-ending
+   - Text box:      node-text-box
+   - Choice card:   choice-item-card
+   ============================================================ */
+
 function showNodes(currentStory) {
-
     let nodeHidden = document.getElementById("nodeHidden");
-
     if (!nodeHidden) return;
 
-    nodeHidden.innerHTML = "";
+    let nodes = currentStory.nodes || [];
 
-    if (
-        currentStory &&
-        currentStory.nodes &&
-        currentStory.nodes.length > 0
-    ) {
+    if (nodes.length > 0) {
+        nodeHidden.innerHTML = "";
 
-        currentStory.nodes.forEach((element, index) => {
+        nodes.forEach((element, index) => {
+            let isStart  = (element.id === currentStory.startNodeId);
 
-            let isStart = element.id === currentStory.startNodeId;
+            // CSS card classes defined in stories.css
             let cardClass = "node-card";
             if (isStart) cardClass += " is-start";
-            else if (element.isEnding) cardClass += " is-ending";
+            if (element.isEnding) cardClass += " is-ending";
 
             let badgeHtml = "";
             if (isStart) {
-                badgeHtml = `<span class="badge-start">🏷️ START NODE</span>`;
+                badgeHtml = `<span class="badge-start">🚀 START NODE</span>`;
             } else if (element.isEnding) {
-                badgeHtml = `<span class="badge-ending">🏁 ${(element.endingType || "ENDING").toUpperCase()} ENDING</span>`;
+                let endType = (element.endingType || "good").toUpperCase();
+                badgeHtml = `<span class="badge-ending">🏁 ${endType} ENDING</span>`;
             }
 
-            let startBtnHtml = "";
-            if (!isStart && !element.isEnding) {
-                startBtnHtml = `
-                    <button
-                        type="button"
-                        class="nav-pill"
-                        onclick="setAsStartNode('${element.id}')">
-                        Set as Start
-                    </button>
-                `;
-            }
+            // "Set as Start" button — only shown on non-start nodes
+            let startBtnHtml = !isStart
+                ? `<button type="button" class="nav-pill" onclick="setAsStartNode('${element.id}')">🚀 Set as Start</button>`
+                : "";
 
-            // Create choices HTML
+            // ── Build choices section ─────────────────────────────────────────
             let choicesHTML = "";
-
             if (element.choices && element.choices.length > 0) {
-                let choiceCards = "";
+                let choiceCards = element.choices.map(choice => {
+                    let destNode  = nodes.find(n => n.id === choice.targetNodeId);
+                    let destTitle = destNode ? destNode.title : `[Unknown: ${choice.targetNodeId}]`;
 
-                element.choices.forEach((choice) => {
-                    let targetNode = currentStory.nodes.find(
-                        node => node.id === choice.targetNodeId
-                    );
-
-                    choiceCards += `
+                    return `
                         <div class="choice-item-card">
-                            <div>
-                                <strong style="font-size: 15px; display: block; color: var(--color-carbon);">"${choice.text}"</strong>
-                                <span style="font-size: 13px; color: var(--color-voltage-violet); font-weight: 700;">→ ${targetNode ? targetNode.title : "Target node not found"}</span>
+                            <div style="font-weight: 700; font-size: 14px;">
+                                👉 <strong>${choice.text}</strong>
+                                <span style="font-weight: 500; color: #555; font-size: 13px;"> → ${destTitle}</span>
                             </div>
                             <div style="display: flex; gap: 8px;">
-                                <button
-                                    type="button"
-                                    class="nav-pill"
-                                    onclick="editChoice('${element.id}', '${choice.id}')">
-                                    Edit Choice
-                                </button>
-                                <button
-                                    type="button"
-                                    class="danger-btn"
-                                    onclick="handleDeleteChoice('${element.id}', '${choice.id}')">
-                                    Remove
-                                </button>
+                                <button type="button" class="nav-pill" onclick="editChoice('${element.id}', '${choice.id}')">✏️ Edit</button>
+                                <button type="button" class="danger-btn" onclick="handleDeleteChoice('${element.id}', '${choice.id}')">🗑️ Delete</button>
                             </div>
                         </div>
                     `;
-                });
+                }).join("");
 
                 choicesHTML = `
                     <div style="margin-top: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <h4 style="color: var(--color-voltage-violet); font-weight: 800; font-size: 15px; text-transform: uppercase;">CHOICES / OUTGOING EDGES (${element.choices.length})</h4>
-                            ${!element.isEnding ? `
-                                <button type="button" class="nav-pill" onclick="openChoiceModal('${element.id}')">+ Add Choice</button>
-                            ` : `<span style="color: var(--color-voltage-violet); font-size: 12px; font-weight: 700;">Ending nodes need no outgoing choices</span>`}
+                            ${!element.isEnding
+                                ? `<button type="button" class="nav-pill" onclick="openChoiceModal('${element.id}')">+ Add Choice</button>`
+                                : `<span style="color: var(--color-voltage-violet); font-size: 12px; font-weight: 700;">Ending nodes need no outgoing choices</span>`}
                         </div>
                         <div>${choiceCards}</div>
                     </div>
@@ -437,16 +439,16 @@ function showNodes(currentStory) {
                     <div style="margin-top: 20px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <h4 style="color: var(--color-voltage-violet); font-weight: 800; font-size: 15px; text-transform: uppercase;">CHOICES / OUTGOING EDGES (0)</h4>
-                            ${!element.isEnding ? `
-                                <button type="button" class="nav-pill" onclick="openChoiceModal('${element.id}')">+ Add Choice</button>
-                            ` : `<span style="color: var(--color-voltage-violet); font-size: 12px; font-weight: 700;">Ending nodes need no outgoing choices</span>`}
+                            ${!element.isEnding
+                                ? `<button type="button" class="nav-pill" onclick="openChoiceModal('${element.id}')">+ Add Choice</button>`
+                                : `<span style="color: var(--color-voltage-violet); font-size: 12px; font-weight: 700;">Ending nodes need no outgoing choices</span>`}
                         </div>
                         <p style="font-style: italic; color: #666; margin-top: 10px; font-size: 14px;">No choices added yet.</p>
                     </div>
                 `;
             }
 
-            // Create Node Card
+            // ── Build and append the full node card ───────────────────────────
             nodeHidden.innerHTML += `
                 <div class="${cardClass}">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
@@ -456,18 +458,8 @@ function showNodes(currentStory) {
                         </div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                             ${startBtnHtml}
-                            <button
-                                type="button"
-                                class="nav-pill"
-                                onclick="editNode('${element.id}')">
-                                ✏️ Edit Node
-                            </button>
-                            <button
-                                type="button"
-                                class="danger-btn"
-                                onclick="handleDelete(${index})">
-                                🗑️ Delete Node
-                            </button>
+                            <button type="button" class="nav-pill" onclick="editNode('${element.id}')">✏️ Edit Node</button>
+                            <button type="button" class="danger-btn" onclick="handleDelete(${index})">🗑️ Delete Node</button>
                         </div>
                     </div>
 
@@ -486,7 +478,7 @@ function showNodes(currentStory) {
         });
 
     } else {
-
+        // Empty state — no nodes added yet
         nodeHidden.innerHTML = `
             <div style="border: 3px dashed var(--color-carbon); border-radius: var(--radius-card-lg); padding: 48px 24px; text-align: center; background: #ffffff; box-shadow: var(--shadow-cut); margin-top: 24px;">
                 <h2 style="font-family: var(--font-display); font-size: 32px; text-transform: uppercase; margin-bottom: 12px; color: var(--color-carbon);">NO SCENE NODES ADDED</h2>
@@ -496,276 +488,226 @@ function showNodes(currentStory) {
     }
 }
 
+
+/* ============================================================
+   SECTION 6 — SET START NODE: setAsStartNode(nodeId)
+   Marks a given node as the story's start node.
+   Updates: currentStory.startNodeId, localStorage, and backend.
+   Calls showNodes() to re-render and visually update the START badge.
+   ============================================================ */
+
 async function setAsStartNode(nodeId) {
     if (!currentStory) return;
     currentStory.startNodeId = nodeId;
     localStorage.setItem("currentStory", JSON.stringify(currentStory));
+
     try {
         await fetch(`http://localhost:3000/Stories/${currentStory.id}`, {
-            method: "PATCH",
+            method:  "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ startNodeId: nodeId })
+            body:    JSON.stringify({ startNodeId: nodeId })
         });
     } catch (e) {
         console.warn("Could not patch start node:", e);
     }
+
     showNodes(currentStory);
 }
 
+
+/* ============================================================
+   SECTION 7 — EDIT NODE: editNode(nodeId)
+   Opens the node modal pre-filled with an existing node's data.
+   Sets the hidden #editingNodeId field so handleNode() knows
+   to update rather than create.
+   Also updates the modal title to "EDIT SCENE NODE".
+   ============================================================ */
+
 function editNode(nodeId) {
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    if (!activeStory) { alert("No story selected"); return; }
 
-    let activeStory =
-        JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let node = activeStory.nodes.find(node => node.id === nodeId);
+    if (!node) { alert("Node not found"); return; }
 
-    if (!activeStory) {
-        alert("No story selected");
-        return;
-    }
+    // Store the node ID in the hidden field for handleNode() to detect edit mode
+    document.getElementById("editingNodeId").value = nodeId;
 
+    // Pre-fill all form fields with the node's current values
+    document.getElementById("nodeTitle").value      = node.title      || "";
+    document.getElementById("nodeText").value       = node.text       || "";
+    document.getElementById("nodeLocation").value   = node.location   || "";
+    document.getElementById("nodeCharacters").value = node.characters ? node.characters.join(", ") : "";
+    document.getElementById("isEnding").checked     = node.isEnding   || false;
+    document.getElementById("endingType").value     = node.endingType || "good";
 
-    // Find the node
-    let node = activeStory.nodes.find(
-        node => node.id === nodeId
-    );
+    // Show/hide the ending type dropdown based on checkbox state
+    toggleEndingGroup(document.getElementById("isEnding"));
 
+    // Update modal title to indicate edit mode
+    document.getElementById("nodeModalTitle").textContent = "EDIT SCENE NODE";
 
-    if (!node) {
-        alert("Node not found");
-        return;
-    }
-
-
-    // Store node ID
-    document.getElementById("editingNodeId").value =
-        nodeId;
-
-
-    // Fill existing values
-    document.getElementById("nodeTitle").value =
-        node.title || "";
-
-    document.getElementById("nodeText").value =
-        node.text || "";
-
-    document.getElementById("nodeLocation").value =
-        node.location || "";
-
-    document.getElementById("nodeCharacters").value =
-        node.characters
-            ? node.characters.join(", ")
-            : "";
-
-    document.getElementById("isEnding").checked =
-        node.isEnding || false;
-
-
-    document.getElementById("endingType").value =
-        node.endingType || "good";
-
-
-    // Show/hide ending type
-    toggleEndingGroup(
-        document.getElementById("isEnding")
-    );
-
-
-    // Change modal title
-    document.getElementById("nodeModalTitle").textContent =
-        "EDIT SCENE NODE";
-
-
-    // Open modal
-    document.getElementById("nodeModal")
-        .classList.remove("hidden");
+    // Open the node modal
+    document.getElementById("nodeModal").classList.remove("hidden");
 }
 
+
+/* ============================================================
+   SECTION 8 — OPEN CHOICE MODAL: openChoiceModal(sourceNodeId)
+   Opens the Add/Edit Choice modal for a specific source node.
+   Stores the sourceNodeId in the hidden #sourceNodeId field.
+   Populates the #targetNodeId dropdown with ALL other nodes
+   (the source node itself is excluded — a node can't link to itself).
+   Clears the choice text and editing ID (so handleChoice() adds new).
+   ============================================================ */
+
 let openChoiceModal = (sourceNodeId) => {
-    let activeStory = JSON.parse(localStorage.getItem("currentStory"))
+    let activeStory = JSON.parse(localStorage.getItem("currentStory"));
+    if (!activeStory) { alert("Create a story first!"); return; }
 
-    if (!activeStory) {
-        alert("create a story first!")
-    }
-
+    // Store source node ID for handleChoice()
     document.getElementById("sourceNodeId").value = sourceNodeId;
 
+    // Populate the target dropdown with all nodes except the source
     let targetDropDown = document.getElementById("targetNodeId");
-
-    targetDropDown.innerHTML = ""
+    targetDropDown.innerHTML = "";
 
     activeStory.nodes.forEach(node => {
         if (node.id !== sourceNodeId) {
             targetDropDown.innerHTML += `
-            <option value="${node.id}">
-                ${node.title}
-            </option>
-            `
+                <option value="${node.id}">
+                    ${node.title}
+                </option>
+            `;
         }
+    });
 
-    })
+    // Clear the choice text input and any editing ID from previous use
+    document.getElementById("choiceText").value    = "";
+    document.getElementById("editingChoiceId").value = "";
 
-    // Clear previous choice
-    document.getElementById("choiceText").value = "";
+    // Open the choice modal
+    document.getElementById("choiceModal").classList.remove("hidden");
+};
 
 
-    // Open modal
-    document.getElementById("choiceModal")
-        .classList.remove("hidden");
-}
+/* ============================================================
+   SECTION 9 — CLOSE CHOICE MODAL: closeChoiceModal()
+   Hides the choice modal by adding the "hidden" CSS class.
+   ============================================================ */
 
 function closeChoiceModal() {
-
-    document.getElementById("choiceModal")
-        .classList.add("hidden");
+    document.getElementById("choiceModal").classList.add("hidden");
 }
 
+
+/* ============================================================
+   SECTION 10 — DELETE CHOICE: handleDeleteChoice(sourceNodeId, choiceId)
+   Removes a specific choice from a node's choices[] array.
+   Steps:
+   1. Find the source node by sourceNodeId.
+   2. Filter out the choice by choiceId.
+   3. PATCH /Stories/:id with the updated nodes[].
+   4. Mirror to localStorage + currentStory.
+   5. Alert success and re-render showNodes().
+   ============================================================ */
+
 let handleDeleteChoice = async (sourceNodeId, choiceId) => {
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    if (!activeStory) { alert("No story selected"); return; }
 
-    let activeStory =
-        JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let sourceNode = activeStory.nodes.find(node => node.id === sourceNodeId);
+    if (!sourceNode) { alert("Source node not found"); return; }
 
-    if (!activeStory) {
-        alert("No story selected");
-        return;
-    }
+    // Remove the choice from the array
+    sourceNode.choices = sourceNode.choices.filter(choice => choice.id !== choiceId);
 
+    // Persist to backend
+    let response = await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ nodes: activeStory.nodes })
+    });
 
-    // Find the source node
-    let sourceNode = activeStory.nodes.find(
-        node => node.id === sourceNodeId
-    );
+    if (!response.ok) { alert("Choice could not be deleted"); return; }
 
-
-    if (!sourceNode) {
-        alert("Source node not found");
-        return;
-    }
-
-
-    // Remove the choice
-    sourceNode.choices =
-        sourceNode.choices.filter(
-            choice => choice.id !== choiceId
-        );
-
-
-    // Update JSON Server
-    let response = await fetch(
-        `http://localhost:3000/Stories/${activeStory.id}`,
-        {
-            method: "PATCH",
-
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-                nodes: activeStory.nodes
-            })
-        }
-    );
-
-
-    if (!response.ok) {
-        alert("Choice could not be deleted");
-        return;
-    }
-
-
-    // Update LocalStorage
-    localStorage.setItem(
-        "currentStory",
-        JSON.stringify(activeStory)
-    );
-
+    localStorage.setItem("currentStory", JSON.stringify(activeStory));
     currentStory = activeStory;
 
-
     alert("Choice deleted");
-
-    // Re-render
     showNodes(currentStory);
 };
 
 
+/* ============================================================
+   SECTION 11 — EDIT CHOICE: editChoice(sourceNodeId, choiceId)
+   Opens the choice modal pre-filled with an existing choice's data.
+   Sets #editingChoiceId so handleChoice() updates instead of creating.
+   Steps:
+   1. Find the source node and then the specific choice.
+   2. Store both IDs in their hidden form fields.
+   3. Fill the choice text input with the existing text.
+   4. Populate and select the correct target in the dropdown.
+   5. Open the choice modal.
+   ============================================================ */
+
 function editChoice(sourceNodeId, choiceId) {
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    if (!activeStory) { alert("No story selected"); return; }
 
-    let activeStory =
-        JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let sourceNode = activeStory.nodes.find(node => node.id === sourceNodeId);
+    if (!sourceNode) { alert("Source node not found"); return; }
 
-    if (!activeStory) {
-        alert("No story selected");
-        return;
-    }
+    let choice = sourceNode.choices.find(choice => choice.id === choiceId);
+    if (!choice) { alert("Choice not found"); return; }
 
-    // Find source node
-    let sourceNode = activeStory.nodes.find(
-        node => node.id === sourceNodeId
-    );
+    // Store both IDs in hidden fields
+    document.getElementById("sourceNodeId").value    = sourceNodeId;
+    document.getElementById("editingChoiceId").value = choiceId;
 
-    if (!sourceNode) {
-        alert("Source node not found");
-        return;
-    }
+    // Pre-fill the choice text
+    document.getElementById("choiceText").value = choice.text;
 
-    // Find choice
-    let choice = sourceNode.choices.find(
-        choice => choice.id === choiceId
-    );
-
-    if (!choice) {
-        alert("Choice not found");
-        return;
-    }
-
-    // Store IDs
-    document.getElementById("sourceNodeId").value =
-        sourceNodeId;
-
-    document.getElementById("editingChoiceId").value =
-        choiceId;
-
-
-    // Put existing choice text into input
-    document.getElementById("choiceText").value =
-        choice.text;
-
-
-    // Fill target dropdown
-    let targetDropdown =
-        document.getElementById("targetNodeId");
-
-    targetDropdown.innerHTML = ""
+    // Rebuild the target dropdown and pre-select the existing target
+    let targetDropdown = document.getElementById("targetNodeId");
+    targetDropdown.innerHTML = "";
 
     activeStory.nodes.forEach(node => {
-
         if (node.id !== sourceNodeId) {
-
             targetDropdown.innerHTML += `
                 <option value="${node.id}">
                     ${node.title}
                 </option>
             `;
         }
-
     });
 
+    targetDropdown.value = choice.targetNodeId;
 
-    // Select existing target
-    targetDropdown.value =
-        choice.targetNodeId;
-
-
-    // Open modal
-    document.getElementById("choiceModal")
-        .classList.remove("hidden");
+    // Open the choice modal
+    document.getElementById("choiceModal").classList.remove("hidden");
 }
 
-// 5. Handle Delete Node
+
+/* ============================================================
+   SECTION 12 — DELETE NODE: handleDelete(index)
+   Removes a node from the story by its array index.
+   Steps:
+   1. Splice the node out of activeStory.nodes[].
+   2. If the story has no nodes left → set startNodeId = null.
+   3. Otherwise → reset startNodeId to nodes[0].id (first remaining).
+   4. PATCH /Stories/:id with updated nodes[] and startNodeId.
+   5. Mirror to localStorage + currentStory.
+   6. Alert and re-render.
+   ============================================================ */
+
 let handleDelete = async (index) => {
     let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
 
+    // Remove node at this index
     activeStory.nodes.splice(index, 1);
 
+    // Recalculate start node
     if (activeStory.nodes.length === 0) {
         activeStory.startNodeId = null;
     } else {
@@ -773,10 +715,10 @@ let handleDelete = async (index) => {
     }
 
     await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
-        method: "PATCH",
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            nodes: activeStory.nodes,
+        body:    JSON.stringify({
+            nodes:       activeStory.nodes,
             startNodeId: activeStory.startNodeId
         })
     });
@@ -788,157 +730,136 @@ let handleDelete = async (index) => {
     showNodes(currentStory);
 };
 
-// handling choices
+
+/* ============================================================
+   SECTION 13 — CHOICE HANDLER: handleChoice(event)
+   Triggered by: <form onsubmit="handleChoice(event)"> (Choice modal form)
+   Adds a new choice OR updates an existing one on a source node.
+
+   Fields read from the form:
+   - sourceNodeId   (hidden — which node this choice belongs to)
+   - editingChoiceId (hidden — empty if adding new, set if editing)
+   - choiceText     (the label the reader will see)
+   - targetNodeId   (dropdown — which node this choice leads to)
+
+   EDIT path  (editingChoiceId is set):
+   - Finds the choice in sourceNode.choices by ID
+   - Updates text and targetNodeId
+
+   CREATE path (editingChoiceId is empty):
+   - Builds a new choice with crypto.randomUUID()
+   - Pushes to sourceNode.choices[]
+
+   After both paths:
+   - PATCH /Stories/:id with updated nodes[]
+   - Mirrors to localStorage + currentStory
+   - Resets form, clears editingChoiceId, closes modal, re-renders
+   ============================================================ */
 
 let handleChoice = async (event) => {
-
     event.preventDefault();
 
-    let activeStory =
-        JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    if (!activeStory) { alert("No story selected"); return; }
 
-    if (!activeStory) {
-        alert("No story selected");
-        return;
-    }
-
-    let sourceNodeId =
-        document.getElementById("sourceNodeId").value;
-
-    let editingChoiceId =
-        document.getElementById("editingChoiceId").value;
-
-    let choiceText =
-        document.getElementById("choiceText").value.trim();
+    let sourceNodeId    = document.getElementById("sourceNodeId").value;
+    let editingChoiceId = document.getElementById("editingChoiceId").value;
+    let choiceText      = document.getElementById("choiceText").value.trim();
+    let targetNodeId    = document.getElementById("targetNodeId").value;
 
     if (!choiceText) {
         alert("Choice text cannot be empty. Please enter a choice.");
         return;
     }
 
-    let targetNodeId =
-        document.getElementById("targetNodeId").value;
+    let sourceNode = activeStory.nodes.find(node => node.id === sourceNodeId);
+    if (!sourceNode) { alert("Source node not found"); return; }
 
-
-    let sourceNode = activeStory.nodes.find(
-        node => node.id === sourceNodeId
-    );
-
-    if (!sourceNode) {
-        alert("Source node not found");
-        return;
-    }
-
-
-    // EDIT EXISTING CHOICE
     if (editingChoiceId) {
-
-        let choice = sourceNode.choices.find(
-            choice => choice.id === editingChoiceId
-        );
-
-        if (!choice) {
-            alert("Choice not found");
-            return;
-        }
-
-        choice.text = choiceText;
+        // ── EDIT EXISTING CHOICE ──────────────────────────────────────────────
+        let choice = sourceNode.choices.find(choice => choice.id === editingChoiceId);
+        if (!choice) { alert("Choice not found"); return; }
+        choice.text         = choiceText;
         choice.targetNodeId = targetNodeId;
-
-    }
-
-    // ADD NEW CHOICE
-    else {
-
+    } else {
+        // ── ADD NEW CHOICE ────────────────────────────────────────────────────
         let choice = {
-            id: crypto.randomUUID(),
-            text: choiceText,
+            id:           crypto.randomUUID(),
+            text:         choiceText,
             targetNodeId: targetNodeId
         };
-
         sourceNode.choices.push(choice);
     }
 
+    // Persist to backend
+    let response = await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ nodes: activeStory.nodes })
+    });
 
-    // Save to JSON Server
-    let response = await fetch(
-        `http://localhost:3000/Stories/${activeStory.id}`,
-        {
-            method: "PATCH",
+    if (!response.ok) { alert("Choice could not be saved"); return; }
 
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-                nodes: activeStory.nodes
-            })
-        }
-    );
-
-
-    if (!response.ok) {
-        alert("Choice could not be saved");
-        return;
-    }
-
-
-    localStorage.setItem(
-        "currentStory",
-        JSON.stringify(activeStory)
-    );
-
+    localStorage.setItem("currentStory", JSON.stringify(activeStory));
     currentStory = activeStory;
 
+    alert(editingChoiceId ? "Choice updated successfully" : "Choice added successfully");
 
-    alert(
-        editingChoiceId
-            ? "Choice updated successfully"
-            : "Choice added successfully"
-    );
-
-
+    // Reset choice form fields
     document.getElementById("choiceForm").reset();
-
     document.getElementById("editingChoiceId").value = "";
 
     closeChoiceModal();
-
     showNodes(currentStory);
 };
 
-/* =====================================================
-   PUBLISH STORY FUNCTION
-===================================================== */
 
+/* ============================================================
+   SECTION 14 — PUBLISH STORY: publishStory()
+   Makes the current story publicly visible to readers.
+
+   Guards:
+   - Story must have a title AND an existing ID (metadata must be saved first).
+   - Story must have at least 1 scene node.
+
+   If guards pass:
+   - PATCH /Stories/:id with { status: "published" }
+   - Mirrors the updated story to localStorage + currentStory
+   - Alerts success
+
+   This is a one-way operation from the UI — to unpublish,
+   the admin must edit the story and save it as Draft.
+   ============================================================ */
 
 async function publishStory() {
-    let existingId = (currentStory && currentStory.id) ? currentStory.id : storyId;
+    let existingId  = (currentStory && currentStory.id) ? currentStory.id : storyId;
+    let storyInput  = document.getElementById("story");
+    let titleVal    = storyInput ? storyInput.value.trim() : "";
 
-    let storyInput = document.getElementById("story");
-    let titleVal = storyInput ? storyInput.value.trim() : "";
-
+    // Guard: must have metadata saved
     if (!existingId && !titleVal) {
         alert("⚠️ Cannot Publish! Please fill out and save Story Metadata first.");
         return;
     }
 
-    // Check node requirement — MUST have at least 1 node
-    let currentNodes = (currentStory && currentStory.nodes) ? (Array.isArray(currentStory.nodes) ? currentStory.nodes : Object.keys(currentStory.nodes)) : [];
+    // Guard: must have at least 1 node
+    let currentNodes = (currentStory && currentStory.nodes)
+        ? (Array.isArray(currentStory.nodes) ? currentStory.nodes : Object.keys(currentStory.nodes))
+        : [];
     if (currentNodes.length === 0) {
         alert("⚠️ Cannot Publish Story! You must add at least 1 Scene Node before publishing.");
         return;
     }
 
     try {
-        let response = await fetch("http://localhost:3000/Stories/" + (existingId || currentStory.id), {
-            method: "PATCH",
+        let response = await fetch(`http://localhost:3000/Stories/${existingId || currentStory.id}`, {
+            method:  "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status: "published" })
+            body:    JSON.stringify({ status: "published" })
         });
 
         if (response.ok) {
-            let updated = await response.json();
+            let updated  = await response.json();
             currentStory = updated;
             localStorage.setItem("currentStory", JSON.stringify(currentStory));
             alert("🎉 Story Published Successfully! It is now live in the Story Library.");

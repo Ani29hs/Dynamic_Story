@@ -255,6 +255,15 @@
     <!-- Helper JS functions to open/close modal -->
     <script>
         function openNodeModal() {
+            let form = document.getElementById('nodeForm');
+            if (form) form.reset();
+            let editingId = document.getElementById('editingNodeId');
+            if (editingId) editingId.value = '';
+            let titleEl = document.getElementById('nodeModalTitle');
+            if (titleEl) titleEl.textContent = 'ADD SCENE NODE';
+            let endingGroup = document.getElementById('endingTypeGroup');
+            if (endingGroup) endingGroup.style.display = 'none';
+
             document.getElementById('nodeModal').classList.remove('hidden');
         }
 

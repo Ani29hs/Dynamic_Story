@@ -1,7 +1,46 @@
-﻿/**
- * Admin Story Preview Engine
- * Exact same interactive gameplay and branching logic as Reader mode, tailored for Admin preview.
- */
+
+/* ============================================================
+   preview.js
+   Page:  pages/admin/preview.html
+   Role:  Admin-only story preview engine.
+          Allows the admin to play through any story exactly as a
+          reader would, without writing XP or saving sessions.
+
+   FLOW (Top to Bottom — Page Load Order):
+   ─────────────────────────────────────────────────────────
+   1.  Auth guard        — redirect non-admins to login.html
+   2.  URL parsing       — extract ?id= from query string
+   3.  State variables   — currentStory, currentNode,
+                           traversalPath, allStories
+   4.  editStoryBtn      — wires the "Edit in Builder" button
+   5.  renderAdminProfileHeader() — inject avatar + dropdown
+   6.  toggleProfileDropdown()   — open/close profile menu
+   7.  Global click listener     — close dropdown on outside click
+   8.  loadStoryForPreview()     — fetch stories + start preview
+   9.  renderCurrentScene()      — render current node as play card
+                                  (handles ending cards too)
+   10. selectPreviewChoice()     — advance to chosen node
+   11. previewRetreat()          — undo last choice (go back 1 step)
+   12. restartPreview()          — reset to story start node
+   13. renderPathHistory()       — render visited node breadcrumb trail
+   14. escapeHtml()              — XSS-safe HTML string helper
+   15. handleLogout()            — clear session → login.html
+   16. DOMContentLoaded          — trigger profile header + story load
+
+   NOTE: No XP / session saving happens here.
+         This is a pure read-only admin walkthrough tool.
+
+   DATA FLOW:
+     GET /Stories         → fetch all stories (to pick one to preview)
+     No PATCH/POST calls  — admin preview is read-only
+   ============================================================ */
+
+
+/* ============================================================
+   SECTION 1 — AUTH GUARD
+   Immediately check localStorage for a logged-in Admin user.
+   If none found, redirect to login before rendering anything.
+   ============================================================ */
 
 var currentUser = null;
 try {
@@ -14,15 +53,33 @@ if (!currentUser || currentUser.role !== "Admin") {
     window.location.href = "../auth/login.html";
 }
 
-const urlParams = new URLSearchParams(window.location.search);
-let storyId = urlParams.get("id");
 
-let allStories = [];
-let currentStory = null;
-let currentNode = null;
-let traversalPath = [];
+/* ============================================================
+   SECTION 2 — URL PARSING + STATE VARIABLES
+   storyId    — from ?id= query param (can be null → use first story)
+   allStories — full list fetched from /Stories
+   currentStory  — the story currently being previewed
+   currentNode   — the node (scene) currently displayed
+   traversalPath — ordered list of { nodeId, title, choiceText }
+                   representing the path the admin has walked so far
+   ============================================================ */
 
-// Edit in Builder button
+const urlParams    = new URLSearchParams(window.location.search);
+let storyId        = urlParams.get("id");
+
+let allStories     = [];
+let currentStory   = null;
+let currentNode    = null;
+let traversalPath  = [];
+
+
+/* ============================================================
+   SECTION 3 — EDIT IN BUILDER BUTTON
+   Wired once on load. Clicking it redirects to
+   add_stories.html?id=<currentStory.id>.
+   Falls back to admin.html if no story is loaded yet.
+   ============================================================ */
+
 document.getElementById("editStoryBtn")?.addEventListener("click", () => {
     if (currentStory && currentStory.id) {
         window.location.href = `add_stories.html?id=${currentStory.id}`;
@@ -31,17 +88,25 @@ document.getElementById("editStoryBtn")?.addEventListener("click", () => {
     }
 });
 
-/* =====================================================
-   ADMIN PROFILE DROPDOWN MENU (MATCHING ADMIN DASHBOARD)
-===================================================== */
+
+/* ============================================================
+   SECTION 4 — NAVBAR: renderAdminProfileHeader()
+   Identical to the admin dashboard version.
+   Reads currentUser and injects the avatar button + dropdown
+   into #navAuthContainer.
+   Includes links to: Admin Dashboard | Story Preview | Sign Out
+   ============================================================ */
+
 function renderAdminProfileHeader() {
     let navAuthContainer = document.getElementById("navAuthContainer");
     if (!navAuthContainer || !currentUser) return;
 
-    let initial = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "A";
-    let activeXp = (currentUser.xp !== undefined) ? currentUser.xp : 100;
-    let roleTitle = currentUser.role || "Admin";
-    let xpBadgeHtml = (currentUser.role !== "Admin") ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>` : ``;
+    let initial     = currentUser.name ? currentUser.name.charAt(0).toUpperCase() : "A";
+    let activeXp    = (currentUser.xp !== undefined) ? currentUser.xp : 100;
+    let roleTitle   = currentUser.role || "Admin";
+    let xpBadgeHtml = (currentUser.role !== "Admin")
+        ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>`
+        : ``;
 
     navAuthContainer.innerHTML = `
         <div class="user-profile-menu-container">
@@ -78,6 +143,13 @@ function renderAdminProfileHeader() {
     `;
 }
 
+
+/* ============================================================
+   SECTION 5 — PROFILE DROPDOWN TOGGLE
+   toggleProfileDropdown(event) — toggle "hidden" class on #profileDropdown
+   Global click listener       — close dropdown on any outside click
+   ============================================================ */
+
 function toggleProfileDropdown(event) {
     if (event) event.stopPropagation();
     let menu = document.getElementById("profileDropdown");
@@ -95,6 +167,23 @@ document.addEventListener("click", (e) => {
     }
 });
 
+
+/* ============================================================
+   SECTION 6 — LOAD STORY: loadStoryForPreview()
+   The main initialiser. Called on DOMContentLoaded.
+
+   Steps:
+   a. Render the profile header.
+   b. GET /Stories — fetch the full story list.
+   c. If no stories → show an empty-state message.
+   d. If ?id= was in the URL → find that story.
+   e. Otherwise default to the first story in the list.
+   f. Normalise nodes (handle array or object format).
+   g. Populate the story selector dropdown (#storySelector).
+   h. Find the start node and initialise traversalPath.
+   i. Call renderCurrentScene() to begin the preview.
+   ============================================================ */
+
 async function loadStoryForPreview() {
     renderAdminProfileHeader();
     let sceneContainer = document.getElementById("sceneContainer");
@@ -103,6 +192,7 @@ async function loadStoryForPreview() {
         let allRes = await fetch("http://localhost:3000/Stories");
         allStories = await allRes.json();
 
+        // Step c: No stories at all
         if (!allStories || allStories.length === 0) {
             if (sceneContainer) {
                 sceneContainer.innerHTML = `
@@ -116,15 +206,16 @@ async function loadStoryForPreview() {
             return;
         }
 
+        // Step d/e: Resolve which story to preview
         if (storyId) {
             currentStory = allStories.find(s => String(s.id) === String(storyId));
         }
-
         if (!currentStory) {
             currentStory = allStories[0];
             storyId = currentStory.id;
         }
 
+        // Step f: Normalise nodes — support both array and keyed-object formats
         let nodesList = [];
         if (Array.isArray(currentStory.nodes)) {
             nodesList = currentStory.nodes;
@@ -133,116 +224,94 @@ async function loadStoryForPreview() {
         }
         currentStory.nodes = nodesList;
 
-        if (nodesList.length === 0) {
-            renderStoryHeader();
-            if (sceneContainer) {
-                sceneContainer.innerHTML = `
-                    <div style="background: var(--color-paper-white); border: 3px solid #000; border-radius: 20px; padding: 40px 24px; text-align: center; box-shadow: 6px 6px 0px #000; margin-top: 20px;">
-                        <h2 style="font-family: var(--font-display); font-size: 26px; margin-bottom: 12px;">⚠️ No Scene Nodes in Story "${escapeHtml(currentStory.title)}"</h2>
-                        <p style="font-weight: 600; margin-bottom: 24px; color: #444;">This story has 0 scenes. Add scene nodes in the builder to preview the story.</p>
-                        <a href="add_stories.html?id=${currentStory.id}" class="primary-btn" style="padding: 12px 28px; font-weight: 800;">✏️ Open Story Builder & Add Scenes</a>
-                    </div>
-                `;
-            }
+        // Step g: Populate story selector dropdown
+        let storySelector = document.getElementById("storySelector");
+        if (storySelector) {
+            storySelector.innerHTML = allStories.map(s =>
+                `<option value="${s.id}" ${String(s.id) === String(storyId) ? "selected" : ""}>${s.title || "Untitled"}</option>`
+            ).join("");
+            storySelector.onchange = () => {
+                window.location.href = `preview.html?id=${storySelector.value}`;
+            };
+        }
+
+        // Step h: Find start node and initialise traversalPath
+        let startingNode = currentStory.nodes.find(n => n.id === currentStory.startNodeId)
+            || currentStory.nodes[0];
+
+        if (!startingNode) {
+            if (sceneContainer) sceneContainer.innerHTML = `<p style="font-weight:700;">This story has no nodes yet.</p>`;
             return;
         }
 
-        let startingNode = nodesList.find(n => n.id === currentStory.startNodeId) || nodesList[0];
-        currentNode = startingNode;
+        currentNode   = startingNode;
+        traversalPath = [{
+            nodeId:     startingNode.id,
+            title:      startingNode.title || "Initial Scene",
+            choiceText: null
+        }];
 
-        traversalPath = [
-            {
-                nodeId: startingNode.id,
-                title: startingNode.title || "Initial Scene",
-                choiceText: null
-            }
-        ];
-
-        renderStoryHeader();
+        // Step i: Render the first scene
         renderCurrentScene();
+
     } catch (e) {
-        console.error("Error loading story for preview:", e);
+        console.error("Preview load error:", e);
         if (sceneContainer) {
-            sceneContainer.innerHTML = `
-                <div style="background: #ffebee; border: 3px solid #000; border-radius: 20px; padding: 32px 20px; text-align: center; box-shadow: 6px 6px 0px #000;">
-                    <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 12px; color: #c62828;">Failed to connect to JSON Server</h2>
-                    <p style="font-weight: 600; margin-bottom: 16px;">Make sure json-server is running on port 3000.</p>
-                    <a href="admin.html" class="secondary-btn" style="padding: 10px 20px;">← Back to Dashboard</a>
-                </div>
-            `;
+            sceneContainer.innerHTML = `<p style="font-weight: 700; color: red;">Error loading story. Is json-server running on port 3000?</p>`;
         }
     }
 }
 
-function renderStoryHeader() {
-    let headerEl = document.getElementById("storyHeader");
-    if (!headerEl || !currentStory) return;
 
-    let nodeCount = currentStory.nodes ? currentStory.nodes.length : 0;
-    let statusClass = currentStory.status === "published" ? "status-published" : "status-draft";
+/* ============================================================
+   SECTION 7 — RENDER SCENE: renderCurrentScene()
+   The core rendering function. Called every time the admin
+   navigates to a new node.
 
-    let storyOptionsHtml = allStories.map(s => `
-        <option value="${s.id}" ${String(s.id) === String(currentStory.id) ? 'selected' : ''}>
-            ${s.title} (${s.nodes ? (Array.isArray(s.nodes) ? s.nodes.length : Object.keys(s.nodes).length) : 0} scenes)
-        </option>
-    `).join('');
+   Two render paths:
+   A. Ending node (currentNode.isEnding === true):
+      - Renders an ending card with type badge (good/neutral/bad)
+      - Shows "Play Again" and "← Back to Dashboard" buttons
+      - Calls renderPathHistory() to show the full traversal
 
-    headerEl.innerHTML = `
-        <div class="preview-header-card">
-            <div class="preview-story-info">
-                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap;">
-                    <span class="badge-genre" style="padding: 4px 12px; font-weight: 800; font-size: 11px; border: 2px solid #000; border-radius: 100px; background: var(--color-sunburst);">${(currentStory.genre || 'General').toUpperCase()}</span>
-                    <span class="badge-status ${statusClass}" style="padding: 4px 12px; font-weight: 800; font-size: 11px; border: 2px solid #000; border-radius: 100px;">${(currentStory.status || 'draft').toUpperCase()}</span>
-                    <span style="padding: 4px 12px; font-weight: 800; font-size: 11px; border: 2px solid #000; border-radius: 100px; background: var(--color-lavender); color: #000;">👑 ADMIN PREVIEW MODE</span>
-                </div>
-                <h1 class="preview-story-title">${escapeHtml(currentStory.title)}</h1>
-                <div style="font-weight: 800; font-size: 13px; color: var(--color-voltage-violet);">BY ${(currentStory.author || 'ADMIN').toUpperCase()} &bull; ${nodeCount} TOTAL SCENES</div>
-            </div>
-            
-            <div class="preview-controls-box">
-                <div class="preview-switch-group">
-                    <label style="font-size: 11px; font-weight: 800; text-transform: uppercase;">Switch Story:</label>
-                    <select class="preview-select-input" onchange="switchPreviewStory(this.value)">
-                        ${storyOptionsHtml}
-                    </select>
-                </div>
-                <button onclick="restartPreview()" class="secondary-btn" style="padding: 10px 16px; font-size: 13px; white-space: nowrap; height: 42px;">
-                    🔄 Restart Path
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function switchPreviewStory(newStoryId) {
-    window.location.href = `preview.html?id=${newStoryId}`;
-}
+   B. Regular node:
+      - Renders a play card with:
+          * Location badge and character list
+          * Scene title (h1)
+          * Scene body text
+          * "WHAT DO YOU DO?" prompt
+          * Choice buttons (each shows destination node title)
+          * "⏪ Rewind 1 Step Back" button (if not at start)
+      - Calls renderPathHistory()
+   ============================================================ */
 
 function renderCurrentScene() {
-    let sceneContainer = document.getElementById("sceneContainer");
-    let choicesContainer = document.getElementById("choicesContainer");
+    let sceneContainer    = document.getElementById("sceneContainer");
+    let choicesContainer  = document.getElementById("choicesContainer");
+
     if (!sceneContainer || !currentNode) return;
 
+    // ── Path A: Ending node ────────────────────────────────────────────────
     if (currentNode.isEnding) {
-        let endingType = (currentNode.endingType || "neutral").toUpperCase();
-        let badgeColor = endingType === "GOOD" ? "var(--color-mint-pop)" : endingType === "BAD" ? "var(--color-ember)" : "var(--color-lavender)";
-        let badgeTextColor = endingType === "BAD" ? "#fff" : "#000";
+        let endingType  = (currentNode.endingType || "good").toUpperCase();
+        let endingEmoji = endingType === "GOOD" ? "🏆" : endingType === "BAD" ? "💀" : "⚖️";
+        let endingBg    = endingType === "GOOD" ? "#f0fff4" : endingType === "BAD" ? "#fff0f0" : "#fffbeb";
+        let badgeBg     = endingType === "GOOD" ? "#34d399" : endingType === "BAD" ? "#f87171" : "#fbbf24";
 
         sceneContainer.innerHTML = `
-            <div class="play-card" style="text-align: center; padding: 36px 24px; background: var(--color-paper-white); border: 3px solid #000; border-radius: 24px; box-shadow: 8px 8px 0px #000; width: 100%; box-sizing: border-box;">
-                <div style="margin-bottom: 16px;">
-                    <span style="display: inline-block; padding: 8px 24px; font-weight: 800; font-size: 13px; border: 2px solid #000; border-radius: 100px; background: ${badgeColor}; color: ${badgeTextColor}; box-shadow: 3px 3px 0px #000;">
-                        🏁 ${endingType} ENDING REACHED
+            <div style="background: ${endingBg}; border: 3px solid #000; border-radius: 24px; padding: 36px; box-shadow: 8px 8px 0px #000; text-align: center;">
+                <div style="margin-bottom: 20px;">
+                    <span style="display: inline-block; padding: 8px 24px; background: ${badgeBg}; border: 2.5px solid #000; border-radius: 100px; font-weight: 900; font-size: 14px; box-shadow: 3px 3px 0px #000; text-transform: uppercase; color: #000;">
+                        ${endingEmoji} ${endingType} ENDING REACHED
                     </span>
                 </div>
                 <h1 style="font-family: var(--font-display); font-size: clamp(24px, 4vw, 38px); margin-bottom: 18px; word-break: break-word; line-height: 1.1;">${escapeHtml(currentNode.title)}</h1>
                 <div style="background: var(--color-sky-wash); border: 2px solid #000; border-radius: 16px; padding: 22px; margin-bottom: 24px; box-shadow: 4px 4px 0px #000; text-align: left;">
                     <p style="font-size: 16px; line-height: 1.7; font-weight: 600; color: #000; margin: 0;">${escapeHtml(currentNode.text)}</p>
                 </div>
-                
                 <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-                    <button onclick="restartPreview()" class="primary-btn" style="padding: 12px 24px; font-size: 14px;">🔄 Play Again</button>
-                    <a href="admin.html" class="secondary-btn" style="padding: 12px 24px; font-size: 14px;">← Back to Dashboard</a>
+                    <button onclick="restartPreview()" class="primary-btn" style="width: auto; padding: 12px 28px; font-size: 14px; background: #ffde59; color: #000; border: 2.5px solid #000; border-radius: 100px; box-shadow: 4px 4px 0px #000; font-weight: 800; cursor: pointer;">🔄 PLAY AGAIN</button>
+                    <a href="admin.html" class="secondary-btn" style="width: auto; padding: 12px 28px; font-size: 14px; background: #ffffff; color: #000; border: 2.5px solid #000; border-radius: 100px; box-shadow: 4px 4px 0px #000; font-weight: 800; text-decoration: none; cursor: pointer;">← BACK TO DASHBOARD</a>
                 </div>
             </div>
         `;
@@ -252,16 +321,22 @@ function renderCurrentScene() {
         return;
     }
 
-    let locationTag = currentNode.location ? `📍 ${currentNode.location.toUpperCase()}` : `📍 SCENE #${traversalPath.length}`;
-    let charsTag = (currentNode.characters && currentNode.characters.length > 0) ? `👥 Present: ${currentNode.characters.join(', ')}` : '';
+    // ── Path B: Regular scene node ────────────────────────────────────────
+    let locationTag = currentNode.location
+        ? `📍 ${currentNode.location.toUpperCase()}`
+        : `📍 SCENE #${traversalPath.length}`;
+    let charsTag = (currentNode.characters && currentNode.characters.length > 0)
+        ? `👥 Present: ${currentNode.characters.join(', ')}`
+        : '';
 
     let choices = Array.isArray(currentNode.choices) ? currentNode.choices : [];
     let choicesHTML = "";
 
     if (choices.length > 0) {
+        // Build a button for each choice — shows destination node title as a hint
         choicesHTML = choices.map(choice => {
-            let targetId = choice.targetNodeId || choice.destinationNodeId || choice.targetId;
-            let destNode = currentStory.nodes.find(n => n.id === targetId);
+            let targetId  = choice.targetNodeId || choice.destinationNodeId || choice.targetId;
+            let destNode  = currentStory.nodes.find(n => n.id === targetId);
             let destTitle = destNode ? destNode.title : `Node ID: ${targetId}`;
 
             return `
@@ -272,6 +347,7 @@ function renderCurrentScene() {
             `;
         }).join('');
     } else {
+        // Dead-end warning — node has no choices and is not marked as ending
         choicesHTML = `
             <div style="background: #ffebee; border: 2px solid #000; border-radius: 14px; padding: 14px; font-weight: 800; color: #c62828; margin-bottom: 14px; font-size: 13px;">
                 ⚠️ Dead End: This scene has no choices and was not marked as an ending.
@@ -279,6 +355,7 @@ function renderCurrentScene() {
         `;
     }
 
+    // Show "Rewind" button only if the admin is not at the very first node
     let retreatBtn = traversalPath.length > 1 ? `
         <button type="button" onclick="previewRetreat()" class="secondary-btn" style="width: 100%; margin-top: 6px; padding: 12px 18px; border-radius: 100px; font-weight: 800; cursor: pointer;">
             ⏪ Rewind 1 Step Back
@@ -317,6 +394,14 @@ function renderCurrentScene() {
     renderPathHistory();
 }
 
+
+/* ============================================================
+   SECTION 8 — CHOICE SELECTION: selectPreviewChoice(targetNodeId, choiceText)
+   Called when the admin clicks a choice button.
+   Finds the target node in currentStory.nodes by ID,
+   pushes it onto traversalPath, and re-renders the scene.
+   ============================================================ */
+
 function selectPreviewChoice(targetNodeId, choiceText) {
     let nextNode = currentStory.nodes.find(n => n.id === targetNodeId);
     if (!nextNode) {
@@ -326,34 +411,58 @@ function selectPreviewChoice(targetNodeId, choiceText) {
 
     currentNode = nextNode;
     traversalPath.push({
-        nodeId: nextNode.id,
-        title: nextNode.title || "Scene",
+        nodeId:     nextNode.id,
+        title:      nextNode.title || "Scene",
         choiceText: choiceText
     });
 
     renderCurrentScene();
 }
 
+
+/* ============================================================
+   SECTION 9 — REWIND: previewRetreat()
+   Removes the last entry from traversalPath and returns to
+   the previous node. Does nothing if already at the start node.
+   ============================================================ */
+
 function previewRetreat() {
     if (traversalPath.length <= 1) return;
     traversalPath.pop();
-    let prev = traversalPath[traversalPath.length - 1];
+    let prev    = traversalPath[traversalPath.length - 1];
     currentNode = currentStory.nodes.find(n => n.id === prev.nodeId);
     renderCurrentScene();
 }
 
+
+/* ============================================================
+   SECTION 10 — RESTART: restartPreview()
+   Resets the preview to the story's defined start node
+   (or falls back to nodes[0] if startNodeId is unset).
+   Clears traversalPath back to a single entry.
+   ============================================================ */
+
 function restartPreview() {
-    let startingNode = currentStory.nodes.find(n => n.id === currentStory.startNodeId) || currentStory.nodes[0];
-    currentNode = startingNode;
-    traversalPath = [
-        {
-            nodeId: startingNode.id,
-            title: startingNode.title || "Initial Scene",
-            choiceText: null
-        }
-    ];
+    let startingNode = currentStory.nodes.find(n => n.id === currentStory.startNodeId)
+        || currentStory.nodes[0];
+
+    currentNode   = startingNode;
+    traversalPath = [{
+        nodeId:     startingNode.id,
+        title:      startingNode.title || "Initial Scene",
+        choiceText: null
+    }];
+
     renderCurrentScene();
 }
+
+
+/* ============================================================
+   SECTION 11 — PATH HISTORY: renderPathHistory()
+   Renders the visited node breadcrumb trail inside #traversalPath.
+   Shows each node title as a numbered pill with ➔ arrows between.
+   Displays total scene count in the header label.
+   ============================================================ */
 
 function renderPathHistory() {
     let pathContainer = document.getElementById("traversalPath");
@@ -378,19 +487,48 @@ function renderPathHistory() {
     `;
 }
 
+
+/* ============================================================
+   SECTION 12 — UTILITY: escapeHtml(str)
+   Converts special HTML characters to safe HTML entities.
+   Prevents XSS when injecting story content into innerHTML.
+   Used throughout renderCurrentScene() and renderPathHistory().
+   ============================================================ */
+
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    return String(str)
+        .replace(/&/g,  "&amp;")
+        .replace(/</g,  "&lt;")
+        .replace(/>/g,  "&gt;")
+        .replace(/"/g,  "&quot;")
+        .replace(/'/g,  "&#039;");
 }
+
+
+/* ============================================================
+   SECTION 13 — LOGOUT: handleLogout()
+   Clears the "user" key from localStorage and redirects to
+   the login page (not Landing, since this is admin-only).
+   ============================================================ */
 
 function handleLogout() {
     localStorage.removeItem("user");
     window.location.href = "../auth/login.html";
 }
 
+
+/* ============================================================
+   SECTION 14 — PAGE INITIALISATION
+   Wire up everything on DOMContentLoaded.
+   Also call immediately in case the DOM is already ready.
+   ============================================================ */
+
 document.addEventListener("DOMContentLoaded", () => {
     renderAdminProfileHeader();
     loadStoryForPreview();
 });
+
+// Immediate calls in case the browser has already parsed the DOM
 renderAdminProfileHeader();
 loadStoryForPreview();
