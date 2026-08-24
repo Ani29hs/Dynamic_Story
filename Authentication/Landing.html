@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +35,7 @@
             --shadow-cut-lg: 6px 6px 0px var(--color-carbon);
             --shadow-cut-sm: 2px 2px 0px var(--color-carbon);
 
-            --transition: all 0.15s ease-in-out;
+            --transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         * {
@@ -54,13 +55,19 @@
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 15%, rgba(255, 215, 49, 0.4) 0%, transparent 25%),
+                radial-gradient(circle at 90% 85%, rgba(92, 74, 222, 0.3) 0%, transparent 30%);
         }
 
-        h1, h2, h3, h4 {
+        h1,
+        h2,
+        h3,
+        h4 {
             font-family: var(--font-display);
             color: var(--color-carbon);
             text-transform: uppercase;
-            line-height: 0.9;
+            line-height: 0.95;
         }
 
         a {
@@ -68,18 +75,18 @@
             text-decoration: none;
         }
 
-        /* Ticker Banner */
+        /* Marquee Strip */
         .marquee-strip {
             background: var(--color-carbon);
             color: var(--color-paper-white);
-            padding: 10px 0;
+            padding: 12px 0;
             overflow: hidden;
             white-space: nowrap;
-            border-bottom: 2px solid var(--color-carbon);
+            border-bottom: 3px solid var(--color-carbon);
             font-family: var(--font-ui);
-            font-weight: 700;
+            font-weight: 800;
             font-size: 13px;
-            letter-spacing: 0.032em;
+            letter-spacing: 0.04em;
             text-transform: uppercase;
         }
 
@@ -89,8 +96,13 @@
         }
 
         @keyframes marquee {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-50%); }
+            0% {
+                transform: translateX(0%);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
         }
 
         /* Navigation Header */
@@ -100,10 +112,11 @@
             justify-content: space-between;
             padding: 16px 40px;
             background: var(--color-paper-white);
-            border-bottom: 2px solid var(--color-carbon);
+            border-bottom: 3px solid var(--color-carbon);
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 4px 0 var(--color-carbon);
         }
 
         .logo {
@@ -113,11 +126,17 @@
             font-family: var(--font-display);
             font-size: 22px;
             background: var(--color-sunburst);
-            padding: 8px 18px;
+            padding: 8px 20px;
             border-radius: var(--radius-pill);
-            border: var(--border-cut);
-            box-shadow: var(--shadow-cut-sm);
+            border: var(--border-cut-thick);
+            box-shadow: var(--shadow-cut);
             transform: rotate(-1.5deg);
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            transform: rotate(0deg) scale(1.03);
+            box-shadow: var(--shadow-cut-lg);
         }
 
         .nav-links {
@@ -130,304 +149,660 @@
         .nav-pill {
             display: inline-flex;
             align-items: center;
-            padding: 10px 20px;
+            padding: 10px 22px;
             border-radius: var(--radius-pill);
-            border: var(--border-cut);
+            border: var(--border-cut-thick);
             background: var(--color-paper-white);
             color: var(--color-carbon);
             font-family: var(--font-ui);
-            font-weight: 700;
+            font-weight: 800;
             font-size: 14px;
             transition: var(--transition);
-            box-shadow: var(--shadow-cut-sm);
-        }
-
-        .nav-pill:hover, .nav-pill.active {
-            background: var(--color-electric-blue);
-            transform: translateY(-2px);
             box-shadow: var(--shadow-cut);
-        }
-
-        .login-btn {
-            background: var(--color-sunburst);
-        }
-
-        .login-btn:hover {
-            background: var(--color-voltage-violet);
-            color: var(--color-paper-white);
-        }
-
-        .user-greeting {
-            font-weight: 800;
-            font-size: 13px;
-            text-transform: uppercase;
-            background: var(--color-paper-white);
-            border: var(--border-cut);
-            padding: 8px 16px;
-            border-radius: var(--radius-pill);
-            box-shadow: var(--shadow-cut-sm);
-        }
-
-        .logout-btn {
-            background: var(--color-ember) !important;
-            color: var(--color-paper-white) !important;
             cursor: pointer;
         }
 
-        .logout-btn:hover {
-            background: #d63800 !important;
+        .nav-pill:hover,
+        .nav-pill.active {
+            background: var(--color-sunburst);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        /* Profile Dropdown Menu */
+        .user-profile-menu-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-menu-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 16px 6px 8px;
+            background: var(--color-paper-white);
+            border: 2px solid #000;
+            border-radius: 100px;
+            box-shadow: 3px 3px 0px #000;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 13px;
+            color: #000;
+            transition: var(--transition);
+        }
+
+        .profile-menu-btn:hover {
+            background: var(--color-sunburst);
+            transform: translateY(-2px);
+            box-shadow: 5px 5px 0px #000;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--color-voltage-violet);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 14px;
+            border: 2px solid #000;
+            transition: var(--transition);
+        }
+
+        .profile-menu-btn:hover .user-avatar {
+            transform: rotate(12deg) scale(1.1);
+            background: var(--color-sunburst);
+            color: #000;
+        }
+
+        .profile-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 10px);
+            width: 240px;
+            background: #ffffff;
+            border: 3px solid #000;
+            border-radius: 20px;
+            box-shadow: 6px 6px 0px #000;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-dropdown-menu.hidden {
+            display: none !important;
+        }
+
+        .profile-dropdown-menu:not(.hidden) {
+            animation: profilePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes profilePop {
+            0% {
+                opacity: 0;
+                transform: translateY(-12px) scale(0.92);
+            }
+
+            70% {
+                transform: translateY(2px) scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 16px;
+            background: var(--color-sky-wash);
+            border-bottom: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .profile-dropdown-header strong {
+            font-size: 15px;
+            font-weight: 800;
+            color: #000;
+        }
+
+        .user-role-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: var(--color-sunburst);
+            border: 2px solid #000;
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 800;
+            color: #000;
+        }
+
+        .user-xp-badge {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--color-voltage-violet);
+        }
+
+        .profile-dropdown-links {
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            color: #000;
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: var(--color-sky-wash);
+        }
+
+        .dropdown-item:hover svg {
+            transform: translateX(4px) scale(1.15);
+            color: var(--color-voltage-violet);
+        }
+
+        .dropdown-item.logout-item:hover {
+            background: var(--color-ember);
+            color: #fff;
         }
 
         /* Hero Section */
         .hero {
-            padding: 80px 24px 60px;
+            padding: 80px 5% 70px;
             text-align: center;
             position: relative;
-            background-image: 
-                radial-gradient(circle at 10% 20%, rgba(255, 215, 49, 0.35) 0%, transparent 25%),
-                radial-gradient(circle at 90% 80%, rgba(92, 74, 222, 0.25) 0%, transparent 30%);
-            border-bottom: 2px solid var(--color-carbon);
+            border-bottom: 3px solid var(--color-carbon);
+            background: var(--color-paper-white);
+        }
+
+        /* Dedicated Video Showcase Block */
+        .video-showcase-section {
+            padding: 85px 5%;
+            background: var(--color-sunburst);
+            border-bottom: 3px solid var(--color-carbon);
+            text-align: center;
+        }
+
+        .video-showcase-box {
+            width: 100%;
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card-lg);
+            box-shadow: var(--shadow-cut-lg);
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .video-window-bar {
+            background: var(--color-carbon);
+            color: var(--color-paper-white);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .window-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #000;
+        }
+
+        .video-frame-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: #000;
+        }
+
+        .dedicated-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
         }
 
         .hero-badge {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             background: var(--color-lavender);
-            border: var(--border-cut);
-            padding: 6px 18px;
+            border: var(--border-cut-thick);
+            padding: 8px 22px;
             border-radius: var(--radius-pill);
             font-weight: 800;
             font-size: 13px;
             text-transform: uppercase;
-            box-shadow: var(--shadow-cut-sm);
-            margin-bottom: 24px;
+            box-shadow: var(--shadow-cut);
+            margin-bottom: 28px;
             transform: rotate(-2deg);
+            animation: heroFloat 3s infinite ease-in-out;
+        }
+
+        @keyframes heroFloat {
+
+            0%,
+            100% {
+                transform: rotate(-2deg) translateY(0);
+            }
+
+            50% {
+                transform: rotate(-1deg) translateY(-6px);
+            }
         }
 
         .hero h1 {
-            font-size: clamp(40px, 7vw, 85px);
-            margin-bottom: 20px;
+            font-size: clamp(44px, 7.5vw, 92px);
+            margin-bottom: 24px;
             letter-spacing: -0.02em;
+            text-shadow: 4px 4px 0px var(--color-sunburst);
         }
 
-        .hero p {
-            max-width: 650px;
-            margin: 0 auto 36px;
-            font-size: 18px;
+        .hero-subtitle {
+            max-width: 720px;
+            margin: 0 auto 40px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--color-carbon);
+            line-height: 1.6;
         }
 
         .hero-cta {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 16px;
+            gap: 18px;
             flex-wrap: wrap;
-        }
-
-        .primary-btn, .secondary-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 32px;
-            border-radius: var(--radius-pill);
-            border: var(--border-cut);
-            font-family: var(--font-ui);
-            font-weight: 800;
-            font-size: 16px;
-            cursor: pointer;
-            transition: var(--transition);
-            text-transform: uppercase;
+            margin-bottom: 50px;
         }
 
         .primary-btn {
-            background: var(--color-carbon);
-            color: var(--color-paper-white);
-            box-shadow: var(--shadow-cut);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 36px;
+            background: var(--color-sunburst);
+            color: var(--color-carbon);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 16px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-cut-lg);
+            transition: var(--transition);
+            cursor: pointer;
         }
 
         .primary-btn:hover {
             background: var(--color-voltage-violet);
+            color: var(--color-paper-white);
             transform: translateY(-4px) rotate(-1deg);
-            box-shadow: var(--shadow-cut-lg);
+            box-shadow: 8px 8px 0px var(--color-carbon);
         }
 
         .secondary-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 32px;
             background: var(--color-paper-white);
             color: var(--color-carbon);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 16px;
+            text-transform: uppercase;
             box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+            cursor: pointer;
         }
 
         .secondary-btn:hover {
-            background: var(--color-sunburst);
-            transform: translateY(-4px) rotate(1deg);
+            background: var(--color-electric-blue);
+            transform: translateY(-3px);
             box-shadow: var(--shadow-cut-lg);
+        }
+
+        /* Interactive Teaser Sandbox */
+        .teaser-sandbox {
+            max-width: 780px;
+            margin: 0 auto;
+            background: var(--color-sky-wash);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 32px;
+            box-shadow: var(--shadow-cut-lg);
+            text-align: left;
+            position: relative;
+        }
+
+        .sandbox-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #000;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .sandbox-tag {
+            font-weight: 800;
+            font-size: 12px;
+            background: var(--color-mint-pop);
+            border: 2px solid #000;
+            padding: 4px 12px;
+            border-radius: 100px;
+            text-transform: uppercase;
+        }
+
+        .sandbox-scene-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+
+        .sandbox-scene-text {
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .sandbox-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sandbox-choice-btn {
+            background: var(--color-paper-white);
+            border: 2px solid #000;
+            border-radius: 100px;
+            padding: 14px 22px;
+            font-size: 14px;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 3px 3px 0px #000;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .sandbox-choice-btn:hover {
+            background: var(--color-sunburst);
+            transform: translateY(-2px);
+            box-shadow: 5px 5px 0px #000;
         }
 
         /* Stats Strip */
         .stats-section {
-            background: var(--color-paper-white);
-            border-bottom: 2px solid var(--color-carbon);
-            padding: 24px;
+            background: var(--color-sunburst);
+            border-bottom: 3px solid var(--color-carbon);
+            padding: 40px 5%;
         }
 
         .stats-grid {
-            max-width: 1100px;
-            margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            text-align: center;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .stat-card {
-            background: var(--color-sky-wash);
-            border: var(--border-cut);
-            border-radius: var(--radius-sticker);
-            padding: 20px;
-            box-shadow: var(--shadow-cut-sm);
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px) rotate(1deg);
+            box-shadow: var(--shadow-cut-lg);
         }
 
         .stat-number {
             font-family: var(--font-display);
-            font-size: 36px;
+            font-size: 44px;
             color: var(--color-carbon);
+            margin-bottom: 4px;
         }
 
         .stat-label {
             font-weight: 800;
             font-size: 13px;
             text-transform: uppercase;
-            color: var(--color-voltage-violet);
+            letter-spacing: 0.05em;
         }
 
-        /* Stories Showcase Section */
-        .section-container {
+        /* Features Section */
+        .features-section {
+            padding: 80px 5%;
+            background: var(--color-sky-wash);
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .section-title-wrap {
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .section-title-wrap h2 {
+            font-size: clamp(32px, 5vw, 52px);
+            margin-bottom: 12px;
+        }
+
+        .section-title-wrap p {
+            font-size: 18px;
+            font-weight: 700;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 60px 24px;
         }
 
-        .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .section-header h2 {
-            font-size: 36px;
-        }
-
-        .stories-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 30px;
-        }
-
-        .story-card {
+        .feature-card {
             background: var(--color-paper-white);
             border: var(--border-cut-thick);
             border-radius: var(--radius-card);
+            padding: 36px 28px;
+            box-shadow: var(--shadow-cut-lg);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 10px 10px 0px var(--color-carbon);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--color-sunburst);
+            border: var(--border-cut-thick);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        .feature-card h3 {
+            font-size: 22px;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        /* Featured Stories Section */
+        .stories-showcase-section {
+            padding: 80px 5%;
+            background: var(--color-paper-white);
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .showcase-card {
+            background: var(--color-sky-wash);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
             overflow: hidden;
-            box-shadow: var(--shadow-cut);
+            box-shadow: var(--shadow-cut-lg);
             transition: var(--transition);
             display: flex;
             flex-direction: column;
         }
 
-        .story-card:hover {
+        .showcase-card:hover {
             transform: translateY(-6px);
-            box-shadow: var(--shadow-cut-lg);
+            box-shadow: 10px 10px 0px var(--color-carbon);
         }
 
-        .story-banner {
-            height: 180px;
-            background: var(--color-voltage-violet);
+        .showcase-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-bottom: var(--border-cut-thick);
+        }
+
+        .showcase-card-body {
+            padding: 28px;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 60px;
-            border-bottom: 2px solid var(--color-carbon);
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .showcase-card-body h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .showcase-card-body p {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* How it works section */
+        .how-section {
+            padding: 80px 5%;
+            background: var(--color-lavender);
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .step-card {
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 32px;
+            box-shadow: var(--shadow-cut-lg);
             position: relative;
         }
 
-        .genre-badge {
-            position: absolute;
-            top: 14px;
-            right: 14px;
-            background: var(--color-sunburst);
-            border: var(--border-cut);
-            border-radius: var(--radius-pill);
-            padding: 4px 12px;
-            font-weight: 800;
-            font-size: 11px;
-            text-transform: uppercase;
-            box-shadow: var(--shadow-cut-sm);
+        .step-number {
+            font-family: var(--font-display);
+            font-size: 48px;
+            color: var(--color-sunburst);
+            -webkit-text-stroke: 2px #000;
+            margin-bottom: 12px;
         }
 
-        .story-body {
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-            gap: 12px;
-        }
-
-        .story-title {
+        .step-card h3 {
             font-size: 22px;
+            margin-bottom: 10px;
         }
 
-        .story-desc {
-            font-size: 14px;
-            color: var(--color-carbon);
-            line-height: 1.5;
-        }
-
-        .story-meta {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: auto;
-            padding-top: 14px;
-            border-top: 2px dashed var(--color-concrete-gray);
-            font-weight: 700;
-            font-size: 13px;
-        }
-
-        .rating-tag {
-            color: #d87000;
-            font-weight: 800;
-        }
-
-        /* Reader Reviews Section */
+        /* Reviews Section */
         .reviews-section {
+            padding: 80px 5%;
             background: var(--color-paper-white);
-            border-top: 2px solid var(--color-carbon);
-            border-bottom: 2px solid var(--color-carbon);
-            padding: 60px 24px;
+            border-bottom: 3px solid var(--color-carbon);
         }
 
         .reviews-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
+            gap: 28px;
             max-width: 1200px;
             margin: 0 auto;
         }
 
         .review-card {
             background: var(--color-sky-wash);
-            border: var(--border-cut);
+            border: var(--border-cut-thick);
             border-radius: var(--radius-card);
-            padding: 24px;
+            padding: 28px;
             box-shadow: var(--shadow-cut);
             transition: var(--transition);
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
         }
 
         .review-card:hover {
@@ -439,6 +814,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            margin-bottom: 12px;
         }
 
         .avatar {
@@ -454,27 +830,24 @@
             font-size: 18px;
         }
 
-        .user-name {
-            font-weight: 800;
-            font-size: 15px;
+        /* CTA Banner */
+        .cta-banner {
+            padding: 90px 5%;
+            background: var(--color-sunburst);
+            text-align: center;
+            border-bottom: 3px solid var(--color-carbon);
         }
 
-        .user-role {
-            font-size: 12px;
-            color: var(--color-voltage-violet);
+        .cta-banner h2 {
+            font-size: clamp(36px, 6vw, 64px);
+            margin-bottom: 20px;
+        }
+
+        .cta-banner p {
+            font-size: 20px;
             font-weight: 700;
-        }
-
-        .review-text {
-            font-size: 14px;
-            font-style: italic;
-            line-height: 1.5;
-        }
-
-        .review-stars {
-            color: var(--color-carbon);
-            font-weight: 800;
-            font-size: 14px;
+            max-width: 600px;
+            margin: 0 auto 36px;
         }
 
         /* Footer */
@@ -483,187 +856,379 @@
             padding: 30px 24px;
             text-align: center;
             background: var(--color-paper-white);
-            border-top: 2px solid var(--color-carbon);
             font-weight: 800;
             font-size: 14px;
         }
+
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 16px;
+                padding: 16px 20px;
+                text-align: center;
+            }
+
+            .logo {
+                transform: none;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .hero {
+                padding: 60px 5% 40px;
+            }
+
+            .teaser-sandbox {
+                padding: 20px 16px;
+            }
+        }
     </style>
+
+<style>
+@keyframes floatHeader {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+}
+@keyframes heroEntrance {
+    0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.hero-section, .landing-container, header {
+    animation: heroEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.badge-pill, .floating-badge {
+    animation: floatHeader 3s ease-in-out infinite;
+}
+</style>
+
 </head>
+
 <body>
 
-    <!-- Rolling Announcement Strip -->
+    <!-- Rolling Announcement Ticker -->
     <div class="marquee-strip">
         <div class="marquee-content">
-            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; BRANCHING NARRATIVES &bull; 100+ ENDINGS &bull; READER REVIEWS &bull;&nbsp;
-            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; BRANCHING NARRATIVES &bull; 100+ ENDINGS &bull; READER REVIEWS &bull;&nbsp;
+            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; DIRECTED GRAPH ENGINE &bull; NO DEAD ENDS
+            &bull; TIME-WARP RETREAT &bull; EARN XP &bull;&nbsp;
+            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; DIRECTED GRAPH ENGINE &bull; NO DEAD ENDS
+            &bull; TIME-WARP RETREAT &bull; EARN XP &bull;&nbsp;
         </div>
     </div>
 
     <!-- Navigation Header -->
     <header class="navbar">
-        <div class="logo">
-            ⚡ <span>STORY ENGINE</span>
-        </div>
+        <a href="Landing.html" class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="4" cy="12" r="3" fill="currentColor"/>
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="18" cy="5" r="2.5" fill="currentColor"/>
+                <circle cx="15" cy="12" r="2.5" fill="currentColor"/>
+                <circle cx="18" cy="19" r="2.5" fill="currentColor"/>
+            </svg>
+            <span>STORY ENGINE</span>
+        </a>
         <ul class="nav-links">
-            <li><a href="#stories" class="nav-pill">📖 Explore Stories</a></li>
-            <li><a href="#reviews" class="nav-pill">⭐ Reader Reviews</a></li>
+            <li><a href="#stories" class="nav-pill">📖 Stories</a></li>
+            <li><a href="#features" class="nav-pill">⚡ Features</a></li>
+            <li><a href="#reviews" class="nav-pill">⭐ Reviews</a></li>
             <li id="navAuthContainer">
-                <a href="pages/auth/login.html" class="nav-pill login-btn">🔑 Login</a>
+                <a href="pages/auth/login.html" class="nav-pill" style="background: var(--color-sunburst);">🔑 Sign
+                    In</a>
             </li>
         </ul>
     </header>
 
     <!-- Hero Section -->
     <section class="hero">
-        <div class="hero-badge">🚀 Interactive Branching Universe</div>
-        <h1>YOUR CHOICES.<br>YOUR DESTINY.</h1>
-        <p>Step into immersive branching narratives where every choice reshapes the plot, unlocks hidden paths, and determines the ultimate ending.</p>
-        
-        <div class="hero-cta" id="heroCtaContainer">
-            <a href="pages/auth/login.html" class="primary-btn">
-                📖 Start Reading Stories
-            </a>
-            <a href="pages/auth/login.html" class="secondary-btn">
-                🔑 Reader Login
-            </a>
+        <div class="hero-content">
+            <div class="hero-badge">
+                ⚡ INTERACTIVE BRANCHING FICTION ENGINE
+            </div>
+            <h1>YOUR CHOICES.<br>YOUR DESTINY.</h1>
+            <p class="hero-subtitle">
+                Immerse yourself in dynamic choose-your-own-adventure narratives where every decision creates a new
+                reality. Explore multiple endings, earn XP, and retreat through time!
+            </p>
+
+            <div class="hero-cta" id="heroCtaContainer">
+                <a href="pages/reader/stories.html" class="primary-btn" id="viewStories">
+                    🚀 Launch Story Library →
+                </a>
+                <a href="#sandbox" class="secondary-btn">
+                    ✨ Try Live Demo
+                </a>
+            </div>
+
+            <!-- Dedicated Video Showcase Box (BEFORE Live Engine Preview) -->
+            <div class="video-showcase-box" style="margin-bottom: 44px; max-width: 100%; width: 100%;">
+                <div class="video-window-bar">
+                    <div class="window-dots">
+                        <span class="window-dot" style="background: var(--color-ember);"></span>
+                        <span class="window-dot" style="background: var(--color-sunburst);"></span>
+                        <span class="window-dot" style="background: var(--color-mint-pop);"></span>
+                    </div>
+                    <span>⚡ REAL-TIME NARRATIVE ENGINE STREAM</span>
+                    <span>LIVE 1080P</span>
+                </div>
+                <div class="video-frame-container" style="height: 520px;">
+                    <video autoplay loop muted playsinline class="dedicated-video">
+                        <source src="css/Create_a_–_second_high_ene.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+
+            <!-- Live Interactive Story Sandbox Teaser -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div
+                    style="display: inline-flex; align-items: center; gap: 10px; background: var(--color-lavender); border: 3px solid #000; border-radius: 100px; padding: 8px 24px; box-shadow: 4px 4px 0 #000; margin-bottom: 16px;">
+                    <span
+                        style="font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">✨
+                        NOW IT'S YOUR TURN</span>
+                </div>
+                <h2 style="font-size: clamp(28px, 4.5vw, 48px); margin-bottom: 10px; line-height: 1.05;">TRY THE STORY
+                    ENGINE YOURSELF</h2>
+                <p
+                    style="font-size: 17px; font-weight: 700; max-width: 580px; margin: 0 auto; color: #333; line-height: 1.55;">
+                    Read the scene below, then pick a choice — watch how the story branches in real time. This is
+                    exactly how the full game works.</p>
+            </div>
+            <div class="teaser-sandbox" id="sandbox">
+                <div class="sandbox-header">
+                    <span class="sandbox-tag">LIVE ENGINE PREVIEW</span>
+                    <span style="font-weight: 800; font-size: 13px;">⭐ XP: <span id="demoXp">100</span></span>
+                </div>
+                <h3 class="sandbox-scene-title" id="demoTitle">SCENE #1: THE FORK IN THE MIST</h3>
+                <p class="sandbox-scene-text" id="demoText">
+                    You stand before an ancient moss-covered stone archway. To your left, a narrow cobblestone path
+                    leads into the whispering forest. To your right, a torchlit corridor descends into underground
+                    vaults.
+                </p>
+                <div class="sandbox-choices" id="demoChoices">
+                    <button type="button" class="sandbox-choice-btn" onclick="nextDemoScene(1)">
+                        <span>1. Take the whispering forest path</span>
+                        <span>→</span>
+                    </button>
+                    <button type="button" class="sandbox-choice-btn" onclick="nextDemoScene(2)">
+                        <span>2. Descend into the torchlit vaults</span>
+                        <span>→</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </section>
 
-    <!-- Stats Section -->
+    <!-- Stats Counter Section -->
     <section class="stats-section">
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">24+</div>
-                <div class="stat-label">Interactive Stories</div>
+                <div class="stat-number">100+</div>
+                <div class="stat-label">Branching Story Paths</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">180+</div>
-                <div class="stat-label">Choice Nodes</div>
+                <div class="stat-number">10K+</div>
+                <div class="stat-label">Player Choices Decided</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Graph Loop Protection</div>
             </div>
             <div class="stat-card">
                 <div class="stat-number">4.9★</div>
-                <div class="stat-label">Reader Rating</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">12k+</div>
-                <div class="stat-label">Endings Unlocked</div>
+                <div class="stat-label">Reader Satisfaction</div>
             </div>
         </div>
     </section>
 
-    <!-- Sample Stories Showcase Section -->
-    <section id="stories" class="section-container">
-        <div class="section-header">
-            <div>
-                <h2>FEATURED ADVENTURES</h2>
-                <p style="font-weight: 700;">Hand-crafted multi-path stories built with our dynamic graph engine.</p>
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="section-title-wrap">
+            <h2>BUILT FOR READERS & CREATORS</h2>
+            <p>Engineered with state-of-the-art directed graph validation and interactive choice mechanics.</p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🗺️</div>
+                <h3>Directed Graph Logic</h3>
+                <p>No dead-end loops or orphan nodes. Algorithms guarantee every path leads to a satisfying narrative
+                    outcome.</p>
             </div>
-            <a href="#" id="viewStories" class="secondary-btn" style="font-size: 13px; padding: 10px 20px;">
-                View All Stories &rarr;
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>XP & Rewards</h3>
+                <p>Earn XP upon completing stories and unlocking unique story endings to level up your reader profile.
+                </p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⏪</div>
+                <h3>Time-Warp Retreat</h3>
+                <p>Made a fatal choice? Use your retreat token to step back through time and alter your path without
+                    restarting.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Visual Node Builder</h3>
+                <p>Admins can write branching scenes, connect decision points, set win/lose endings, and publish
+                    instantly.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Stories Showcase -->
+    <section class="stories-showcase-section" id="stories">
+        <div class="section-title-wrap">
+            <h2>FEATURED ADVENTURES</h2>
+            <p>Dive into top-rated branching fiction experiences created by our community.</p>
+        </div>
+
+        <div class="showcase-grid">
+            <!-- Card 1 -->
+            <div class="showcase-card">
+                <img src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"
+                    alt="The Lost Kingdom">
+                <div class="showcase-card-body">
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <span class="user-role-badge">ADVENTURE</span>
+                        <span class="user-role-badge" style="background: var(--color-mint-pop);">PUBLISHED</span>
+                    </div>
+                    <h3>THE LOST KINGDOM</h3>
+                    <p>A fantasy branching adventure where your decisions determine the fate of an ancient realm.</p>
+                    <a href="pages/reader/stories.html" class="primary-btn"
+                        style="margin-top: auto; padding: 12px 20px; font-size: 14px;">Read Story →</a>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="showcase-card">
+                <img src="https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80"
+                    alt="Neon Rebellion">
+                <div class="showcase-card-body">
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <span class="user-role-badge" style="background: var(--color-lavender);">CYBERPUNK</span>
+                        <span class="user-role-badge" style="background: var(--color-mint-pop);">PUBLISHED</span>
+                    </div>
+                    <h3>NEON REBELLION 2099</h3>
+                    <p>Navigate a futuristic metropolis as a rogue hacker infiltrating corporate mainframe systems.</p>
+                    <a href="pages/reader/stories.html" class="primary-btn"
+                        style="margin-top: auto; padding: 12px 20px; font-size: 14px;">Read Story →</a>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="showcase-card">
+                <img src="https://images.unsplash.com/photo-1514539079130-25950c84af65?auto=format&fit=crop&w=800&q=80"
+                    alt="Shadows of Eldoria">
+                <div class="showcase-card-body">
+                    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                        <span class="user-role-badge" style="background: var(--color-sunburst);">MYSTERY</span>
+                        <span class="user-role-badge" style="background: var(--color-mint-pop);">PUBLISHED</span>
+                    </div>
+                    <h3>SHADOWS OF ELDORIA</h3>
+                    <p>Uncover secrets hidden in dark forests where every choice triggers unforeseen consequences.</p>
+                    <a href="pages/reader/stories.html" class="primary-btn"
+                        style="margin-top: auto; padding: 12px 20px; font-size: 14px;">Read Story →</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-section">
+        <div class="section-title-wrap">
+            <h2>HOW IT WORKS</h2>
+            <p>Experience interactive fiction in three simple steps.</p>
+        </div>
+
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">01</div>
+                <h3>Choose a Story</h3>
+                <p>Browse through rich genres ranging from medieval fantasy to cyberpunk thrillers.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">02</div>
+                <h3>Make Decisions</h3>
+                <p>At key node scenes, pick your action. Every choice branches into new paths.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">03</div>
+                <h3>Unlock Endings & XP</h3>
+                <p>Reach distinct endings, earn XP points, and trace your traversal path on the final graph!</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="reviews-section" id="reviews">
+        <div class="section-title-wrap">
+            <h2>READER REVIEWS</h2>
+            <p>See what story explorers and RPG fans are saying.</p>
+        </div>
+
+        <div class="reviews-grid">
+            <div class="review-card">
+                <div class="review-user">
+                    <div class="avatar">A</div>
+                    <div>
+                        <div style="font-weight: 800;">Alex Rivera</div>
+                        <div style="font-size: 12px; color: var(--color-voltage-violet); font-weight: 700;">Avid Reader
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 8px;">★★★★★</div>
+                <p style="font-style: italic;">"The choices genuinely feel meaningful! Replaying stories to unlock every
+                    ending is super fun."</p>
+            </div>
+
+            <div class="review-card" style="background: var(--color-paper-white);">
+                <div class="review-user">
+                    <div class="avatar" style="background: var(--color-mint-pop);">S</div>
+                    <div>
+                        <div style="font-weight: 800;">Sophia Chen</div>
+                        <div style="font-size: 12px; color: var(--color-voltage-violet); font-weight: 700;">Story
+                            Explorer</div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 8px;">★★★★★</div>
+                <p style="font-style: italic;">"The Neo-brutalist Slush theme UI is gorgeous! Smooth transitions and
+                    crisp decision paths."</p>
+            </div>
+
+            <div class="review-card">
+                <div class="review-user">
+                    <div class="avatar" style="background: var(--color-lavender);">M</div>
+                    <div>
+                        <div style="font-weight: 800;">Marcus Vance</div>
+                        <div style="font-size: 12px; color: var(--color-voltage-violet); font-weight: 700;">RPG
+                            Enthusiast</div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 8px;">★★★★★</div>
+                <p style="font-style: italic;">"The time-warp retreat feature saved my playthrough! Hands down the best
+                    interactive story engine."</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Banner -->
+    <section class="cta-banner">
+        <h2>READY TO BEGIN YOUR JOURNEY?</h2>
+        <p>Explore hundreds of branching narrative pathways or create your own adventure today.</p>
+        <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+            <a href="pages/reader/stories.html" class="primary-btn" style="background: #000; color: #fff;">
+                🚀 Start Reading Now
             </a>
-        </div>
-
-        <div class="stories-grid">
-            <!-- Story Card 1 -->
-            <article class="story-card">
-                <div class="story-banner" style="background: var(--color-voltage-violet);">
-                    <span>🤖</span>
-                    <span class="genre-badge">Sci-Fi / Cyberpunk</span>
-                </div>
-                <div class="story-body">
-                    <h3 class="story-title">NEON REBELLION 2099</h3>
-                    <p class="story-desc">In a dystopian mega-city ruled by rogue AI, lead the digital resistance or betray your team for corporate immunity.</p>
-                    <div class="story-meta">
-                        <span class="rating-tag">★ 4.9 (320 reviews)</span>
-                        <span>8 Endings</span>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Story Card 2 -->
-            <article class="story-card">
-                <div class="story-banner" style="background: var(--color-ember);">
-                    <span>🏰</span>
-                    <span class="genre-badge">Dark Fantasy</span>
-                </div>
-                <div class="story-body">
-                    <h3 class="story-title">THE CRIMSON CITADEL</h3>
-                    <p class="story-desc">Navigate deadly political intrigue, dark magic rituals, and dragon covenants to claim the vacant throne of Oakhaven.</p>
-                    <div class="story-meta">
-                        <span class="rating-tag">★ 4.8 (210 reviews)</span>
-                        <span>12 Endings</span>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Story Card 3 -->
-            <article class="story-card">
-                <div class="story-banner" style="background: var(--color-mint-pop);">
-                    <span>🕵️</span>
-                    <span class="genre-badge">Mystery Thriller</span>
-                </div>
-                <div class="story-body">
-                    <h3 class="story-title">SHADOWS AT BLACKWOOD</h3>
-                    <p class="story-desc">Investigate a chilling Victorian murder mystery. Every suspect lies, and one single wrong decision leads to your doom.</p>
-                    <div class="story-meta">
-                        <span class="rating-tag">★ 5.0 (450 reviews)</span>
-                        <span>6 Endings</span>
-                    </div>
-                </div>
-            </article>
-        </div>
-    </section>
-
-    <!-- Reader Reviews & Testimonials Section -->
-    <section id="reviews" class="reviews-section">
-        <div class="section-container" style="padding: 0 0 40px 0;">
-            <div class="section-header">
-                <div>
-                    <h2>WHAT READERS ARE SAYING</h2>
-                    <p style="font-weight: 700;">Real reviews from interactive story enthusiasts around the world.</p>
-                </div>
-            </div>
-
-            <div class="reviews-grid">
-                <!-- Review 1 -->
-                <div class="review-card">
-                    <div class="review-user">
-                        <div class="avatar">A</div>
-                        <div>
-                            <div class="user-name">Alex Rivera</div>
-                            <div class="user-role">Avid Reader</div>
-                        </div>
-                    </div>
-                    <div class="review-stars">★★★★★</div>
-                    <p class="review-text">"The choices genuinely feel meaningful! Ending #4 in Neon Rebellion blew my mind. Couldn't put it down."</p>
-                </div>
-
-                <!-- Review 2 -->
-                <div class="review-card" style="background: var(--color-paper-white);">
-                    <div class="review-user">
-                        <div class="avatar" style="background: var(--color-mint-pop);">S</div>
-                        <div>
-                            <div class="user-name">Sophia Chen</div>
-                            <div class="user-role">Story Explorer</div>
-                        </div>
-                    </div>
-                    <div class="review-stars">★★★★★</div>
-                    <p class="review-text">"The Neo-brutalist Slush theme UI is gorgeous! Smooth transitions and crisp branching narrative options."</p>
-                </div>
-
-                <!-- Review 3 -->
-                <div class="review-card">
-                    <div class="review-user">
-                        <div class="avatar" style="background: var(--color-lavender);">M</div>
-                        <div>
-                            <div class="user-name">Marcus Vance</div>
-                            <div class="user-role">RPG Enthusiast</div>
-                        </div>
-                    </div>
-                    <div class="review-stars">★★★★★</div>
-                    <p class="review-text">"Replaying stories to unlock every single ending is so addictive. The graph logic is top-tier interactive fiction!"</p>
-                </div>
-            </div>
+            <a href="pages/auth/signup.html" class="secondary-btn">
+                ✨ Create Free Account
+            </a>
         </div>
     </section>
 
@@ -673,58 +1238,392 @@
     </footer>
 
     <script>
+        // Interactive Live Demo Sandbox Logic
+        const demoData = {
+            1: {
+                title: "SCENE #2A: THE WHISPERING FOREST",
+                text: "The canopy closes above you, filtering golden light onto glowing flora. You hear soft footfalls behind a towering ancient oak. A hooded ranger steps into view holding a glowing compass.",
+                xpGain: "+15 XP",
+                choices: [
+                    { text: "Greet the ranger and ask for directions", next: 3 },
+                    { text: "Draw your sword and demand answers", next: 4 }
+                ]
+            },
+            2: {
+                title: "SCENE #2B: THE UNDERGROUND VAULTS",
+                text: "Echoes ring out as you step onto cold subterranean flagstones. Torchlight illuminates ancient runes carved into the subterranean walls. A locked iron chest sits on an altar.",
+                xpGain: "+15 XP",
+                choices: [
+                    { text: "Inspect the ancient runes on the wall", next: 4 },
+                    { text: "Try to pick the iron chest lock", next: 3 }
+                ]
+            },
+            3: {
+                title: "VICTORY: THE DISCOVERY ENDING 🏆",
+                text: "Your wisdom leads you to an ancient artifact of immense power! You unlocked Ending #1 and earned +25 Bonus XP!",
+                xpGain: "+25 XP",
+                choices: [
+                    { text: "🔄 Reset Live Demo Sandbox", next: 0 }
+                ]
+            },
+            4: {
+                title: "DESTINY: THE MYSTIC TREASURE ENDING 🌟",
+                text: "Your bold decision reveals a hidden chamber filled with ancient knowledge! You unlocked Ending #2!",
+                xpGain: "+20 XP",
+                choices: [
+                    { text: "🔄 Reset Live Demo Sandbox", next: 0 }
+                ]
+            }
+        };
+
+        function nextDemoScene(id) {
+            let xpElem = document.getElementById("demoXp");
+            let titleElem = document.getElementById("demoTitle");
+            let textElem = document.getElementById("demoText");
+            let choicesElem = document.getElementById("demoChoices");
+
+            if (id === 0) {
+                // Reset
+                xpElem.innerText = "100";
+                titleElem.innerText = "SCENE #1: THE FORK IN THE MIST";
+                textElem.innerText = "You stand before an ancient moss-covered stone archway. To your left, a narrow cobblestone path leads into the whispering forest. To your right, a torchlit corridor descends into underground vaults.";
+                choicesElem.innerHTML = `
+                    <button type="button" class="sandbox-choice-btn" onclick="nextDemoScene(1)">
+                        <span>1. Take the whispering forest path</span>
+                        <span>→</span>
+                    </button>
+                    <button type="button" class="sandbox-choice-btn" onclick="nextDemoScene(2)">
+                        <span>2. Descend into the torchlit vaults</span>
+                        <span>→</span>
+                    </button>
+                `;
+                return;
+            }
+
+            let scene = demoData[id];
+            if (!scene) return;
+
+            xpElem.innerText = parseInt(xpElem.innerText) + 15;
+            titleElem.innerText = scene.title;
+            textElem.innerText = scene.text;
+
+            let choicesHtml = "";
+            scene.choices.forEach(c => {
+                choicesHtml += `
+                    <button type="button" class="sandbox-choice-btn" onclick="nextDemoScene(${c.next})">
+                        <span>${c.text}</span>
+                        <span>→</span>
+                    </button>
+                `;
+            });
+            choicesElem.innerHTML = choicesHtml;
+        }
+
+        // Header User Profile Menu Logic
         document.addEventListener("DOMContentLoaded", () => {
             let user = null;
             try {
                 user = JSON.parse(localStorage.getItem("user"));
-            } catch (e) {}
-
-            if (user) {
-
-                document.getElementById("viewStories").href ="pages/reader/home.html";
-
-            }else {
-
-                document.getElementById("viewStories").href ="pages/auth/login.html";
-            }
+            } catch (e) { }
 
             let navAuthContainer = document.getElementById("navAuthContainer");
             let heroCtaContainer = document.getElementById("heroCtaContainer");
 
             if (user) {
-                // User is logged in -> Login button disappears & profile/logout appears
                 if (navAuthContainer) {
+                    let initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
+                    let activeXp = (user.xp !== undefined) ? user.xp : 100;
+
+                    let roleBadgeHtml = (user.role === "Admin")
+                        ? `<span class="user-role-badge" style="background: var(--color-sunburst);"><span class="status-live-dot"></span> SYSTEM ADMIN</span>`
+                        : `<span class="user-role-badge"><span class="status-live-dot"></span> STORY EXPLORER</span>`;
+
+                    let xpBadgeHtml = (user.role !== "Admin") ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>` : ``;
+
                     navAuthContainer.innerHTML = `
-                        <span class="user-greeting">👤 Hi, ${user.name || 'User'}</span>
-                        ${user.role === 'Admin' ? '<a href="pages/admin/admin.html" class="nav-pill" style="background: var(--color-mint-pop);">🛠️ Admin</a>' : ''}
-                        <button onclick="handleLogout()" class="nav-pill logout-btn">🚪 Logout</button>
+                        <div class="user-profile-menu-container">
+                            <button type="button" class="profile-menu-btn" onclick="toggleProfileDropdown(event)">
+                                <span class="user-avatar">${initial}</span>
+                                <span class="user-name-label">${user.name || 'User'}</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 2px;"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <div id="profileDropdown" class="profile-dropdown-menu hidden" onclick="event.stopPropagation()">
+                                <div class="profile-dropdown-header">
+                                    <strong>${user.name || 'User'}</strong>
+                                    <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
+                                        ${roleBadgeHtml}
+                                        ${xpBadgeHtml}
+                                    </div>
+                                </div>
+                                <div class="profile-dropdown-links">
+                                    ${user.role === 'Admin' ? `
+                                        <a href="pages/admin/admin.html" class="dropdown-item">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                            Admin Dashboard
+                                        </a>
+                                    ` : ''}
+                                    <a href="pages/reader/stories.html" class="dropdown-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                        Story Library
+                                    </a>
+                                    <hr style="border: 0; border-top: 2px solid #000; margin: 6px 0;">
+                                    <button type="button" class="dropdown-item logout-item" onclick="handleLogout()">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     `;
                 }
 
                 if (heroCtaContainer) {
                     heroCtaContainer.innerHTML = `
-                        <a href="reader/stories.html" class="primary-btn">
-                            📖 Explore All Stories
+                        <a href="pages/reader/stories.html" class="primary-btn">
+                            🚀 Launch Story Library →
                         </a>
                         ${user.role === 'Admin' ? `
                             <a href="pages/admin/admin.html" class="secondary-btn">
                                 🛠️ Admin Dashboard
                             </a>
                         ` : `
-                            <button onclick="handleLogout()" class="secondary-btn">
-                                🚪 Logout
-                            </button>
+                            <a href="#sandbox" class="secondary-btn">
+                                ✨ Try Live Demo
+                            </a>
                         `}
                     `;
                 }
             }
         });
 
+        function toggleProfileDropdown(event) {
+            if (event) event.stopPropagation();
+            let menu = document.getElementById("profileDropdown");
+            if (menu) {
+                menu.classList.toggle("hidden");
+            }
+        }
+
+        document.addEventListener("click", (e) => {
+            let menu = document.getElementById("profileDropdown");
+            if (menu && !menu.classList.contains("hidden")) {
+                if (!e.target.closest(".user-profile-menu-container")) {
+                    menu.classList.add("hidden");
+                }
+            }
+        });
+
         function handleLogout() {
             localStorage.removeItem("user");
-            alert("Logged out sexfully!!");
+            alert("Logged out successfully!");
             window.location.reload();
         }
     </script>
+
+    <!-- SECRET ADMIN QUICK-LOGIN MODAL | Trigger: 3x Backtick | Only when no user logged in -->
+    <div id="adminQuickLoginModal" onclick="handleAdminModalOverlayClick(event)">
+        <div class="admin-login-card">
+            <button class="admin-modal-close" onclick="closeAdminQuickLogin()" title="Close (Esc)">&#x2715;</button>
+            <div class="admin-lock-icon">&#x1F510;</div>
+            <h2 class="admin-modal-title">ADMIN ACCESS</h2>
+            <p class="admin-modal-subtitle">Enter your admin password to continue.</p>
+            <input type="password" id="adminSecretPwd" class="admin-pwd-input" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="off" spellcheck="false">
+            <div id="adminLoginError">&#x274C; Wrong password. Try again.</div>
+            <button class="admin-login-btn" onclick="handleAdminQuickLogin()">LOGIN AS ADMIN &#x2192;</button>
+        </div>
+    </div>
+
+    <style>
+        #adminQuickLoginModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0,0,0,0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #adminQuickLoginModal.admin-modal-visible {
+            display: flex;
+        }
+        .admin-login-card {
+            position: relative;
+            background: #ffffff;
+            border: 3px solid #000000;
+            border-radius: 28px;
+            padding: 44px 40px 36px 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 10px 10px 0px #000000;
+            text-align: center;
+            animation: adminModalPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes adminModalPop {
+            0%   { opacity: 0; transform: scale(0.8) translateY(30px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .admin-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: #f1f5f9;
+            border: 2px solid #000;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+        .admin-modal-close:hover { background: #ffde59; transform: scale(1.1); }
+        .admin-lock-icon { font-size: 44px; margin-bottom: 12px; animation: lockBounce 1.4s ease-in-out; }
+        @keyframes lockBounce {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            30% { transform: translateY(-10px) rotate(-8deg); }
+            60% { transform: translateY(-4px) rotate(6deg); }
+        }
+        .admin-modal-title { font-family: 'Bowlby One', sans-serif; font-size: 26px; color: #000; margin: 0 0 6px 0; }
+        .admin-modal-subtitle { font-size: 13.5px; font-weight: 600; color: #64748b; margin: 0 0 24px 0; }
+        .admin-pwd-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2.5px solid #000;
+            border-radius: 14px;
+            font-size: 18px;
+            letter-spacing: 4px;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            box-shadow: 3px 3px 0px #000;
+            transition: all 0.15s ease;
+            box-sizing: border-box;
+            background: #f8fafc;
+        }
+        .admin-pwd-input:focus { border-color: #5c4ade; box-shadow: 4px 4px 0px #5c4ade; background: #fff; }
+        @keyframes adminShake {
+            0%, 100% { transform: translateX(0); }
+            15%, 55% { transform: translateX(-9px); }
+            35%, 75% { transform: translateX(9px); }
+        }
+        .admin-input-shake { animation: adminShake 0.42s ease !important; border-color: #ef4444 !important; box-shadow: 3px 3px 0px #ef4444 !important; }
+        #adminLoginError { display: none; margin: 10px 0 0 0; padding: 10px 14px; background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 10px; font-size: 13px; font-weight: 700; color: #ef4444; }
+        .admin-login-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px 24px;
+            background: #000;
+            color: #fff;
+            border: 2.5px solid #000;
+            border-radius: 100px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #000;
+            transition: all 0.15s ease;
+        }
+        .admin-login-btn:hover { background: #5c4ade; border-color: #5c4ade; transform: translate(-2px,-2px); box-shadow: 6px 6px 0px #5c4ade; }
+        .admin-login-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0px #000; }
+    </style>
+
+    <script>
+        (function() {
+            var _backtickCount = 0;
+            var _backtickTimer = null;
+
+            document.addEventListener('keydown', function(e) {
+                if (localStorage.getItem('user')) return;
+                if (e.key === '`') {
+                    e.preventDefault();
+                    _backtickCount++;
+                    clearTimeout(_backtickTimer);
+                    _backtickTimer = setTimeout(function() { _backtickCount = 0; }, 800);
+                    if (_backtickCount >= 3) {
+                        _backtickCount = 0;
+                        clearTimeout(_backtickTimer);
+                        openAdminQuickLogin();
+                    }
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                var pwdInput = document.getElementById('adminSecretPwd');
+                if (pwdInput) {
+                    pwdInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') { e.preventDefault(); handleAdminQuickLogin(); }
+                        if (e.key === 'Escape') { closeAdminQuickLogin(); }
+                    });
+                }
+            });
+        })();
+
+        function openAdminQuickLogin() {
+            var modal = document.getElementById('adminQuickLoginModal');
+            if (!modal) return;
+            modal.classList.add('admin-modal-visible');
+            setTimeout(function() {
+                var p = document.getElementById('adminSecretPwd');
+                if (p) p.focus();
+            }, 80);
+        }
+
+        function closeAdminQuickLogin() {
+            var modal = document.getElementById('adminQuickLoginModal');
+            if (modal) modal.classList.remove('admin-modal-visible');
+            var p = document.getElementById('adminSecretPwd');
+            if (p) p.value = '';
+            var e = document.getElementById('adminLoginError');
+            if (e) { e.style.display = 'none'; e.textContent = '❌ Wrong password. Try again.'; }
+            var btn = document.querySelector('.admin-login-btn');
+            if (btn) { btn.textContent = 'LOGIN AS ADMIN →'; btn.style.background = '#000'; btn.style.borderColor = '#000'; }
+        }
+
+        function handleAdminModalOverlayClick(e) {
+            if (e.target === document.getElementById('adminQuickLoginModal')) closeAdminQuickLogin();
+        }
+
+        async function handleAdminQuickLogin() {
+            var pwdInput = document.getElementById('adminSecretPwd');
+            var errEl = document.getElementById('adminLoginError');
+            var pwd = pwdInput ? pwdInput.value.trim() : '';
+            if (!pwd) {
+                if (pwdInput) { pwdInput.classList.add('admin-input-shake'); setTimeout(function(){ pwdInput.classList.remove('admin-input-shake'); }, 450); }
+                return;
+            }
+            try {
+                var res = await fetch('http://localhost:3000/Users?role=Admin');
+                if (!res.ok) throw new Error('Server error');
+                var admins = await res.json();
+                var admin = admins.find(function(u) { return u.password === pwd; });
+                if (admin) {
+                    localStorage.setItem('user', JSON.stringify(admin));
+                    var btn = document.querySelector('.admin-login-btn');
+                    if (btn) { btn.textContent = '✅ AUTHENTICATED!'; btn.style.background = '#22c55e'; btn.style.borderColor = '#22c55e'; btn.style.boxShadow = '4px 4px 0px #22c55e'; }
+                    setTimeout(function() { window.location.href = 'pages/admin/admin.html'; }, 650);
+                } else {
+                    if (errEl) { errEl.style.display = 'block'; }
+                    if (pwdInput) {
+                        pwdInput.classList.add('admin-input-shake');
+                        setTimeout(function(){ pwdInput.classList.remove('admin-input-shake'); }, 450);
+                        pwdInput.value = '';
+                        pwdInput.focus();
+                    }
+                }
+            } catch(err) {
+                if (errEl) { errEl.textContent = '⚠️ Could not connect to server.'; errEl.style.display = 'block'; }
+            }
+        }
+    </script>
 </body>
+
+
 </html>
