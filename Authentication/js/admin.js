@@ -1,4 +1,4 @@
-
+﻿
 /* ============================================================
    admin.js
    Page:  pages/admin/admin.html
@@ -214,9 +214,9 @@ document.addEventListener("click", (e) => {
     }
 });
 
-// Initialise the profile header as soon as the DOM is ready
-document.addEventListener("DOMContentLoaded", renderAdminProfileHeader);
-renderAdminProfileHeader(); // Also call immediately in case DOM is already ready
+
+
+renderAdminProfileHeader(); 
 
 
 /* ============================================================
@@ -734,15 +734,8 @@ async function deletePitch(pitchId) {
 }
 
 
-/* ============================================================
-   SECTION 13 — WINDOW EXPORTS
-   Expose certain functions on the global window object so they
-   can be called from inline onclick attributes in admin.html
-   that are added dynamically by loadStories() innerHTML.
-   ============================================================ */
-
-window.openDescriptionModal  = openDescriptionModal;
-window.closeDescriptionModal = closeDescriptionModal;
-window.previewStory          = function(storyId) {
+function previewStory(storyId) {
     window.location.href = "preview.html?id=" + storyId;
 };
+
+
