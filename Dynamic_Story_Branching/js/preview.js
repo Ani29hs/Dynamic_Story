@@ -1,4 +1,4 @@
-
+﻿
 /* ============================================================
    preview.js
    Page:  pages/admin/preview.html
@@ -390,7 +390,6 @@ function renderCurrentScene() {
         </div>
     `;
 
-    if (choicesContainer) choicesContainer.innerHTML = "";
     renderPathHistory();
 }
 
@@ -524,11 +523,6 @@ function handleLogout() {
    Also call immediately in case the DOM is already ready.
    ============================================================ */
 
-document.addEventListener("DOMContentLoaded", () => {
-    renderAdminProfileHeader();
-    loadStoryForPreview();
-});
 
-// Immediate calls in case the browser has already parsed the DOM
 renderAdminProfileHeader();
 loadStoryForPreview();

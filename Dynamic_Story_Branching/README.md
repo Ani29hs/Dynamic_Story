@@ -80,7 +80,7 @@ Use VS Code Live Server (Go Live button), OR run:
 python -m http.server 5500
 ```
 
-App opens at: http://127.0.0.1:5500/Authentication/Landing.html
+App opens at: http://127.0.0.1:5500/Dynamic_Story_Branching/Landing.html
 
 ---
 
@@ -252,7 +252,7 @@ Note: If the admin removes a pitch from the Admin Dashboard, it appears as REJEC
 ## Project Structure
 
 ```
-Authentication/
+Dynamic_Story_Branching/
 |-- Landing.html              Landing / homepage
 |-- db.json                   JSON Server database file
 |-- package.json              npm dependencies

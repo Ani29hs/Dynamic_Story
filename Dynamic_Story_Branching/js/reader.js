@@ -1669,29 +1669,3 @@ async function submitStoryRating(storyId, stars) {
 }
 
 
-/* ============================================================
-   SECTION 30 — NAV PILL ACCENT WIRING (IIFE)
-   wireNavPillAccents()
-   Reads the data-accent attribute from each .tab-pill button
-   and sets the corresponding --tab-accent CSS custom property.
-   This drives the spring-pop background bubble colour per button:
-     📚 Story Library → #6C4CF1 (violet)
-     🍊 Submit a Pitch → #FF8A3D (orange)
-     📋 My Pitches → #3DB2FF (sky blue)
-   Runs immediately if DOM is ready, otherwise on DOMContentLoaded.
-   ============================================================ */
-
-(function wireNavPillAccents() {
-    function applyAccents() {
-        document.querySelectorAll('.tab-pill').forEach(function(btn) {
-            var accent = btn.getAttribute('data-accent');
-            if (accent) btn.style.setProperty('--tab-accent', accent);
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', applyAccents);
-    } else {
-        applyAccents();
-    }
-})();
