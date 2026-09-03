@@ -90,7 +90,7 @@ let handleLogin = async (event) => {
     let password = document.getElementById("password");
 
     // Step c: Look up user by email in the database
-    let response = await fetch(`http://localhost:3000/Users?email=${email.value}`);
+    let response = await fetch(`${API_BASE}/Users?email=${email.value}`);
     let data     = await response.json();
 
     // Step d: Guard — email not registered

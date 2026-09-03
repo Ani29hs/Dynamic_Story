@@ -99,33 +99,20 @@ async function initPage() {
 
     // ── EDIT MODE: ?id= in URL ──────────────────────────────────────────────
     if (storyId) {
-        // Step 1: Try localStorage cache first (fast path)
-        let cachedStory = null;
+        // Fetch fresh story from json-server to ensure latest ratings & nodes are loaded
         try {
-            cachedStory = JSON.parse(localStorage.getItem("currentStory"));
-        } catch (e) {
-            cachedStory = null;
-        }
-
-        if (cachedStory && String(cachedStory.id) === String(storyId)) {
-            currentStory = cachedStory;
-        } else {
-            // Step 2: Fetch from json-server
-            try {
-                let res = await fetch(`http://localhost:3000/Stories/${storyId}`);
-                if (res.ok) {
-                    currentStory = await res.json();
-                    // Normalise nodes to array
-                    if (!Array.isArray(currentStory.nodes)) {
-                        currentStory.nodes = currentStory.nodes
-                            ? Object.values(currentStory.nodes)
-                            : [];
-                    }
-                    localStorage.setItem("currentStory", JSON.stringify(currentStory));
+            let res = await fetch(`${API_BASE}/Stories/${storyId}`);
+            if (res.ok) {
+                currentStory = await res.json();
+                if (!Array.isArray(currentStory.nodes)) {
+                    currentStory.nodes = currentStory.nodes
+                        ? Object.values(currentStory.nodes)
+                        : [];
                 }
-            } catch (e) {
-                console.warn("Could not fetch story:", e);
+                localStorage.setItem("currentStory", JSON.stringify(currentStory));
             }
+        } catch (e) {
+            console.warn("Could not fetch story:", e);
         }
 
         // Step 3: Pre-fill the metadata form with existing values
@@ -224,23 +211,41 @@ let handleStory = async (event) => {
         description: description ? description.value : "",
         imageURL:    imageURL    ? imageURL.value    : "",
         nodes:       (currentStory && currentStory.nodes) ? currentStory.nodes : [],
-        startNodeId: (currentStory && currentStory.startNodeId) ? currentStory.startNodeId : null
+        startNodeId: (currentStory && currentStory.startNodeId) ? currentStory.startNodeId : null,
+        ratings: (currentStory && currentStory.ratings) ? currentStory.ratings : []
     };
 
-    // PUT = replace existing | POST = create new
+    // PATCH = update existing metadata without touching ratings | POST = create new
     let isEditing  = Boolean(existingId);
-    let url        = isEditing ? `http://localhost:3000/Stories/${storyObject.id}` : "http://localhost:3000/Stories";
-    let httpMethod = isEditing ? "PUT" : "POST";
+    let url        = isEditing ? `${API_BASE}/Stories/${storyObject.id}` : `${API_BASE}/Stories`;
+    let httpMethod = isEditing ? "PATCH" : "POST";
+
+    let payload = isEditing ? {
+        title:       storyObject.title,
+        author:      storyObject.author,
+        genre:       storyObject.genre,
+        description: storyObject.description,
+        imageURL:    storyObject.imageURL
+    } : storyObject;
 
     let response   = await fetch(url, {
         method:  httpMethod,
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(storyObject)
+        body:    JSON.stringify(payload)
     });
 
     let savedStory = await response.json();
-    currentStory   = savedStory;
-    localStorage.setItem("currentStory", JSON.stringify(savedStory));
+
+    // Re-fetch fresh story from server to keep latest reader ratings intact
+    if (isEditing) {
+        try {
+            let freshRes = await fetch(`${API_BASE}/Stories/${storyObject.id}`);
+            if (freshRes.ok) savedStory = await freshRes.json();
+        } catch (e) {}
+    }
+
+    currentStory = Object.assign({}, currentStory, savedStory);
+    localStorage.setItem("currentStory", JSON.stringify(currentStory));
 
     alert("💾 Story metadata saved as " + (currentStatus === "published" ? "PUBLISHED!" : "DRAFT (Private)!"));
 };
@@ -332,7 +337,7 @@ let handleNode = async (event) => {
     }
 
     // PATCH /Stories/:id with updated nodes array
-    let response = await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+    let response = await fetch(`${API_BASE}/Stories/${activeStory.id}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
@@ -512,7 +517,7 @@ async function setAsStartNode(nodeId) {
     localStorage.setItem("currentStory", JSON.stringify(currentStory));
 
     try {
-        await fetch(`http://localhost:3000/Stories/${currentStory.id}`, {
+        await fetch(`${API_BASE}/Stories/${currentStory.id}`, {
             method:  "PATCH",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ startNodeId: nodeId })
@@ -633,7 +638,7 @@ let handleDeleteChoice = async (sourceNodeId, choiceId) => {
     sourceNode.choices = sourceNode.choices.filter(choice => choice.id !== choiceId);
 
     // Persist to backend
-    let response = await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+    let response = await fetch(`${API_BASE}/Stories/${activeStory.id}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ nodes: activeStory.nodes })
@@ -724,7 +729,7 @@ let handleDelete = async (index) => {
         activeStory.startNodeId = activeStory.nodes[0].id;
     }
 
-    await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+    await fetch(`${API_BASE}/Stories/${activeStory.id}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
@@ -802,7 +807,7 @@ let handleChoice = async (event) => {
     }
 
     // Persist to backend
-    let response = await fetch(`http://localhost:3000/Stories/${activeStory.id}`, {
+    let response = await fetch(`${API_BASE}/Stories/${activeStory.id}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ nodes: activeStory.nodes })
@@ -862,7 +867,7 @@ async function publishStory() {
     }
 
     try {
-        let response = await fetch(`http://localhost:3000/Stories/${existingId || currentStory.id}`, {
+        let response = await fetch(`${API_BASE}/Stories/${existingId || currentStory.id}`, {
             method:  "PATCH",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ status: "published" })
@@ -870,7 +875,7 @@ async function publishStory() {
 
         if (response.ok) {
             let updated  = await response.json();
-            currentStory = updated;
+            currentStory = Object.assign({}, currentStory, updated, { status: "published" });
             localStorage.setItem("currentStory", JSON.stringify(currentStory));
             alert("🎉 Story Published Successfully! It is now live in the Story Library.");
         } else {

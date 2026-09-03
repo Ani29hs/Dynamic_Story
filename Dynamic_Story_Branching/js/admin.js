@@ -87,7 +87,7 @@ async function deleteStory(storyId) {
         return;
     }
 
-    let response = await fetch(`http://localhost:3000/Stories/${storyId}`, {
+    let response = await fetch(`${API_BASE}/Stories/${storyId}`, {
         method: "DELETE"
     });
 
@@ -238,7 +238,7 @@ renderAdminProfileHeader();
    ============================================================ */
 
 async function loadStories() {
-    let response = await fetch("http://localhost:3000/Stories");
+    let response = await fetch(`${API_BASE}/Stories`);
     if (!response.ok) return;
 
     let stories = await response.json();
@@ -409,7 +409,7 @@ async function restoreSampleStory() {
     };
 
     try {
-        let response = await fetch("http://localhost:3000/Stories", {
+        let response = await fetch(`${API_BASE}/Stories`, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify(sampleStory)
@@ -560,7 +560,7 @@ async function loadReaderPitches() {
     container.innerHTML = '<p style="font-weight: 700; color: #888; padding: 16px;">Loading pitches...</p>';
 
     try {
-        let res        = await fetch("http://localhost:3000/ReaderStories");
+        let res        = await fetch(`${API_BASE}/ReaderStories`);
         let rawPitches = res.ok ? await res.json() : [];
 
         // Filter out pitches the admin has soft-deleted
@@ -655,7 +655,7 @@ async function loadReaderPitches() {
    ============================================================ */
 
 async function updatePitchStatus(pitchId, status) {
-    let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
+    let res = await fetch(`${API_BASE}/ReaderStories/${pitchId}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ status: status })
@@ -673,12 +673,12 @@ async function updatePitchStatus(pitchId, status) {
             let submitterId = pitchData.submittedById;
 
             if (submitterId) {
-                let userRes = await fetch(`http://localhost:3000/Users/${submitterId}`);
+                let userRes = await fetch(`${API_BASE}/Users/${submitterId}`);
                 if (userRes.ok) {
                     let userData = await userRes.json();
                     let newXp    = (userData.xp || 100) + 30;
 
-                    await fetch(`http://localhost:3000/Users/${submitterId}`, {
+                    await fetch(`${API_BASE}/Users/${submitterId}`, {
                         method:  "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body:    JSON.stringify({
@@ -704,7 +704,7 @@ async function saveAdminComment(pitchId) {
     if (!textarea) return;
     let comment = textarea.value.trim();
 
-    let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
+    let res = await fetch(`${API_BASE}/ReaderStories/${pitchId}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ adminComment: comment })
@@ -720,7 +720,7 @@ async function saveAdminComment(pitchId) {
 async function deletePitch(pitchId) {
     if (!confirm("Remove this pitch from your admin queue? (The reader will keep seeing their status: Approved/Rejected).")) return;
 
-    let res = await fetch(`http://localhost:3000/ReaderStories/${pitchId}`, {
+    let res = await fetch(`${API_BASE}/ReaderStories/${pitchId}`, {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ adminHidden: true })

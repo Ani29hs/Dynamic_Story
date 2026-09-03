@@ -189,7 +189,7 @@ async function loadStoryForPreview() {
     let sceneContainer = document.getElementById("sceneContainer");
 
     try {
-        let allRes = await fetch("http://localhost:3000/Stories");
+        let allRes = await fetch(`${API_BASE}/Stories`);
         allStories = await allRes.json();
 
         // Step c: No stories at all

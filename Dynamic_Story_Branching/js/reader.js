@@ -285,7 +285,7 @@ async function checkWelcomeToast() {
     // Check 1: Admin-set pending toast from db.json (pitch approval XP award)
     if (user.id) {
         try {
-            let res = await fetch(`http://localhost:3000/Users/${user.id}`);
+            let res = await fetch(`${API_BASE}/Users/${user.id}`);
             if (res.ok) {
                 let freshUser = await res.json();
                 if (freshUser.pendingToast) {
@@ -297,7 +297,7 @@ async function checkWelcomeToast() {
                     localStorage.setItem("user", JSON.stringify(user));
 
                     // Clear pendingToast from db.json (fire and forget)
-                    fetch(`http://localhost:3000/Users/${user.id}`, {
+                    fetch(`${API_BASE}/Users/${user.id}`, {
                         method:  "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body:    JSON.stringify({ pendingToast: null })
@@ -328,7 +328,7 @@ async function checkWelcomeToast() {
         localStorage.setItem("user", JSON.stringify(user));
 
         if (user.id) {
-            fetch(`http://localhost:3000/Users/${user.id}`, {
+            fetch(`${API_BASE}/Users/${user.id}`, {
                 method:  "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body:    JSON.stringify({ hasSeenWelcomeToast: true })
@@ -379,7 +379,7 @@ function loadStories() {
     let container = document.getElementById("storiesContainer");
     if (!container) return;
 
-    fetch("http://localhost:3000/Stories")
+    fetch(`${API_BASE}/Stories`)
         .then(res => res.json())
         .then(stories => {
             // Keep only stories that the admin has published
@@ -435,6 +435,7 @@ function filterStories() {
                         <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
                             <span class="badge-genre">${(story.genre || "General").toUpperCase()}</span>
                             <span class="badge-status status-published">PUBLISHED</span>
+                            <span class="badge-rating" style="background: #FFDE59; color: #000; border: 2px solid #000; border-radius: 100px; padding: 4px 12px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; gap: 4px;">${calculateRatingStats(story).display}</span>
                         </div>
                         <h2>${story.title}</h2>
                         <div class="author-tag" style="margin-bottom: 10px; font-weight: 800; color: var(--color-voltage-violet);">✍️ BY ${(story.author || "ADMIN").toUpperCase()}</div>
@@ -511,6 +512,7 @@ function openStoryDetails(storyId) {
                 <div class="detail-badges-row">
                     <span class="badge-genre">${(story.genre || "General").toUpperCase()}</span>
                     <span class="badge-status status-published">PUBLISHED</span>
+                            <span class="badge-rating" style="background: #FFDE59; color: #000; border: 2px solid #000; border-radius: 100px; padding: 4px 12px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; gap: 4px;">${calculateRatingStats(story).display}</span>
                 </div>
 
                 <h1 class="detail-title">${story.title}</h1>
@@ -647,7 +649,7 @@ async function loadStory() {
 
     try {
         // Fetch the full story object from the backend
-        let response = await fetch(`http://localhost:3000/Stories/${storyId}`);
+        let response = await fetch(`${API_BASE}/Stories/${storyId}`);
         if (!response.ok) {
             alert("Story not found.");
             window.location.href = "stories.html";
@@ -703,7 +705,7 @@ async function loadStory() {
         /* ── Phase 2: Query backend for an active session ─────────── */
         try {
             let sessionRes = await fetch(
-                `http://localhost:3000/StorySessions?userId=${encodeURIComponent(userId)}&storyId=${encodeURIComponent(storyId)}`
+                `${API_BASE}/StorySessions?userId=${encodeURIComponent(userId)}&storyId=${encodeURIComponent(storyId)}`
             );
             if (sessionRes.ok) {
                 let sessions = await sessionRes.json();
@@ -787,7 +789,7 @@ async function createNewSession(startingNode, userId) {
 
     // POST to backend — non-blocking, save locally first
     try {
-        let response = await fetch("http://localhost:3000/StorySessions", {
+        let response = await fetch(`${API_BASE}/StorySessions`, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify(storySession)
@@ -843,14 +845,14 @@ async function saveStorySession() {
     try {
         if (storySession.id) {
             // Session already exists in backend — update it
-            await fetch(`http://localhost:3000/StorySessions/${storySession.id}`, {
+            await fetch(`${API_BASE}/StorySessions/${storySession.id}`, {
                 method:  "PUT",
                 headers: { "Content-Type": "application/json" },
                 body:    JSON.stringify(storySession)
             }).catch(e => console.warn("Backend PUT failed:", e));
         } else {
             // No backend ID yet — try to create it
-            let res = await fetch("http://localhost:3000/StorySessions", {
+            let res = await fetch(`${API_BASE}/StorySessions`, {
                 method:  "POST",
                 headers: { "Content-Type": "application/json" },
                 body:    JSON.stringify(storySession)
@@ -923,7 +925,7 @@ function showStory() {
 
     // ── Path A: Ending Node ────────────────────────────────────────────────
     if (currentNode.isEnding) {
-        // Hide the top stat bar on ending screens
+        // Clear top stat bar on ending screens (shown in final path box below)
         storyHeader.innerHTML = "";
 
         storySession.ended       = true;
@@ -957,6 +959,30 @@ function showStory() {
             </div>
         `;
 
+        // Final Traversal Path & Decisions Showcase Box
+        let finalPathHtml = `
+            <div style="background: #f8fafc; border: 2.5px solid #000; border-radius: 20px; padding: 22px 24px; margin: 16px 0 24px; box-shadow: 4px 4px 0px #000; text-align: left; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-family: var(--font-display); font-weight: 900; font-size: 13px; color: #000; letter-spacing: 1px; text-transform: uppercase;">🗺️ YOUR FINAL TRAVERSAL PATH & DECISIONS</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span style="background: #ffde59; border: 2px solid #000; border-radius: 100px; padding: 3px 12px; font-weight: 900; font-size: 11.5px; color: #000; box-shadow: 2px 2px 0px #000;">DECISIONS MADE: ${decisions}</span>
+                        <span style="background: #34d399; border: 2px solid #000; border-radius: 100px; padding: 3px 12px; font-weight: 900; font-size: 11.5px; color: #000; box-shadow: 2px 2px 0px #000;">SCENES VISITED: ${pathLength}</span>
+                    </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    ${traversalPath.map((item, i) => `
+                        <div style="display: flex; align-items: flex-start; gap: 12px; background: #ffffff; border: 1.5px solid #000; border-radius: 14px; padding: 12px 16px; box-shadow: 2px 2px 0px #000;">
+                            <span style="background: #000; color: #fff; border-radius: 100px; padding: 3px 9px; font-size: 11px; font-weight: 900; line-height: 1.3;">${i + 1}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 800; font-size: 14px; color: #0f172a;">${item.title}</div>
+                                ${item.choiceText ? `<div style="font-size: 12.5px; font-weight: 700; color: #64748b; margin-top: 4px;">👉 Chosen Path: <span style="color: #6c4cf1; font-weight: 800;">"${item.choiceText}"</span></div>` : `<div style="font-size: 12px; font-weight: 800; color: #166534; margin-top: 4px;">🏁 Final Ending Reached</div>`}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
         sceneContainer.innerHTML = "";
 
         choicesContainer.innerHTML = `
@@ -979,6 +1005,7 @@ function showStory() {
 
                     ${xpMsg}
                     ${starRatingHtml}
+                    ${finalPathHtml}
 
                     <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: 100%; margin-top: 10px;">
                         <button type="button" class="primary-btn" onclick="restartStory()" style="width: auto; padding: 14px 32px; font-size: 14px; background: #ffde59; color: #000; border: 2.5px solid #000; border-radius: 100px; box-shadow: 4px 4px 0px #000; font-weight: 900; cursor: pointer; letter-spacing: 0.5px;">🔄 RESTART STORY</button>
@@ -1014,7 +1041,7 @@ function showStory() {
 
                 // Sync XP + completedStories to the backend
                 if (user.id) {
-                    fetch(`http://localhost:3000/Users/${user.id}`, {
+                    fetch(`${API_BASE}/Users/${user.id}`, {
                         method:  "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body:    JSON.stringify({
@@ -1083,7 +1110,40 @@ function showStory() {
         `;
     }
 
-    sceneContainer.innerHTML = `
+    // ── First Scene Only: Immersion Hint Banner ──────────────────────────────
+    let firstSceneHintHtml = "";
+    if (traversalPath.length === 1) {
+        const _immersionHints = ["No retreat buttons here — your choices are permanent. Choose wisely. 🎭","Every path leads somewhere different. There's no wrong answer — just your story. 📖","You only live this moment once. Don't look back. 🌑","Your first choice shapes everything that follows. No pressure. 😈","The story listens to every decision. Make them count. 🖤","Once you choose, the world shifts. Stay present. 🌀","This isn't a game you can pause. It's a story you live. 🔥","No spoilers ahead — just consequences. 💀",
+        "Live the story. Don't use retreat. 🖤"];
+        const _hint = _immersionHints[Math.floor(Math.random() * _immersionHints.length)];
+        firstSceneHintHtml = `
+            <div id="immersionHintBanner" style="
+                background: #000;
+                color: #ffde59;
+                border: 2.5px solid #000;
+                border-radius: 14px;
+                padding: 12px 20px;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                font-weight: 800;
+                font-size: 13px;
+                letter-spacing: 0.3px;
+                box-shadow: 4px 4px 0px #ffde59;
+                animation: fadeSlideIn 0.6s cubic-bezier(0.22,1,0.36,1);
+            ">
+                <span style="font-size:20px; flex-shrink:0;">⚠️</span>
+                <span>${_hint}</span>
+                <button onclick="document.getElementById('immersionHintBanner').style.display='none'" style="
+                    margin-left:auto; background:transparent; border:none; color:#ffde59;
+                    font-size:18px; cursor:pointer; font-weight:900; line-height:1; flex-shrink:0;
+                " title="Dismiss">✕</button>
+            </div>
+        `;
+    }
+
+    sceneContainer.innerHTML = firstSceneHintHtml + `
         <div class="story-card" style="border: 3px solid #000; border-radius: 24px; padding: 32px; box-shadow: 6px 6px 0px #000; background: #fff;">
             <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
                 <span class="stat-pill-yellow">📍 ${locationText}</span>
@@ -1196,7 +1256,7 @@ function retreat() {
 
     // Sync XP + free retreat record to backend
     if (user && user.id) {
-        fetch(`http://localhost:3000/Users/${user.id}`, {
+        fetch(`${API_BASE}/Users/${user.id}`, {
             method:  "PATCH",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({
@@ -1440,7 +1500,7 @@ async function submitPitch() {
     };
 
     try {
-        let res = await fetch("http://localhost:3000/ReaderStories", {
+        let res = await fetch(`${API_BASE}/ReaderStories`, {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify(pitchObject)
@@ -1496,7 +1556,7 @@ async function loadMyPitches() {
     }
 
     try {
-        let res     = await fetch(`http://localhost:3000/ReaderStories?submittedById=${user.id}`);
+        let res     = await fetch(`${API_BASE}/ReaderStories?submittedById=${user.id}`);
         let pitches = res.ok ? await res.json() : [];
 
         if (pitches.length === 0) {
@@ -1570,7 +1630,7 @@ async function deleteMyPitch(pitchId) {
     if (!confirm("Are you sure you want to delete this pitch permanently?")) return;
 
     try {
-        let res = await fetch("http://localhost:3000/ReaderStories/" + pitchId, {
+        let res = await fetch(`${API_BASE}/ReaderStories/` + pitchId, {
             method: "DELETE"
         });
         if (res.ok) {
@@ -1614,7 +1674,7 @@ async function submitStoryRating(storyId, stars) {
     let starsContainer = document.getElementById("starRatingContainer_" + storyId);
 
     try {
-        let res = await fetch("http://localhost:3000/Stories/" + storyId);
+        let res = await fetch(`${API_BASE}/Stories/` + storyId);
         if (!res.ok) return;
 
         let story   = await res.json();
@@ -1629,7 +1689,7 @@ async function submitStoryRating(storyId, stars) {
             ratings.push({ userId: user.id, stars: stars });
         }
 
-        let patchRes = await fetch("http://localhost:3000/Stories/" + storyId, {
+        let patchRes = await fetch(`${API_BASE}/Stories/` + storyId, {
             method:  "PATCH",
             headers: { "Content-Type": "application/json" },
             body:    JSON.stringify({ ratings: ratings })

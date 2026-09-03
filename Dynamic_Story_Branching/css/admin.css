@@ -350,7 +350,7 @@ a {
 }
 
 .story-card-image {
-    height: 180px;
+    height: 260px;
     width: 100%;
     overflow: hidden;
     background: var(--color-sky-wash);
