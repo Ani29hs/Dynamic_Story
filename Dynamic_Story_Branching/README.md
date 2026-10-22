@@ -1,4 +1,4 @@
-﻿# Slush Story Engine
+# Slush Story Engine
 
 A branching interactive fiction platform — write, publish, and play choose-your-own-adventure stories with dynamic narrative paths.
 
@@ -19,6 +19,8 @@ Think of it as your personal interactive story publishing studio meets reading p
 - Play a branching mystery story — every choice takes you down a different path!
 - Earn XP as you complete stories and submit pitches.
 - Time-Warp Retreat — rewind a scene if you regret your last choice.
+- Multiple Endings Showcase — discover and unlock visual endings gallery per story!
+- Audio Mode (Text-to-Speech) — high-end, smooth voice narrator with voice selection and playback speed controls!
 - Pitch your own story idea — the admin might turn it into a full story!
 - Create your own stories — become the admin and build a multi-path narrative with scenes and choices.
 
@@ -26,18 +28,18 @@ Think of it as your personal interactive story publishing studio meets reading p
 
 ## Future Scope
 
-| Feature | Description |
-|---|---|
-| Real Backend | Replace json-server with Node.js + Express + MongoDB |
-| Multiple Endings Showcase | Visual endings gallery per story |
-| Comments on Stories | Readers leave reviews and ratings |
-| Achievement Badges | Unlock badges for completing stories and earning XP |
-| Notifications | Admin notifies readers when a new story is published |
-| Mobile App | React Native version |
-| Multi-Author Support | Multiple admins collaborating on the same story |
-| Audio Mode | Text-to-speech for story narration |
-| Custom Themes | Readers pick their preferred UI theme |
-| Story Analytics | Admin sees reads, completion rate, and popular choices |
+| Feature | Description | Status |
+|---|---|---|
+| Real Backend | Node.js + Express + MongoDB Atlas Cluster | ✅ Completed |
+| Multiple Endings Showcase | Visual endings gallery per story | ✅ Completed |
+| Audio Mode | High-End Text-to-speech for story narration | ✅ Completed |
+| Comments on Stories | Readers leave reviews and ratings | Planned |
+| Achievement Badges | Unlock badges for completing stories and earning XP | Planned |
+| Notifications | Admin notifies readers when a new story is published | Planned |
+| Mobile App | React Native version | Planned |
+| Multi-Author Support | Multiple admins collaborating on the same story | Planned |
+| Custom Themes | Readers pick their preferred UI theme | Planned |
+| Story Analytics | Admin sees reads, completion rate, and popular choices | Planned |
 
 ---
 
@@ -57,30 +59,54 @@ npm install
 
 ---
 
-### Step 2 — Start the JSON Server Backend
+### Step 2 — Start the Backend (Express + MongoDB Atlas)
 
 ```bash
-npx json-server db.json --port 3000
+npm run dev:backend
+# or: cd backend && node server.js
 ```
 
-Backend runs at: http://localhost:3000
-
-Available endpoints:
-- /Users
-- /Stories
-- /ReaderStories
+Backend API runs at: http://localhost:5000
 
 ---
 
 ### Step 3 — Start the Frontend
 
-Use VS Code Live Server (Go Live button), OR run:
-
 ```bash
-python -m http.server 5500
+npm run dev:frontend
+# or: npx serve -p 5501 frontend
 ```
 
-App opens at: http://127.0.0.1:5500/Dynamic_Story_Branching/Landing.html
+Frontend app runs at: http://localhost:5501
+
+---
+
+## Clean Project Structure
+
+```
+Dynamic_Story_Branching/
+├── backend/                  # Real Express + MongoDB Atlas Backend
+│   ├── config/               # db.js connection
+│   ├── controllers/          # auth, story, session, pitch, user controllers
+│   ├── middleware/           # authMiddleware, adminOnly (JWT)
+│   ├── models/               # User, Story, StorySession, ReaderStory
+│   ├── Routes/               # auth, story, session, pitch, user routes
+│   ├── package.json
+│   └── server.js             # Main server entrypoint
+│
+├── frontend/                 # Complete Client Application
+│   ├── pages/                # Admin, Auth & Reader Pages
+│   │   ├── admin/            # admin.html, add_stories.html, preview.html
+│   │   ├── auth/             # login.html, signup.html
+│   │   └── reader/           # stories.html, play.html
+│   ├── css/                  # Styling & Lottie animations
+│   ├── js/                   # auth.js, admin.js, reader.js, stories.js, etc.
+│   ├── Landing.html          # Public home showcase
+│   └── index.html            # Landing redirect entrypoint
+│
+├── package.json              # Root project scripts
+└── README.md
+```
 
 ---
 
