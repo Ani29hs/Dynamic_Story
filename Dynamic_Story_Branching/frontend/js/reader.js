@@ -97,22 +97,30 @@ function calculateRatingStats(story) {
    ============================================================ */
 
 let user = null;
-try {
-    user = JSON.parse(localStorage.getItem("user"));
-    if (user) {
-        if (user.xp === undefined)             user.xp = 100;
-        if (!user.completedStories)            user.completedStories = [];
-        if (!user.usedFreeRetreatStories)      user.usedFreeRetreatStories = [];
-        localStorage.setItem("user", JSON.stringify(user));
-    }
-} catch (e) {
-    user = null;
-}
 
-// Reader auth guard — only Readers may access reader pages
-if (!user || user.role !== "Reader") {
+// Immediate token guard: if no token exists, immediately redirect to login
+if (!window.Auth || !Auth.getToken()) {
     window.location.href = "../auth/login.html";
 }
+
+// Live token verification with MongoDB Atlas backend
+async function verifyAndSyncReaderUser() {
+    if (window.Auth) {
+        user = await Auth.requireAuth("Reader");
+        if (user) {
+            if (user.role !== "Reader") {
+                window.location.href = "../admin/admin.html";
+                return;
+            }
+            if (user.xp === undefined) user.xp = 100;
+            if (!user.completedStories) user.completedStories = [];
+            if (!user.usedFreeRetreatStories) user.usedFreeRetreatStories = [];
+            renderUserProfileHeader();
+            checkWelcomeToast();
+        }
+    }
+}
+verifyAndSyncReaderUser();
 
 
 /* ============================================================
@@ -132,9 +140,9 @@ function renderUserProfileHeader() {
     let navAuthContainer = document.getElementById("navAuthContainer");
     if (!navAuthContainer || !user) return;
 
-    let initial     = user.name ? user.name.charAt(0).toUpperCase() : "U";
-    let activeXp    = (user.xp !== undefined) ? user.xp : 100;
-    let roleTitle   = user.role || "Reader";
+    let initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
+    let activeXp = (user.xp !== undefined) ? user.xp : 100;
+    let roleTitle = user.role || "Reader";
     let xpBadgeHtml = (user.role !== "Admin")
         ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>`
         : ``;
@@ -234,7 +242,7 @@ function showToastNotification(title, message, icon = "🎉", duration = 4500) {
     let container = document.getElementById("toastContainer");
     if (!container) {
         container = document.createElement("div");
-        container.id        = "toastContainer";
+        container.id = "toastContainer";
         container.className = "toast-notification-container";
         document.body.appendChild(container);
     }
@@ -251,6 +259,13 @@ function showToastNotification(title, message, icon = "🎉", duration = 4500) {
     `;
 
     container.appendChild(toast);
+
+    // Confetti micro-interaction for celebratory events
+    if (typeof trigger21stConfetti === "function") {
+        if (title.includes("XP") || title.includes("COMPLETED") || title.includes("RATING") || title.includes("UNLOCKED")) {
+            trigger21stConfetti();
+        }
+    }
 
     // Auto-dismiss after duration
     setTimeout(() => {
@@ -282,35 +297,16 @@ async function checkWelcomeToast() {
     if (!user || user.role === "Admin" || isToastChecking) return;
     isToastChecking = true;
 
-    // Check 1: Admin-set pending toast from db.json (pitch approval XP award)
-    if (user.id) {
+    // Check 1: Admin-set pending toast (pitch approval XP award)
+    let toastData = user.pendingToast;
+    if (!toastData && user.id) {
         try {
             let res = await fetch(`${API_BASE}/Users/${user.id}`);
             if (res.ok) {
                 let freshUser = await res.json();
                 if (freshUser.pendingToast) {
-                    let toastData = freshUser.pendingToast;
-
-                    // Update local XP and remove the pendingToast flag
+                    toastData = freshUser.pendingToast;
                     user.xp = freshUser.xp;
-                    delete user.pendingToast;
-                    localStorage.setItem("user", JSON.stringify(user));
-
-                    // Clear pendingToast from db.json (fire and forget)
-                    fetch(`${API_BASE}/Users/${user.id}`, {
-                        method:  "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body:    JSON.stringify({ pendingToast: null })
-                    }).catch(e => {});
-
-                    // Show the toast after a short delay for visual effect
-                    setTimeout(() => {
-                        showToastNotification(
-                            "PITCH ACCEPTED! 🎉",
-                            toastData.message || `+${toastData.xpAwarded || 30} XP earned for your pitch!`,
-                            "🎉"
-                        );
-                    }, 600);
                 }
             }
         } catch (e) {
@@ -318,21 +314,42 @@ async function checkWelcomeToast() {
         }
     }
 
-    // Check 2: First login welcome toast (checked against persistent key & db.json)
-    let toastKey = "welcome_toast_shown_" + (user.id || user.name);
-    let alreadyShown = localStorage.getItem(toastKey) || user.hasSeenWelcomeToast;
+    if (toastData) {
+        // Clear pendingToast from MongoDB Atlas and local user object
+        delete user.pendingToast;
+        if (user.id) {
+            fetch(`${API_BASE}/Users/${user.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pendingToast: null })
+            }).catch(e => { });
+        }
+
+        renderUserProfileHeader();
+
+        // Show the toast after a short delay for visual effect
+        setTimeout(() => {
+            showToastNotification(
+                "PITCH ACCEPTED! 🎉",
+                toastData.message || `+${toastData.xpAwarded || 30} XP earned for your pitch!`,
+                "🎉"
+            );
+        }, 500);
+        return;
+    }
+
+    // Check 2: First login welcome toast (checked directly from user record in MongoDB Atlas)
+    let alreadyShown = Boolean(user.hasSeenWelcomeToast);
 
     if (!alreadyShown) {
-        localStorage.setItem(toastKey, "true");
         user.hasSeenWelcomeToast = true;
-        localStorage.setItem("user", JSON.stringify(user));
 
         if (user.id) {
             fetch(`${API_BASE}/Users/${user.id}`, {
-                method:  "PATCH",
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body:    JSON.stringify({ hasSeenWelcomeToast: true })
-            }).catch(e => {});
+                body: JSON.stringify({ hasSeenWelcomeToast: true })
+            }).catch(e => { });
         }
 
         setTimeout(() => {
@@ -340,6 +357,15 @@ async function checkWelcomeToast() {
                 "WELCOME EXPLORER!",
                 `Welcome, ${user.name || 'Reader'}! You earned +100 XP starting bonus! ⭐`,
                 "🎉"
+            );
+        }, 400);
+    } else if (sessionStorage.getItem("showLoginWelcomeToast")) {
+        sessionStorage.removeItem("showLoginWelcomeToast");
+        setTimeout(() => {
+            showToastNotification(
+                "WELCOME BACK! ⚡",
+                `Welcome back, ${user.name || 'Explorer'}! Your story library is ready.`,
+                "👋"
             );
         }, 400);
     }
@@ -403,58 +429,163 @@ function loadStories() {
    - Scene count, star rating, "VIEW DETAILS & READ" button
    ============================================================ */
 
+function getUserUnlockedEndings(storyId) {
+    if (!user) return [];
+    if (!user.unlockedEndings) user.unlockedEndings = {};
+    return user.unlockedEndings[storyId] || [];
+}
+
+async function recordUnlockedEnding(storyId, nodeId) {
+    if (!user || !storyId || !nodeId) return;
+    if (!user.unlockedEndings) user.unlockedEndings = {};
+    if (!user.unlockedEndings[storyId]) user.unlockedEndings[storyId] = [];
+
+    if (!user.unlockedEndings[storyId].includes(nodeId)) {
+        user.unlockedEndings[storyId].push(nodeId);
+
+        if (user.id) {
+            try {
+                await fetch(`${API_BASE}/Users/${user.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ unlockedEndings: user.unlockedEndings })
+                });
+            } catch (e) {
+                console.error("Error syncing unlocked endings", e);
+            }
+        }
+    }
+}
+
 function filterStories() {
     let container = document.getElementById("storiesContainer");
     if (!container) return;
 
-    let searchInput   = document.getElementById("searchInput").value.toLowerCase().trim();
+    let searchInput = document.getElementById("searchInput").value.toLowerCase().trim();
     let selectedGenre = document.getElementById("genreFilter").value.toLowerCase();
 
     container.innerHTML = "";
     let count = 0;
 
     allPublishedStories.forEach(story => {
-        let title  = (story.title  || "").toLowerCase();
+        let title = (story.title || "").toLowerCase();
         let author = (story.author || "").toLowerCase();
-        let genre  = (story.genre  || "").toLowerCase();
+        let genre = (story.genre || "").toLowerCase();
 
         let matchesSearch = title.includes(searchInput) || author.includes(searchInput);
-        let matchesGenre  = (selectedGenre === "all") || (genre === selectedGenre);
+        let matchesGenre = (selectedGenre === "all") || (genre === selectedGenre);
 
         if (matchesSearch && matchesGenre) {
             count++;
             let sceneCount = story.nodes ? story.nodes.length : 0;
+            let endingNodes = (story.nodes || []).filter(n => n.isEnding);
+            let totalEndings = Math.max(endingNodes.length, 1);
+            let unlockedList = getUserUnlockedEndings(story.id);
+            let unlockedCount = unlockedList.length;
+            let percent = Math.min(Math.round((unlockedCount / totalEndings) * 100), 100);
+
+            let endingPillHtml = `
+                <div class="ending-progress-pill" onclick="event.stopPropagation(); openStoryDetails('${story.id}', 'endings')" title="${unlockedCount} of ${totalEndings} endings discovered">
+                    <span>🏆 <strong>${unlockedCount}/${totalEndings}</strong> Endings</span>
+                    <div class="ending-progress-bar-mini">
+                        <div class="ending-progress-fill-mini" style="width: ${percent}%"></div>
+                    </div>
+                </div>
+            `;
+
+            const genreIcons = {
+                horror: '🩸',
+                fantasy: '🔮',
+                cyberpunk: '⚡',
+                'sci-fi': '🚀',
+                mystery: '🔍',
+                adventure: '🧭',
+                romance: '💖',
+                general: '📖'
+            };
+            const genreSlug = (story.genre || 'general').toLowerCase();
+            const genreIcon = genreIcons[genreSlug] || '📖';
+            const ratingStats = calculateRatingStats(story);
+            const descSnippet = (story.description || "").length > 115 
+                ? (story.description || "").substring(0, 115) + '...'
+                : (story.description || "A captivating branching story where every decision shapes your fate.");
 
             container.innerHTML += `
-                <div class="story-card">
-                    <img
-                        src="${story.imageURL || "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"}"
-                        alt="${story.title}"
-                    >
-                    <div class="story-card-content">
-                        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-                            <span class="badge-genre">${(story.genre || "General").toUpperCase()}</span>
-                            <span class="badge-status status-published">PUBLISHED</span>
-                            <span class="badge-rating" style="background: #FFDE59; color: #000; border: 2px solid #000; border-radius: 100px; padding: 4px 12px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; gap: 4px;">${calculateRatingStats(story).display}</span>
+                <div class="dynamic-story-card" data-genre="${genreSlug}" onclick="openStoryDetails('${story.id}')">
+                    <div class="card-spotlight-glow"></div>
+                    <div class="card-shimmer-border"></div>
+
+                    <div class="card-media-wrapper">
+                        <img
+                            src="${story.imageURL || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'}"
+                            alt="${story.title}"
+                            class="card-cover-img"
+                            loading="lazy"
+                        >
+                        <div class="card-media-gradient"></div>
+
+                        <div class="card-hud-top">
+                            <span class="hud-genre-pill genre-${genreSlug}">
+                                <span>${genreIcon}</span>
+                                <span>${(story.genre || "General").toUpperCase()}</span>
+                            </span>
+                            <span class="hud-rating-pill">
+                                ⭐ ${ratingStats.avg} <small style="font-size: 9.5px; opacity: 0.8;">(${ratingStats.count})</small>
+                            </span>
                         </div>
-                        <h2>${story.title}</h2>
-                        <div class="author-tag" style="margin-bottom: 10px; font-weight: 800; color: var(--color-voltage-violet);">✍️ BY ${(story.author || "ADMIN").toUpperCase()}</div>
-                        <p class="story-description">${(story.description || "").length > 110 ? (story.description || "").substring(0, 110) + '... <button type="button" class="view-more-btn" onclick="openStoryDetails(\'' + story.id + '\')">Read More &rarr;</button>' : (story.description || "")}</p>
-                        <div class="stat-lockup-box" style="margin-bottom: 20px;">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                            <span><strong>${sceneCount}</strong> SCENES / NODES</span>
+
+                        <div class="card-hud-bottom">
+                            <span class="hud-scenes-pill">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                <span>${sceneCount} SCENES</span>
+                            </span>
                         </div>
-                        <button
-                            type="button"
-                            class="primary-btn"
-                            onclick="openStoryDetails('${story.id}')">
-                            VIEW DETAILS & READ
-                        </button>
+                    </div>
+
+                    <div class="card-content-layer">
+                        <div class="card-meta-row">
+                            <div class="card-live-dot-wrap">
+                                <span class="card-live-dot"></span>
+                                <span class="card-live-label">LIVE STORY</span>
+                            </div>
+                            ${endingPillHtml}
+                        </div>
+
+                        <h2 class="card-title-3d">${story.title}</h2>
+
+                        <div class="card-author-line">
+                            <span>✍️</span>
+                            <span>BY <strong>${(story.author || "ADMIN").toUpperCase()}</strong></span>
+                        </div>
+
+                        <p class="card-snippet-text">${descSnippet}</p>
+
+                        <div class="card-actions-row" onclick="event.stopPropagation()">
+                            <button
+                                type="button"
+                                class="card-btn-explore"
+                                onclick="openStoryDetails('${story.id}')"
+                                title="Explore Story Details">
+                                📖 DETAILS
+                            </button>
+                            <button
+                                type="button"
+                                class="card-btn-play"
+                                onclick="enterStoryWorld('${story.id}')"
+                                title="Begin Interactive Read">
+                                <span class="shimmer-sweep-light"></span>
+                                <span style="position: relative; z-index: 2;">⚡ PLAY STORY</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
         }
     });
+
+    if (window.initDynamicStoryCards) {
+        window.initDynamicStoryCards();
+    }
 
     // Empty state — no stories match the current filter
     if (count === 0) {
@@ -487,24 +618,112 @@ function filterStories() {
    startStory is an alias for openStoryDetails (shows details first).
    ============================================================ */
 
-function openStoryDetails(storyId) {
-    let story = allPublishedStories.find(s => s.id === storyId);
+let currentModalStoryId = null;
+
+function openStoryDetails(storyId, activeSubTab = 'synopsis') {
+    let story = allPublishedStories.find(s => String(s.id) === String(storyId));
+    if (story) currentModalStoryId = story.id;
     if (!story) return;
 
     let modal = document.getElementById("storyDetailModal");
     if (!modal) return;
 
-    let card       = modal.querySelector(".story-detail-card");
+    let card = modal.querySelector(".story-detail-card");
     let sceneCount = story.nodes ? story.nodes.length : 0;
 
     // Count ending nodes (isEnding === true)
-    let endingsCount = 0;
+    let endingNodes = (story.nodes || []).filter(n => n.isEnding);
+    if (endingNodes.length === 0) {
+        endingNodes = [{ id: 'default_end', title: 'Story Ending', isEnding: true, endingType: 'good', text: 'Final outcome achieved.' }];
+    }
+    let totalEndings = endingNodes.length;
+    let unlockedList = getUserUnlockedEndings(story.id);
+    let unlockedCount = unlockedList.length;
+    let endingsCount = totalEndings;
     if (story.nodes && story.nodes.length > 0) {
         endingsCount = story.nodes.filter(n => n.isEnding).length;
     }
     if (endingsCount === 0) endingsCount = 1; // Minimum 1 implied ending
 
-    card.innerHTML = `
+    let modalTabsHtml = `
+        <div class="modal-tabs-header">
+            <div class="modal-tabs-group">
+                <button type="button" class="tab-pill ${activeSubTab === 'synopsis' ? 'tab-active' : ''}" onclick="openStoryDetails('${story.id}', 'synopsis')">
+                    📖 Story Synopsis
+                </button>
+                <button type="button" class="tab-pill ${activeSubTab === 'endings' ? 'tab-active' : ''}" onclick="openStoryDetails('${story.id}', 'endings')">
+                    🏆 Endings Showcase (${unlockedCount}/${totalEndings})
+                </button>
+            </div>
+            <button type="button" class="modal-close-btn" onclick="closeStoryDetails(event)" aria-label="Close details modal">&times;</button>
+        </div>
+    `;
+
+    if (activeSubTab === 'endings') {
+        let endingsCardsHtml = endingNodes.map((node, index) => {
+            let isUnlocked = unlockedList.includes(node.id);
+            let endType = (node.endingType || 'good').toLowerCase();
+            let badgeClass = endType === 'good' ? 'badge-good' : endType === 'bad' ? 'badge-bad' : endType === 'secret' ? 'badge-secret' : 'badge-neutral';
+            let emoji = endType === 'good' ? '🏆' : endType === 'bad' ? '💀' : endType === 'secret' ? '✨' : '⚖️';
+
+            if (isUnlocked) {
+                return `
+                    <div class="ending-gallery-card unlocked-${endType}">
+                        <div>
+                            <div class="ending-type-badge ${badgeClass}">
+                                ${emoji} ${endType.toUpperCase()} ENDING #${index + 1}
+                            </div>
+                            <h3 class="ending-card-title">${node.title || ('Ending #' + (index + 1))}</h3>
+                            <p class="ending-card-desc">"${node.text ? (node.text.substring(0, 110) + '...') : 'Fate achieved.'}"</p>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #000; padding-top: 10px;">
+                            <span style="font-weight: 900; font-size: 11px; color: #166534;">🔓 UNLOCKED</span>
+                            <button type="button" class="secondary-btn" style="padding: 6px 14px; font-size: 11px;" onclick="enterStoryWorld('${story.id}')">
+                                ▶ REPLAY PATH
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let clueText = node.endingTeaser || `Make alternative decisions at key story choices to discover this ${endType} ending.`;
+                return `
+                    <div class="ending-gallery-card locked">
+                        <div>
+                            <div class="ending-type-badge badge-locked">
+                                🔒 LOCKED ENDING #${index + 1}
+                            </div>
+                            <h3 class="ending-card-title locked-blur-teaser">Hidden Fate #${index + 1}</h3>
+                            <p class="ending-card-desc">💡 <strong>Clue:</strong> ${clueText}</p>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #475569; padding-top: 10px;">
+                            <span style="font-weight: 800; font-size: 11px; color: #94a3b8;">🔒 LOCKED</span>
+                            <button type="button" class="primary-btn" style="padding: 6px 14px; font-size: 11px; background: #ffde59; color: #000;" onclick="enterStoryWorld('${story.id}')">
+                                🚀 HUNT ENDING
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+
+        card.innerHTML = `
+            ${modalTabsHtml}
+            <div style="grid-column: 1 / -1;">
+                <div style="background: #f8fafc; border: 2.5px solid #000; border-radius: 18px; padding: 18px 24px; margin-bottom: 20px; box-shadow: 4px 4px 0px #000; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2 style="font-family: var(--font-display); font-size: 22px; margin: 0 0 4px; text-transform: uppercase;">${story.title} — ENDINGS GALLERY</h2>
+                        <div style="font-weight: 700; font-size: 13.5px; color: #475569;">You have unlocked <strong>${unlockedCount}</strong> of <strong>${totalEndings}</strong> branching endings (${Math.round((unlockedCount / totalEndings) * 100)}% complete)</div>
+                    </div>
+                    <button type="button" class="primary-btn" style="width: auto; padding: 10px 20px; font-size: 13px;" onclick="enterStoryWorld('${story.id}')">⚡ PLAY STORY NOW</button>
+                </div>
+                <div class="endings-grid">
+                    ${endingsCardsHtml}
+                </div>
+            </div>
+        `;
+    } else {
+        card.innerHTML = `
+            ${modalTabsHtml}
         <img class="detail-cover-img" src="${story.imageURL || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'}" alt="${story.title}">
 
         <div class="detail-main-info">
@@ -531,13 +750,16 @@ function openStoryDetails(storyId) {
                     </div>
                     <div class="detail-stat-box green">
                         <div class="detail-stat-num">${endingsCount}</div>
-                        <div class="detail-stat-label">UNIQUE ENDINGS</div>
+                        <div class="detail-stat-label">ENDINGS UNLOCKED (${unlockedCount}/${totalEndings}) 🏆</div>
                     </div>
                 </div>
 
                 <div class="detail-actions-row">
                     <button type="button" class="enter-world-btn" onclick="enterStoryWorld('${story.id}')">
                         ⚡ BEGIN STORY EXPERIENCE →
+                    </button>
+                    <button type="button" class="secondary-btn" onclick="openStoryDetails('${story.id}', 'endings')">
+                        🏆 VIEW ENDINGS SHOWCASE (${unlockedCount}/${totalEndings})
                     </button>
                     <button type="button" class="back-library-btn" onclick="closeStoryDetails()">
                         ← Back to Library
@@ -546,8 +768,10 @@ function openStoryDetails(storyId) {
             </div>
         </div>
     `;
+    }
 
     modal.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
 }
 
 function closeStoryDetails(event) {
@@ -556,10 +780,36 @@ function closeStoryDetails(event) {
     if (modal) {
         modal.classList.add("hidden");
     }
+    document.body.style.overflow = "";
 }
 
+// Close story detail modal on Escape key press
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        let modal = document.getElementById("storyDetailModal");
+        if (modal && !modal.classList.contains("hidden")) {
+            closeStoryDetails();
+        }
+    }
+});
+
 function enterStoryWorld(storyId) {
-    window.location.href = `play.html?id=${storyId}`;
+    let targetId = storyId;
+    if (typeof targetId === "number") {
+        targetId = String(targetId);
+    }
+    if (!targetId || typeof targetId !== "string" || targetId.startsWith("[object") || targetId === "undefined" || targetId === "null") {
+        targetId = (typeof currentModalStoryId !== "undefined" && currentModalStoryId) ? String(currentModalStoryId) : null;
+    }
+    if (!targetId) {
+        console.error("enterStoryWorld: No valid storyId provided.", storyId);
+        return;
+    }
+    try {
+        sessionStorage.setItem("lastSelectedStoryId", targetId);
+    } catch (e) { }
+    closeStoryDetails();
+    window.location.href = `/pages/reader/play?id=${encodeURIComponent(targetId)}`;
 }
 
 function startStory(storyId) {
@@ -587,13 +837,13 @@ function startStory(storyId) {
    storySession   — the active session object (synced to db.json)
    ============================================================ */
 
-const urlParams   = new URLSearchParams(window.location.search);
-const storyId     = urlParams.get("id");
+const urlParams = new URLSearchParams(window.location.search);
+let storyId = urlParams.get("id");
 
-let currentStory  = null;
-let currentNode   = null;
+let currentStory = null;
+let currentNode = null;
 let traversalPath = [];
-let storySession  = null;
+let storySession = null;
 
 
 /* ============================================================
@@ -603,9 +853,9 @@ let storySession  = null;
    COMPLETION_XP — XP awarded when a story is completed for the first time
    ============================================================ */
 
-const RETREAT_COST    = 10;  // XP per retreat (after free retreat is used)
-const STARTING_XP     = 100; // Default XP for new accounts
-const COMPLETION_XP   = 5;   // XP awarded on story completion
+const RETREAT_COST = 10;  // XP per retreat (after free retreat is used)
+const STARTING_XP = 100; // Default XP for new accounts
+const COMPLETION_XP = 5;   // XP awarded on story completion
 
 
 /* ============================================================
@@ -641,18 +891,28 @@ function getSessionStorageKey(userId, storyId) {
    ============================================================ */
 
 async function loadStory() {
-    if (!storyId) {
-        alert("No story selected.");
-        window.location.href = "stories.html";
+    let rawId = new URLSearchParams(window.location.search).get("id");
+    if (!rawId || rawId === "undefined" || rawId === "null" || rawId.startsWith("[object")) {
+        try {
+            rawId = sessionStorage.getItem("lastSelectedStoryId");
+        } catch (e) {
+            rawId = null;
+        }
+    }
+    if (!rawId || rawId === "undefined" || rawId === "null" || rawId.startsWith("[object")) {
+        console.error("loadStory: Invalid or missing storyId in query string or sessionStorage:", rawId);
+        alert("Please select a story from the library.");
+        window.location.href = "/pages/reader/stories";
         return;
     }
+    storyId = rawId;
 
     try {
         // Fetch the full story object from the backend
         let response = await fetch(`${API_BASE}/Stories/${storyId}`);
         if (!response.ok) {
             alert("Story not found.");
-            window.location.href = "stories.html";
+            window.location.href = "/pages/reader/stories";
             return;
         }
 
@@ -667,7 +927,7 @@ async function loadStory() {
 
         if (!currentStory.nodes || currentStory.nodes.length === 0) {
             alert("This story has no scenes yet.");
-            window.location.href = "stories.html";
+            window.location.href = "/pages/reader/stories";
             return;
         }
 
@@ -675,34 +935,9 @@ async function loadStory() {
         let startingNode = currentStory.nodes.find(node => node.id === currentStory.startNodeId)
             || currentStory.nodes[0];
 
-        let userId     = user ? (user.id || user.name) : "guest";
-        let storageKey = getSessionStorageKey(userId, storyId);
+        let userId = user ? (user.id || user.name) : "guest";
 
-        /* ── Phase 1: Check localStorage cache first ──────────────── */
-        let cachedSession = null;
-        try {
-            cachedSession = JSON.parse(localStorage.getItem(storageKey));
-        } catch (e) {
-            cachedSession = null;
-        }
-
-        if (cachedSession && cachedSession.currentNodeId) {
-            let restoredNode = currentStory.nodes.find(node => node.id === cachedSession.currentNodeId);
-            if (restoredNode) {
-                storySession  = cachedSession;
-                traversalPath = cachedSession.traversalPath || [];
-                currentNode   = restoredNode;
-
-                if (user && user.usedFreeRetreatStories && user.usedFreeRetreatStories.includes(storyId)) {
-                    storySession.freeRetreatUsed = true;
-                }
-
-                showStory();
-                return;
-            }
-        }
-
-        /* ── Phase 2: Query backend for an active session ─────────── */
+        /* ── Query MongoDB Atlas for an active session ─────────── */
         try {
             let sessionRes = await fetch(
                 `${API_BASE}/StorySessions?userId=${encodeURIComponent(userId)}&storyId=${encodeURIComponent(storyId)}`
@@ -710,7 +945,7 @@ async function loadStory() {
             if (sessionRes.ok) {
                 let sessions = await sessionRes.json();
                 if (sessions && sessions.length > 0) {
-                    storySession  = sessions[sessions.length - 1]; // Use the most recent
+                    storySession = sessions[sessions.length - 1]; // Use latest session from MongoDB Atlas
                     traversalPath = storySession.traversalPath || [];
 
                     currentNode = currentStory.nodes.find(
@@ -727,16 +962,15 @@ async function loadStory() {
                         storySession.freeRetreatUsed = true;
                     }
 
-                    localStorage.setItem(storageKey, JSON.stringify(storySession));
                     showStory();
                     return;
                 }
             }
         } catch (e) {
-            console.warn("Backend session query skipped due to network:", e);
+            console.warn("MongoDB Atlas session query skipped:", e);
         }
 
-        /* ── Phase 3: No session found — create a new one ────────── */
+        /* ── No session found in MongoDB Atlas — create a new one ────────── */
         await createNewSession(startingNode, userId);
 
     } catch (error) {
@@ -754,53 +988,49 @@ async function loadStory() {
    2. Initialise traversalPath with the starting node entry.
    3. Read user's current XP and freeRetreatUsed status.
    4. Build the storySession object with all required fields.
-   5. Save to localStorage immediately (fast, offline-safe).
-   6. POST to /StorySessions to persist in db.json.
-   7. Update storySession.id from the backend response.
-   8. Call showStory() to render the first scene.
+   5. POST directly to /StorySessions in MongoDB Atlas.
+   6. Update storySession.id from the backend response.
+   7. Call showStory() to render the first scene.
    ============================================================ */
 
 async function createNewSession(startingNode, userId) {
-    currentNode   = startingNode;
+    currentNode = startingNode;
     traversalPath = [{
-        nodeId:     startingNode.id,
-        title:      startingNode.title,
+        nodeId: startingNode.id,
+        title: startingNode.title,
         choiceText: null
     }];
 
-    let userXp     = (user && user.xp !== undefined) ? user.xp : STARTING_XP;
+    let userXp = (user && user.xp !== undefined) ? user.xp : STARTING_XP;
     let isFreeUsed = Boolean(user && user.usedFreeRetreatStories && user.usedFreeRetreatStories.includes(storyId));
 
     storySession = {
-        userId:         userId,
-        storyId:        storyId,
-        currentNodeId:  startingNode.id,
-        traversalPath:  traversalPath,
+        userId: userId,
+        storyId: storyId,
+        currentNodeId: startingNode.id,
+        traversalPath: traversalPath,
         visitedNodeIds: [startingNode.id],
         freeRetreatUsed: isFreeUsed,
-        xp:             userXp,
+        xp: userXp,
         alreadyClaimed: false,
-        ended:          startingNode.isEnding || false,
-        endingType:     startingNode.isEnding ? startingNode.endingType : null
+        ended: startingNode.isEnding || false,
+        endingType: startingNode.isEnding ? startingNode.endingType : null
     };
 
-    const storageKey = getSessionStorageKey(userId, storyId);
-    localStorage.setItem(storageKey, JSON.stringify(storySession));
-
-    // POST to backend — non-blocking, save locally first
+    // POST directly to MongoDB Atlas via Express
     try {
         let response = await fetch(`${API_BASE}/StorySessions`, {
-            method:  "POST",
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify(storySession)
+            body: JSON.stringify(storySession)
         });
 
         if (response && response.ok) {
-            storySession = await response.json();
-            localStorage.setItem(storageKey, JSON.stringify(storySession));
+            let saved = await response.json();
+            storySession.id = saved.id;
         }
     } catch (error) {
-        console.warn("Could not post new session to backend:", error);
+        console.warn("Could not post new session to MongoDB Atlas:", error);
     }
 
     showStory();
@@ -824,7 +1054,7 @@ async function createNewSession(startingNode, userId) {
 async function saveStorySession() {
     if (!storySession) return;
 
-    const userId     = user ? (user.id || user.name) : "guest";
+    const userId = user ? (user.id || user.name) : "guest";
     const storageKey = getSessionStorageKey(userId, storyId);
 
     // Sync latest state into the session object
@@ -838,34 +1068,30 @@ async function saveStorySession() {
         storySession.freeRetreatUsed = true;
     }
 
-    // Save to localStorage first (fast, offline-safe)
-    localStorage.setItem(storageKey, JSON.stringify(storySession));
-
-    // Sync to backend
+    // Sync directly to MongoDB Atlas via Express
     try {
         if (storySession.id) {
-            // Session already exists in backend — update it
+            // Session already exists in MongoDB Atlas — update it
             await fetch(`${API_BASE}/StorySessions/${storySession.id}`, {
-                method:  "PUT",
+                method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body:    JSON.stringify(storySession)
-            }).catch(e => console.warn("Backend PUT failed:", e));
+                body: JSON.stringify(storySession)
+            }).catch(e => console.warn("MongoDB Atlas update failed:", e));
         } else {
-            // No backend ID yet — try to create it
+            // No ID yet — create session in MongoDB Atlas
             let res = await fetch(`${API_BASE}/StorySessions`, {
-                method:  "POST",
+                method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body:    JSON.stringify(storySession)
+                body: JSON.stringify(storySession)
             }).catch(e => null);
 
             if (res && res.ok) {
                 let saved = await res.json();
                 storySession.id = saved.id;
-                localStorage.setItem(storageKey, JSON.stringify(storySession));
             }
         }
     } catch (error) {
-        console.warn("Error syncing session to backend:", error);
+        console.warn("Error syncing session to MongoDB Atlas:", error);
     }
 }
 
@@ -896,14 +1122,14 @@ async function saveStorySession() {
    ============================================================ */
 
 function showStory() {
-    let storyHeader      = document.getElementById("storyHeader");
-    let sceneContainer   = document.getElementById("sceneContainer");
+    let storyHeader = document.getElementById("storyHeader");
+    let sceneContainer = document.getElementById("sceneContainer");
     let choicesContainer = document.getElementById("choicesContainer");
-    let pathContainer    = document.getElementById("traversalPath");
+    let pathContainer = document.getElementById("traversalPath");
 
     if (!storyHeader || !sceneContainer || !choicesContainer) return;
 
-    let decisions  = Math.max(traversalPath.length - 1, 0);
+    let decisions = Math.max(traversalPath.length - 1, 0);
     let pathLength = traversalPath.length;
     let visitedIds = (storySession && storySession.visitedNodeIds) ? storySession.visitedNodeIds : [];
 
@@ -928,13 +1154,17 @@ function showStory() {
         // Clear top stat bar on ending screens (shown in final path box below)
         storyHeader.innerHTML = "";
 
-        storySession.ended       = true;
-        storySession.currentNodeId = currentNode.id;
-        storySession.endingType  = currentNode.endingType;
+        if (typeof recordUnlockedEnding === "function" && storyId && currentNode.id) {
+            recordUnlockedEnding(storyId, currentNode.id);
+        }
 
-        let endType    = (currentNode.endingType || "good").toLowerCase();
-        let endingBg   = endType === "good" ? "#34d399" : endType === "tragic" ? "#fb923c" : "#f87171";
-        let endingEmoji = endType === "good" ? "🏆" : endType === "tragic" ? "😢" : "💀";
+        storySession.ended = true;
+        storySession.currentNodeId = currentNode.id;
+        storySession.endingType = currentNode.endingType;
+
+        let endType = (currentNode.endingType || "good").toLowerCase();
+        let endingBg = endType === "good" ? "#55db9c" : endType === "mixed" ? "#ffd731" : endType === "tragic" ? "#fb923c" : "#ff5c5c";
+        let endingEmoji = endType === "good" ? "🏆" : endType === "mixed" ? "⚖️" : endType === "tragic" ? "😢" : "💀";
 
         // XP message — show earned or "already claimed" depending on state
         let isAlreadyCompleted = user && user.completedStories && user.completedStories.some(id => String(id) === String(storyId));
@@ -947,7 +1177,7 @@ function showStory() {
             <div style="background: #f8fafc; border: 2px solid #000; border-radius: 20px; padding: 20px 28px; margin: 16px 0 24px; box-shadow: 4px 4px 0px #000; text-align: center; width: 100%; max-width: 480px; box-sizing: border-box;">
                 <label style="font-weight: 900; font-size: 12px; color: #000; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 12px;">⭐ RATE THIS STORY</label>
                 <div id="starRatingContainer_${storyId}" style="display: flex; justify-content: center; gap: 14px; margin-bottom: 10px;">
-                    ${[1,2,3,4,5].map(star => `
+                    ${[1, 2, 3, 4, 5].map(star => `
                         <span onclick="submitStoryRating('${storyId}', ${star})"
                               style="font-size: 36px; cursor: pointer; opacity: 0.35; transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), opacity 0.15s ease; filter: drop-shadow(1px 2px 0px rgba(0,0,0,0.12)); display: inline-block;"
                               onmouseover="this.style.opacity='1'; this.style.transform='scale(1.35) rotate(12deg)'"
@@ -986,7 +1216,7 @@ function showStory() {
         sceneContainer.innerHTML = "";
 
         choicesContainer.innerHTML = `
-            <div class="story-card ending-card" style="border: 3px solid #000; border-radius: 24px; padding: 36px 32px; box-shadow: 8px 8px 0px #000; background: #fff; width: 100%; box-sizing: border-box;">
+            <div class="story-card ending-card" style="border: 3.5px solid #000; border-radius: 24px; padding: 36px 32px; box-shadow: 8px 8px 0px #000; background: #ffffff !important; width: 100%; box-sizing: border-box;">
                 <div style="text-align: center; display: flex; flex-direction: column; align-items: center;">
                     <!-- Lottie Badge Animation — plays once when story ends -->
                     <div id="endingBadgeLottie" style="width: 120px; height: 120px; margin: 0 auto 8px;"></div>
@@ -1008,12 +1238,17 @@ function showStory() {
                     ${finalPathHtml}
 
                     <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: 100%; margin-top: 10px;">
-                        <button type="button" class="primary-btn" onclick="restartStory()" style="width: auto; padding: 14px 32px; font-size: 14px; background: #ffde59; color: #000; border: 2.5px solid #000; border-radius: 100px; box-shadow: 4px 4px 0px #000; font-weight: 900; cursor: pointer; letter-spacing: 0.5px;">🔄 RESTART STORY</button>
+                        <button type="button" class="primary-btn shimmer-btn-21st" onclick="restartStory()" style="width: auto; padding: 14px 32px; font-size: 14px; background: #ffde59; color: #000; border: 2.5px solid #000; border-radius: 100px; box-shadow: 4px 4px 0px #000; font-weight: 900; cursor: pointer; letter-spacing: 0.5px;">🔄 RESTART STORY</button>
                         <button type="button" class="secondary-btn" onclick="backToLibrary()" style="width: auto; padding: 14px 32px; font-size: 14px; background: #ffffff; color: #000; border: 2.5px solid #000; border-radius: 100px; box-shadow: 4px 4px 0px #000; font-weight: 900; cursor: pointer; letter-spacing: 0.5px;">📚 BACK TO LIBRARY</button>
                     </div>
                 </div>
             </div>
         `;
+
+        // 21st.dev Confetti celebration
+        if (typeof trigger21stConfetti === "function") {
+            trigger21stConfetti();
+        }
 
         // Inject and play the Lottie ending badge animation (plays once)
         setTimeout(() => {
@@ -1021,10 +1256,10 @@ function showStory() {
             if (lottieContainer && typeof lottie !== "undefined") {
                 lottie.loadAnimation({
                     container: lottieContainer,
-                    renderer:  "svg",
-                    loop:      false,
-                    autoplay:  true,
-                    path:      "../../css/Top Badge animation.json"
+                    renderer: "svg",
+                    loop: false,
+                    autoplay: true,
+                    path: "../../css/Top Badge animation.json"
                 });
             }
         }, 100);
@@ -1037,15 +1272,14 @@ function showStory() {
                 user.xp = (user.xp || 0) + COMPLETION_XP;
                 if (!user.completedStories) user.completedStories = [];
                 user.completedStories.push(storyId);
-                localStorage.setItem("user", JSON.stringify(user));
 
                 // Sync XP + completedStories to the backend
                 if (user.id) {
                     fetch(`${API_BASE}/Users/${user.id}`, {
-                        method:  "PATCH",
+                        method: "PATCH",
                         headers: { "Content-Type": "application/json" },
-                        body:    JSON.stringify({
-                            xp:               user.xp,
+                        body: JSON.stringify({
+                            xp: user.xp,
                             completedStories: user.completedStories
                         })
                     }).catch(e => console.warn("Could not sync completion XP:", e));
@@ -1060,20 +1294,21 @@ function showStory() {
         }
 
         saveStorySession();
+        narrateCurrentScene();
         return;
     }
 
     // ── Path B: Regular Scene Node ─────────────────────────────────────────
     let locationText = currentNode.location ? currentNode.location.toUpperCase() : "UNKNOWN";
-    let charsText    = (currentNode.characters && currentNode.characters.length > 0)
+    let charsText = (currentNode.characters && currentNode.characters.length > 0)
         ? `👥 PRESENT: ${currentNode.characters.join(", ").toUpperCase()}`
         : "";
 
     // Determine retreat button label (FREE vs XP cost)
-    let isFreeUsed  = (storySession && storySession.freeRetreatUsed)
+    let isFreeUsed = (storySession && storySession.freeRetreatUsed)
         || (user && user.usedFreeRetreatStories && user.usedFreeRetreatStories.includes(storyId));
     let retreatText = isFreeUsed ? `← RETREAT (-${RETREAT_COST} XP)` : "← RETREAT (FREE)";
-    let activeXp    = (user && user.xp !== undefined) ? user.xp : (storySession ? storySession.xp : STARTING_XP);
+    let activeXp = (user && user.xp !== undefined) ? user.xp : (storySession ? storySession.xp : STARTING_XP);
 
     let retreatButtonHtml = "";
     if (traversalPath.length > 1) {
@@ -1091,7 +1326,7 @@ function showStory() {
     let choicesHTML = "";
     if (currentNode.choices && currentNode.choices.length > 0) {
         choicesHTML = currentNode.choices.map(choice => {
-            let isVisited   = visitedIds.includes(choice.targetNodeId);
+            let isVisited = visitedIds.includes(choice.targetNodeId);
             let visitedBadge = isVisited
                 ? `<span style="font-size:11px; font-weight:900; background:#000; color:#fff; padding:2px 8px; border-radius:100px; margin-left:8px; letter-spacing:0.05em;">VISITED</span>`
                 : "";
@@ -1099,7 +1334,7 @@ function showStory() {
                 ? `background: #f0f0f0; color: #555; border-color: #999; box-shadow: 2px 2px 0 #999; opacity: 0.85;`
                 : ``;
             return `
-                <button type="button" class="primary-btn choice-btn-slush" style="${btnStyle}" onclick="selectChoice('${choice.targetNodeId}', '${choice.text.replace(/'/g, "\\'")}')">
+                <button type="button" class="primary-btn choice-btn-slush" style="${btnStyle}" data-choice-id="${choice.id || choice.targetNodeId}" onclick="selectChoice('${choice.targetNodeId}', '${choice.text.replace(/'/g, "\\'")}')">
                     <span>${choice.text}</span>${visitedBadge} <span style="font-size: 18px; font-weight: 900;">→</span>
                 </button>
             `;
@@ -1113,8 +1348,8 @@ function showStory() {
     // ── First Scene Only: Immersion Hint Banner ──────────────────────────────
     let firstSceneHintHtml = "";
     if (traversalPath.length === 1) {
-        const _immersionHints = ["No retreat buttons here — your choices are permanent. Choose wisely. 🎭","Every path leads somewhere different. There's no wrong answer — just your story. 📖","You only live this moment once. Don't look back. 🌑","Your first choice shapes everything that follows. No pressure. 😈","The story listens to every decision. Make them count. 🖤","Once you choose, the world shifts. Stay present. 🌀","This isn't a game you can pause. It's a story you live. 🔥","No spoilers ahead — just consequences. 💀",
-        "Live the story. Don't use retreat. 🖤"];
+        const _immersionHints = ["No retreat buttons here — your choices are permanent. Choose wisely. 🎭", "Every path leads somewhere different. There's no wrong answer — just your story. 📖", "You only live this moment once. Don't look back. 🌑", "Your first choice shapes everything that follows. No pressure. 😈", "The story listens to every decision. Make them count. 🖤", "Once you choose, the world shifts. Stay present. 🌀", "This isn't a game you can pause. It's a story you live. 🔥", "No spoilers ahead — just consequences. 💀",
+            "Live the story. Don't use retreat. 🖤"];
         const _hint = _immersionHints[Math.floor(Math.random() * _immersionHints.length)];
         firstSceneHintHtml = `
             <div id="immersionHintBanner" style="
@@ -1143,7 +1378,7 @@ function showStory() {
         `;
     }
 
-    sceneContainer.innerHTML = firstSceneHintHtml + `
+    sceneContainer.innerHTML = renderAudioNarratorWidget() + firstSceneHintHtml + `
         <div class="story-card" style="border: 3px solid #000; border-radius: 24px; padding: 32px; box-shadow: 6px 6px 0px #000; background: #fff;">
             <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
                 <span class="stat-pill-yellow">📍 ${locationText}</span>
@@ -1163,6 +1398,7 @@ function showStory() {
     `;
 
     choicesContainer.innerHTML = "";
+    narrateCurrentScene();
 }
 
 
@@ -1209,6 +1445,7 @@ function showXpWarning(message) {
    ============================================================ */
 
 function retreat() {
+    stopAudioNarration();
     if (!currentNode) return;
 
     if (currentNode.isEnding) {
@@ -1232,7 +1469,6 @@ function retreat() {
     if (!freeAlreadyUsed) {
         // Use the free retreat token for this story
         user.usedFreeRetreatStories.push(storyId);
-        localStorage.setItem("user", JSON.stringify(user));
         if (storySession) storySession.freeRetreatUsed = true;
 
         showToastNotification("FREE RETREAT USED!", "You rewound 1 scene back using your free retreat token! ⏪", "⚡");
@@ -1246,9 +1482,8 @@ function retreat() {
         }
 
         // Deduct XP
-        activeXp  -= RETREAT_COST;
-        user.xp    = activeXp;
-        localStorage.setItem("user", JSON.stringify(user));
+        activeXp -= RETREAT_COST;
+        user.xp = activeXp;
         if (storySession) storySession.xp = activeXp;
 
         showToastNotification("TIME-WARP RETREAT!", `Rewound 1 scene back! -${RETREAT_COST} XP used. ⭐`, "⏪");
@@ -1257,10 +1492,10 @@ function retreat() {
     // Sync XP + free retreat record to backend
     if (user && user.id) {
         fetch(`${API_BASE}/Users/${user.id}`, {
-            method:  "PATCH",
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({
-                xp:                    user.xp,
+            body: JSON.stringify({
+                xp: user.xp,
                 usedFreeRetreatStories: user.usedFreeRetreatStories
             })
         }).catch(e => console.warn("Could not sync retreat XP to db.json:", e));
@@ -1268,11 +1503,11 @@ function retreat() {
 
     // Go back one node
     traversalPath.pop();
-    let previous  = traversalPath[traversalPath.length - 1];
-    currentNode   = currentStory.nodes.find(node => node.id === previous.nodeId);
+    let previous = traversalPath[traversalPath.length - 1];
+    currentNode = currentStory.nodes.find(node => node.id === previous.nodeId);
 
-    storySession.ended        = false;
-    storySession.endingType   = null;
+    storySession.ended = false;
+    storySession.endingType = null;
     storySession.currentNodeId = currentNode.id;
     storySession.traversalPath = traversalPath;
 
@@ -1289,6 +1524,7 @@ function retreat() {
    ============================================================ */
 
 function restartStory() {
+    stopAudioNarration();
     let startingNode = currentStory.nodes.find(node => node.id === currentStory.startNodeId)
         || currentStory.nodes[0];
 
@@ -1297,22 +1533,22 @@ function restartStory() {
         return;
     }
 
-    currentNode   = startingNode;
+    currentNode = startingNode;
     traversalPath = [{
-        nodeId:     startingNode.id,
-        title:      startingNode.title,
+        nodeId: startingNode.id,
+        title: startingNode.title,
         choiceText: null
     }];
 
-    let activeXp   = (user && user.xp !== undefined) ? user.xp : STARTING_XP;
+    let activeXp = (user && user.xp !== undefined) ? user.xp : STARTING_XP;
     let isFreeUsed = Boolean(user && user.usedFreeRetreatStories && user.usedFreeRetreatStories.includes(storyId));
 
-    storySession.currentNodeId   = startingNode.id;
-    storySession.traversalPath   = traversalPath;
+    storySession.currentNodeId = startingNode.id;
+    storySession.traversalPath = traversalPath;
     storySession.freeRetreatUsed = isFreeUsed;
-    storySession.xp              = activeXp;
-    storySession.ended           = startingNode.isEnding || false;
-    storySession.endingType      = startingNode.isEnding ? startingNode.endingType : null;
+    storySession.xp = activeXp;
+    storySession.ended = startingNode.isEnding || false;
+    storySession.endingType = startingNode.isEnding ? startingNode.endingType : null;
 
     showStory();
     saveStorySession();
@@ -1325,8 +1561,9 @@ function restartStory() {
    ============================================================ */
 
 function backToLibrary() {
+    stopAudioNarration();
     saveStorySession();
-    window.location.href = "stories.html";
+    window.location.href = "/pages/reader/stories";
 }
 
 
@@ -1344,6 +1581,7 @@ function backToLibrary() {
    ============================================================ */
 
 function selectChoice(targetNodeId, choiceText) {
+    stopAudioNarration();
     let nextNode = currentStory.nodes.find(node => node.id === targetNodeId);
     if (!nextNode) {
         alert("Destination node not found: " + targetNodeId);
@@ -1352,8 +1590,8 @@ function selectChoice(targetNodeId, choiceText) {
 
     currentNode = nextNode;
     traversalPath.push({
-        nodeId:     nextNode.id,
-        title:      nextNode.title || "Scene",
+        nodeId: nextNode.id,
+        title: nextNode.title || "Scene",
         choiceText: choiceText
     });
 
@@ -1363,8 +1601,8 @@ function selectChoice(targetNodeId, choiceText) {
         if (!storySession.visitedNodeIds.includes(targetNodeId)) {
             storySession.visitedNodeIds.push(targetNodeId);
         }
-        storySession.currentNodeId  = nextNode.id;
-        storySession.traversalPath  = traversalPath;
+        storySession.currentNodeId = nextNode.id;
+        storySession.traversalPath = traversalPath;
     }
 
     showStory();
@@ -1379,8 +1617,12 @@ function selectChoice(targetNodeId, choiceText) {
    ============================================================ */
 
 function handleLogout() {
-    localStorage.removeItem("user");
-    window.location.href = "../auth/login.html";
+    if (window.Auth) {
+        Auth.logout();
+    } else {
+        localStorage.clear();
+        window.location.href = "../auth/login.html";
+    }
 }
 
 
@@ -1397,21 +1639,24 @@ function handleLogout() {
 
 function switchReaderTab(tab) {
     // Show/hide tab content panels (supporting both view* and *Section IDs)
-    let viewLibrary      = document.getElementById("viewLibrary")      || document.getElementById("librarySection");
-    let viewPitch        = document.getElementById("viewPitch")        || document.getElementById("pitchSection");
-    let viewMyPitches    = document.getElementById("viewMyPitches")    || document.getElementById("myPitchesSection");
-    let libraryControls  = document.getElementById("libraryControls");
+    let viewLibrary = document.getElementById("viewLibrary") || document.getElementById("librarySection");
+    let viewPitch = document.getElementById("viewPitch") || document.getElementById("pitchSection");
+    let viewMyPitches = document.getElementById("viewMyPitches") || document.getElementById("myPitchesSection");
+    let viewGallery = document.getElementById("viewGallery") || document.getElementById("gallerySection");
+    let libraryControls = document.getElementById("libraryControls");
 
-    if (viewLibrary)     viewLibrary.style.display     = (tab === "library")   ? "" : "none";
-    if (libraryControls) libraryControls.style.display = (tab === "library")   ? "flex" : "none";
-    if (viewPitch)       viewPitch.style.display       = (tab === "pitch")     ? "" : "none";
-    if (viewMyPitches)   viewMyPitches.style.display   = (tab === "mypitches") ? "" : "none";
+    if (viewLibrary) viewLibrary.style.display = (tab === "library") ? "" : "none";
+    if (libraryControls) libraryControls.style.display = (tab === "library") ? "flex" : "none";
+    if (viewPitch) viewPitch.style.display = (tab === "pitch") ? "" : "none";
+    if (viewMyPitches) viewMyPitches.style.display = (tab === "mypitches") ? "" : "none";
+    if (viewGallery) viewGallery.style.display = (tab === "gallery") ? "" : "none";
 
     // Update tab-pill active state (class-based)
     let tabMap = {
-        "library":   "tabLibrary",
-        "pitch":     "tabPitch",
-        "mypitches": "tabMyPitches"
+        "library": "tabLibrary",
+        "pitch": "tabPitch",
+        "mypitches": "tabMyPitches",
+        "gallery": "tabGallery"
     };
 
     Object.entries(tabMap).forEach(([tabKey, btnId]) => {
@@ -1430,9 +1675,338 @@ function switchReaderTab(tab) {
     // Auto-load pitches when switching to My Pitches tab
     if (tab === "mypitches") {
         loadMyPitches();
+    } else if (tab === "gallery") {
+        renderGlobalEndingsGallery();
+    } else if (tab === "pitch") {
+        if (typeof updatePitchStudioPreview === "function") {
+            updatePitchStudioPreview();
+        }
     }
 }
 
+function renderGlobalEndingsGallery() {
+    let container = document.getElementById("globalEndingsContainer");
+    let statsBanner = document.getElementById("trophyGlobalStats");
+    if (!container) return;
+
+    let totalStoriesCount = allPublishedStories.length;
+    let totalEndingsCount = 0;
+    let totalUnlockedCount = 0;
+
+    let storiesWithEndingsHtml = allPublishedStories.map(story => {
+        let endingNodes = (story.nodes || []).filter(n => n.isEnding);
+        if (endingNodes.length === 0) {
+            endingNodes = [{ id: 'default_end', title: 'Story Ending', isEnding: true, endingType: 'good', text: 'Final outcome achieved.' }];
+        }
+        let totalEndings = endingNodes.length;
+        let unlockedList = getUserUnlockedEndings(story.id);
+        let unlockedCount = unlockedList.length;
+
+        totalEndingsCount += totalEndings;
+        totalUnlockedCount += unlockedCount;
+
+        let endingCardsHtml = endingNodes.map((node, index) => {
+            let isUnlocked = unlockedList.includes(node.id);
+            let endType = (node.endingType || 'good').toLowerCase();
+            let badgeClass = endType === 'good' ? 'badge-good' : endType === 'bad' ? 'badge-bad' : endType === 'secret' ? 'badge-secret' : 'badge-neutral';
+            let emoji = endType === 'good' ? '🏆' : endType === 'bad' ? '💀' : endType === 'secret' ? '✨' : '⚖️';
+
+            if (isUnlocked) {
+                return `
+                    <div class="ending-gallery-card unlocked-${endType}">
+                        <div>
+                            <div class="ending-type-badge ${badgeClass}">
+                                ${emoji} ${endType.toUpperCase()} ENDING #${index + 1}
+                            </div>
+                            <h3 class="ending-card-title">${node.title || ('Ending #' + (index + 1))}</h3>
+                            <p class="ending-card-desc">"${node.text ? (node.text.substring(0, 110) + '...') : 'Fate achieved.'}"</p>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #000; padding-top: 10px;">
+                            <span style="font-weight: 900; font-size: 11px; color: #166534;">🔓 UNLOCKED</span>
+                            <button type="button" class="secondary-btn" style="padding: 6px 14px; font-size: 11px;" onclick="openStoryDetails('${story.id}', 'endings')">
+                                🔍 VIEW SHOWCASE
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let clueText = node.endingTeaser || `Make alternative decisions at key story choices to discover this ${endType} ending.`;
+                return `
+                    <div class="ending-gallery-card locked">
+                        <div>
+                            <div class="ending-type-badge badge-locked">
+                                🔒 LOCKED ENDING #${index + 1}
+                            </div>
+                            <h3 class="ending-card-title locked-blur-teaser">Hidden Fate #${index + 1}</h3>
+                            <p class="ending-card-desc">💡 <strong>Clue:</strong> ${clueText}</p>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; border-top: 1.5px solid #475569; padding-top: 10px;">
+                            <span style="font-weight: 800; font-size: 11px; color: #94a3b8;">🔒 LOCKED</span>
+                            <button type="button" class="primary-btn" style="padding: 6px 14px; font-size: 11px; background: #ffde59; color: #000;" onclick="enterStoryWorld('${story.id}')">
+                                🚀 HUNT ENDING
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }).join('');
+
+        let storyPercent = Math.round((unlockedCount / totalEndings) * 100);
+
+        return `
+            <div style="background: #ffffff; border: 3px solid #000; border-radius: 24px; padding: 24px 28px; box-shadow: 6px 6px 0px #000;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; border-bottom: 2px solid #000; padding-bottom: 16px; margin-bottom: 20px;">
+                    <div>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px;">
+                            <span class="badge-genre">${(story.genre || 'General').toUpperCase()}</span>
+                            <span style="font-weight: 900; font-size: 13px; color: #64748b;">🏆 ${unlockedCount} / ${totalEndings} Endings Discovered (${storyPercent}%)</span>
+                        </div>
+                        <h2 style="font-family: var(--font-display); font-size: 26px; margin: 0; text-transform: uppercase;">${story.title}</h2>
+                    </div>
+                    <button type="button" class="primary-btn" style="width: auto; padding: 10px 20px; font-size: 13px;" onclick="openStoryDetails('${story.id}', 'endings')">
+                        🏆 OPEN STORY SHOWCASE
+                    </button>
+                </div>
+                <div class="endings-grid">
+                    ${endingCardsHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = storiesWithEndingsHtml;
+
+    let totalPercent = totalEndingsCount > 0 ? Math.round((totalUnlockedCount / totalEndingsCount) * 100) : 0;
+    if (statsBanner) {
+        statsBanner.innerHTML = `
+            <div style="background: #ffffff; border: 2.5px solid #000; border-radius: 100px; padding: 8px 20px; font-weight: 900; font-size: 14px; box-shadow: 3px 3px 0px #000;">
+                🏆 <strong>${totalUnlockedCount} / ${totalEndingsCount}</strong> ENDINGS UNLOCKED
+            </div>
+            <div style="background: #ffffff; border: 2.5px solid #000; border-radius: 100px; padding: 8px 20px; font-weight: 900; font-size: 14px; box-shadow: 3px 3px 0px #000;">
+                📚 <strong>${totalStoriesCount}</strong> STORIES IN TROPHY HALL
+            </div>
+            <div style="background: #ffffff; border: 2.5px solid #000; border-radius: 100px; padding: 8px 20px; font-weight: 900; font-size: 14px; box-shadow: 3px 3px 0px #000;">
+                🎯 <strong>${totalPercent}%</strong> OVERALL DISCOVERY
+            </div>
+        `;
+    }
+}
+
+
+/* ============================================================
+   PITCH SUBMISSION STUDIO (21st.dev Component Interactions)
+   ============================================================ */
+
+const PITCH_GENRE_CONFIG = {
+    fantasy: {
+        label: "Fantasy",
+        icon: "🔮",
+        color: "#ffd731",
+        bg: "#fff9db",
+        image: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"
+    },
+    mystery: {
+        label: "Mystery",
+        icon: "🔍",
+        color: "#a855f7",
+        bg: "#f3e8ff",
+        image: "https://images.unsplash.com/photo-1514539079130-25950c84af65?auto=format&fit=crop&w=800&q=80"
+    },
+    horror: {
+        label: "Horror",
+        icon: "🩸",
+        color: "#ff4b4b",
+        bg: "#ffe5e5",
+        image: "https://images.unsplash.com/photo-1509248961158-e54f6934749c?auto=format&fit=crop&w=800&q=80"
+    },
+    adventure: {
+        label: "Adventure",
+        icon: "⚔️",
+        color: "#55db9c",
+        bg: "#e6faf1",
+        image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80"
+    },
+    "sci-fi": {
+        label: "Sci-Fi",
+        icon: "🚀",
+        color: "#4da2ff",
+        bg: "#e5f2ff",
+        image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80"
+    },
+    cyberpunk: {
+        label: "Cyberpunk",
+        icon: "⚡",
+        color: "#00f0ff",
+        bg: "#e0fcff",
+        image: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=800&q=80"
+    },
+    romance: {
+        label: "Romance",
+        icon: "💌",
+        color: "#fb7185",
+        bg: "#ffe4e6",
+        image: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=800&q=80"
+    },
+    general: {
+        label: "General",
+        icon: "📖",
+        color: "#ffd731",
+        bg: "#fff9db",
+        image: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80"
+    }
+};
+
+function selectPitchGenre(genreKey) {
+    const config = PITCH_GENRE_CONFIG[genreKey] || PITCH_GENRE_CONFIG.fantasy;
+    const selectEl = document.getElementById("pitchGenre");
+    if (selectEl) {
+        selectEl.value = genreKey;
+    }
+
+    // Update matrix buttons
+    const buttons = document.querySelectorAll("#pitchGenreMatrix .pitch-genre-card");
+    buttons.forEach(btn => {
+        const g = btn.getAttribute("data-genre");
+        if (g === genreKey) {
+            btn.classList.add("pitch-genre-selected");
+            btn.style.backgroundColor = config.bg;
+        } else {
+            btn.classList.remove("pitch-genre-selected");
+            btn.style.backgroundColor = "#ffffff";
+        }
+    });
+
+    // Update Live Preview Tag
+    const tagEl = document.getElementById("pitchPreviewGenreTag");
+    const tagText = document.getElementById("pitchPreviewGenreText");
+    if (tagEl && tagText) {
+        tagEl.style.backgroundColor = config.bg;
+        tagEl.firstElementChild.textContent = config.icon;
+        tagText.textContent = config.label.toUpperCase();
+    }
+
+    // Update Live Preview Cover Image
+    const coverImg = document.getElementById("pitchPreviewCoverImg");
+    if (coverImg && config.image) {
+        coverImg.src = config.image;
+    }
+
+    // Update preview details
+    updatePitchStudioPreview();
+}
+
+function syncPitchGenreUI(genreKey) {
+    selectPitchGenre(genreKey);
+}
+
+function updatePitchStudioPreview() {
+    const titleEl = document.getElementById("pitchTitle");
+    const descEl = document.getElementById("pitchDescription");
+    const titleVal = titleEl ? titleEl.value.trim() : "";
+    const descVal = descEl ? descEl.value.trim() : "";
+
+    // Title counter
+    const titleCounter = document.getElementById("pitchTitleCounter");
+    if (titleCounter) {
+        titleCounter.textContent = `${titleVal.length} / 80 chars`;
+    }
+
+    // Live preview card updates
+    const prevTitle = document.getElementById("pitchPreviewTitle");
+    if (prevTitle) {
+        prevTitle.textContent = titleVal || "YOUR STORY TITLE";
+    }
+
+    const prevDesc = document.getElementById("pitchPreviewDesc");
+    if (prevDesc) {
+        prevDesc.textContent = descVal || "Your pitch concept and branching dilemma will appear here in real time as you type...";
+    }
+
+    // Update Author name if user is logged in
+    const prevAuthor = document.getElementById("pitchPreviewAuthor");
+    if (prevAuthor) {
+        let authorName = "READER";
+        if (typeof user !== "undefined" && user && user.name) {
+            authorName = user.name;
+        } else if (window.Auth && typeof window.Auth.getUser === "function" && window.Auth.getUser()) {
+            authorName = window.Auth.getUser().name || "READER";
+        }
+        prevAuthor.textContent = `✍️ BY ${authorName.toUpperCase()}`;
+    }
+
+    // Word count calculation
+    const words = descVal ? descVal.split(/\s+/).filter(w => w.length > 0) : [];
+    const wordCount = words.length;
+    const isMet = wordCount >= 30;
+    const wordsNeeded = Math.max(0, 30 - wordCount);
+
+    // Progress bar fill
+    const meterBar = document.getElementById("pitchWordMeterBar");
+    if (meterBar) {
+        const pct = Math.min(100, Math.round((wordCount / 30) * 100));
+        meterBar.style.width = `${pct}%`;
+        if (isMet) {
+            meterBar.classList.add("meter-met");
+        } else {
+            meterBar.classList.remove("meter-met");
+        }
+    }
+
+    // Word status pill
+    const statusPill = document.getElementById("pitchWordStatusPill");
+    if (statusPill) {
+        if (isMet) {
+            statusPill.className = "pitch-meter-badge meter-ready";
+            statusPill.textContent = `✅ ${wordCount} words (Ready!)`;
+        } else {
+            statusPill.className = "pitch-meter-badge meter-short";
+            statusPill.textContent = `${wordCount} / 30 words min`;
+        }
+    }
+
+    // Status subtitle text & count
+    const wordsRemainingText = document.getElementById("pitchWordsRemainingText");
+    if (wordsRemainingText) {
+        if (isMet) {
+            wordsRemainingText.textContent = "Great job! Pitch meets editorial depth requirement.";
+            wordsRemainingText.style.color = "#047857";
+        } else {
+            wordsRemainingText.textContent = `Need ${wordsNeeded} more words for editor review`;
+            wordsRemainingText.style.color = "#6b7280";
+        }
+    }
+
+    const wordCountNum = document.getElementById("pitchWordCountNumber");
+    if (wordCountNum) {
+        wordCountNum.textContent = `${wordCount} word${wordCount === 1 ? '' : 's'}`;
+    }
+
+    // Backwards compatibility element
+    const charCountEl = document.getElementById("pitchCharCount");
+    if (charCountEl) {
+        charCountEl.textContent = `${wordCount} / 30 words min`;
+        charCountEl.style.color = isMet ? "#166534" : "#dc2626";
+    }
+}
+
+function applyPitchSpark(title, genre, desc) {
+    const titleEl = document.getElementById("pitchTitle");
+    const descEl = document.getElementById("pitchDescription");
+    if (titleEl) titleEl.value = title;
+    if (descEl) descEl.value = desc;
+
+    selectPitchGenre(genre);
+    updatePitchStudioPreview();
+
+    // Pulse feedback on preview card
+    const card = document.querySelector(".pitch-live-card");
+    if (card) {
+        card.style.transform = "scale(1.02)";
+        setTimeout(() => {
+            card.style.transform = "";
+        }, 220);
+    }
+}
 
 /* ============================================================
    SECTION 26 — SUBMIT PITCH: submitPitch()
@@ -1448,19 +2022,19 @@ function switchReaderTab(tab) {
    ============================================================ */
 
 async function submitPitch() {
-    let titleEl       = document.getElementById("pitchTitle");
-    let genreEl       = document.getElementById("pitchGenre");
+    let titleEl = document.getElementById("pitchTitle");
+    let genreEl = document.getElementById("pitchGenre");
     let descriptionEl = document.getElementById("pitchDescription");
-    let errorBanner   = document.getElementById("pitchFormError");
+    let errorBanner = document.getElementById("pitchFormError");
     let successBanner = document.getElementById("pitchFormSuccess");
 
-    if (errorBanner)   errorBanner.style.display   = "none";
+    if (errorBanner) errorBanner.style.display = "none";
     if (successBanner) successBanner.style.display = "none";
 
     if (!titleEl || !genreEl || !descriptionEl) return;
 
-    let title       = titleEl.value.trim();
-    let genre       = genreEl.value.trim();
+    let title = titleEl.value.trim();
+    let genre = genreEl.value.trim();
     let description = descriptionEl.value.trim();
 
     // Validate empty fields
@@ -1487,41 +2061,61 @@ async function submitPitch() {
         return;
     }
 
+    if (!user && window.Auth) {
+        user = await Auth.getProfile();
+    }
+
     let pitchObject = {
-        title:            title,
-        genre:            genre,
-        description:      description,
-        submittedBy:      user ? (user.name || "Reader") : "Reader",
-        submittedById:    user ? (user.id || null)       : null,
-        submittedAt:      new Date().toISOString(),
-        status:           "pending",     // Admin will set to "approved" or "rejected"
-        adminComment:     null,
-        adminHidden:      false          // Set to true by admin to soft-delete from queue
+        title: title,
+        genre: genre,
+        description: description,
+        submittedBy: user ? (user.name || "Reader") : "Reader",
+        submittedById: user ? (user.id || null) : null,
+        authorName: user ? (user.name || "Reader") : "Reader",
+        authorId: user ? (user.id || null) : null,
+        submittedAt: new Date().toISOString(),
+        status: "pending",     // Admin will set to "approved" or "rejected"
+        adminComment: null,
+        adminHidden: false          // Set to true by admin to soft-delete from queue
     };
 
     try {
         let res = await fetch(`${API_BASE}/ReaderStories`, {
-            method:  "POST",
+            method: "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify(pitchObject)
+            body: JSON.stringify(pitchObject)
         });
 
         if (res.ok) {
-            showToastNotification(
-                "PITCH SUBMITTED! 📝",
-                "Your story pitch has been sent to the admin for review!",
-                "📝"
-            );
+            let data = await res.json().catch(() => ({}));
+            if (data.xpAwarded && data.xpAwarded > 0) {
+                if (user) user.xp = data.newXp;
+                renderUserProfileHeader();
+                showToastNotification(
+                    "PITCH SUBMITTED! 📝",
+                    `Pitch sent for review! +${data.xpAwarded} XP earned (monthly bonus)! ⭐`,
+                    "🎉"
+                );
+            } else {
+                showToastNotification(
+                    "PITCH SUBMITTED! 📝",
+                    "Your story pitch has been sent to the admin for review!",
+                    "📝"
+                );
+            }
 
             // Reset the form
-            titleEl.value       = "";
-            genreEl.value       = "";
+            titleEl.value = "";
+            genreEl.value = "";
             descriptionEl.value = "";
+            if (typeof selectPitchGenre === "function") selectPitchGenre("fantasy");
+            if (typeof updatePitchStudioPreview === "function") updatePitchStudioPreview();
 
             // Switch to My Pitches tab so reader can see their submission
             switchReaderTab("mypitches");
         } else {
-            alert("Failed to submit pitch. Please try again.");
+            let errData = await res.json().catch(() => ({}));
+            alert(errData.error || errData.message || "Failed to submit pitch. Please try again.");
         }
     } catch (e) {
         alert("Error connecting to server.");
@@ -1556,7 +2150,7 @@ async function loadMyPitches() {
     }
 
     try {
-        let res     = await fetch(`${API_BASE}/ReaderStories?submittedById=${user.id}`);
+        let res = await fetch(`${API_BASE}/ReaderStories?submittedById=${user.id}`);
         let pitches = res.ok ? await res.json() : [];
 
         if (pitches.length === 0) {
@@ -1571,12 +2165,12 @@ async function loadMyPitches() {
 
         container.innerHTML = pitches.map(p => {
             // Status badge styling
-            let statusBg     = p.status === "approved" ? "#dcfce7" : p.status === "rejected" ? "#fee2e2" : "#fef3c7";
+            let statusBg = p.status === "approved" ? "#dcfce7" : p.status === "rejected" ? "#fee2e2" : "#fef3c7";
             let statusBorder = p.status === "approved" ? "#86efac" : p.status === "rejected" ? "#fca5a5" : "#fde047";
-            let statusColor  = p.status === "approved" ? "#166534" : p.status === "rejected" ? "#991b1b" : "#92400e";
-            let statusText   = (p.status || "pending").toUpperCase();
-            let statusIcon   = p.status === "approved" ? "✅" : p.status === "rejected" ? "✕" : "⏳";
-            let dateStr      = p.submittedAt
+            let statusColor = p.status === "approved" ? "#166534" : p.status === "rejected" ? "#991b1b" : "#92400e";
+            let statusText = (p.status || "pending").toUpperCase();
+            let statusIcon = p.status === "approved" ? "✅" : p.status === "rejected" ? "✕" : "⏳";
+            let dateStr = p.submittedAt
                 ? new Date(p.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
                 : "";
 
@@ -1613,7 +2207,7 @@ async function loadMyPitches() {
                 </div>
             `;
         }).join("");
-    } catch(e) {
+    } catch (e) {
         container.innerHTML = '<p style="font-weight: 700; color: #e00; padding: 16px;">Could not load pitches.</p>';
     }
 }
@@ -1634,16 +2228,11 @@ async function deleteMyPitch(pitchId) {
             method: "DELETE"
         });
         if (res.ok) {
-            // Also remove from localStorage cache
-            let cached      = JSON.parse(localStorage.getItem("myPitches") || "[]");
-            let updatedCache = cached.filter(p => String(p.id) !== String(pitchId));
-            localStorage.setItem("myPitches", JSON.stringify(updatedCache));
-
             loadMyPitches();
         } else {
             alert("Could not delete pitch.");
         }
-    } catch(e) {
+    } catch (e) {
         alert("Error connecting to server.");
     }
 }
@@ -1670,14 +2259,14 @@ async function submitStoryRating(storyId, stars) {
         return;
     }
 
-    let feedbackEl    = document.getElementById("ratingFeedback_" + storyId);
+    let feedbackEl = document.getElementById("ratingFeedback_" + storyId);
     let starsContainer = document.getElementById("starRatingContainer_" + storyId);
 
     try {
         let res = await fetch(`${API_BASE}/Stories/` + storyId);
         if (!res.ok) return;
 
-        let story   = await res.json();
+        let story = await res.json();
         let ratings = story.ratings || [];
         if (!Array.isArray(ratings)) ratings = [];
 
@@ -1690,9 +2279,9 @@ async function submitStoryRating(storyId, stars) {
         }
 
         let patchRes = await fetch(`${API_BASE}/Stories/` + storyId, {
-            method:  "PATCH",
+            method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ ratings: ratings })
+            body: JSON.stringify({ ratings: ratings })
         });
 
         if (patchRes.ok) {
@@ -1723,9 +2312,182 @@ async function submitStoryRating(storyId, stars) {
                 loadStories();
             }
         }
-    } catch(e) {
+    } catch (e) {
         console.warn("Could not submit rating:", e);
     }
 }
 
 
+
+
+/* ============================================================
+   SECTION — AUDIO MODE (TEXT-TO-SPEECH NARRATOR ENGINE)
+   ============================================================ */
+
+let isAudioNarratorEnabled = false;
+let audioNarratorRate = 1.0;
+let audioNarratorVoiceURI = "";
+let currentSpeechUtterance = null;
+
+function renderAudioNarratorWidget() {
+    // Audio narration is strictly for Readers/users, not for Admins
+    if (user && user.role === "Admin") {
+        return "";
+    }
+
+    let voices = (typeof speechSynthesis !== "undefined") ? speechSynthesis.getVoices() : [];
+    let englishVoices = voices.filter(v => v.lang && v.lang.startsWith("en"));
+    if (englishVoices.length === 0) englishVoices = voices;
+
+    let voiceOptionsHtml = englishVoices.map(v => {
+        let isSel = v.voiceURI === audioNarratorVoiceURI ? "selected" : "";
+        let displayName = v.name.length > 22 ? v.name.substring(0, 22) + "..." : v.name;
+        return `<option value="${v.voiceURI}" ${isSel}>${displayName}</option>`;
+    }).join('');
+
+    return `
+        <div id="audioNarratorWidget" class="audio-narrator-widget ${isAudioNarratorEnabled ? 'active' : ''}">
+            <div class="narrator-status-group">
+                <span class="narrator-title">🎙️ STORY NARRATOR</span>
+                <div class="soundwave-container ${(typeof speechSynthesis !== 'undefined' && speechSynthesis.speaking) ? 'speaking' : ''}" id="soundwaveVisualizer">
+                    <div class="soundwave-bar"></div>
+                    <div class="soundwave-bar"></div>
+                    <div class="soundwave-bar"></div>
+                    <div class="soundwave-bar"></div>
+                </div>
+                <span id="narratorStatusText" style="font-size: 12px; font-weight: 800; color: ${isAudioNarratorEnabled ? '#6c4cf1' : '#64748b'};">
+                    ${isAudioNarratorEnabled ? '🔊 AUDIO MODE ON' : '🔇 MUTED'}
+                </span>
+            </div>
+            <div class="narrator-btn-group">
+                <button type="button" class="narrator-toggle-btn ${isAudioNarratorEnabled ? 'on' : 'off'}" onclick="toggleAudioNarrator()">
+                    ${isAudioNarratorEnabled ? '🔊 NARRATION ON' : '🔇 ENABLE AUDIO MODE'}
+                </button>
+                ${isAudioNarratorEnabled ? `
+                    <button type="button" class="narrator-ctrl-btn" onclick="replaySceneNarration()" title="Replay Scene Audio">
+                        ▶ REPLAY
+                    </button>
+                    <button type="button" class="narrator-ctrl-btn" onclick="stopAudioNarration()" title="Stop Audio">
+                        ⏹️ STOP
+                    </button>
+                    <select class="narrator-select" id="narratorSpeedSelect" onchange="setNarratorSpeed(this.value)" title="Narration Speed">
+                        <option value="0.85" ${audioNarratorRate === 0.85 ? 'selected' : ''}>0.85x</option>
+                        <option value="1.0" ${audioNarratorRate === 1.0 ? 'selected' : ''}>1.0x</option>
+                        <option value="1.2" ${audioNarratorRate === 1.2 ? 'selected' : ''}>1.2x</option>
+                    </select>
+                    ${voiceOptionsHtml ? `
+                        <select class="narrator-select" id="narratorVoiceSelect" onchange="setNarratorVoice(this.value)" style="max-width: 140px;" title="Select Narrator Voice">
+                            ${voiceOptionsHtml}
+                        </select>
+                    ` : ''}
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+function toggleAudioNarrator() {
+    isAudioNarratorEnabled = !isAudioNarratorEnabled;
+
+    if (isAudioNarratorEnabled) {
+        showToastNotification("🔊 AUDIO MODE ENABLED", "The Story Narrator will now read scenes aloud for you!", "🎙️");
+        narrateCurrentScene();
+    } else {
+        stopAudioNarration();
+        showToastNotification("🔇 AUDIO MODE MUTED", "Audio narration turned off.", "🔇");
+    }
+    showStory();
+}
+
+function setNarratorSpeed(rateStr) {
+    audioNarratorRate = parseFloat(rateStr) || 1.0;
+    narrateCurrentScene();
+}
+
+function setNarratorVoice(voiceURI) {
+    audioNarratorVoiceURI = voiceURI;
+    narrateCurrentScene();
+}
+
+function stopAudioNarration() {
+    if (typeof speechSynthesis !== "undefined") {
+        speechSynthesis.cancel();
+    }
+    let vis = document.getElementById("soundwaveVisualizer");
+    if (vis) vis.classList.remove("speaking");
+}
+
+function replaySceneNarration() {
+    stopAudioNarration();
+    narrateCurrentScene(true);
+}
+
+function narrateCurrentScene(force = false) {
+    // Audio narration is strictly for Readers/users, not for Admins
+    if (user && user.role === "Admin") {
+        if (typeof speechSynthesis !== "undefined") {
+            try { speechSynthesis.cancel(); } catch (e) {}
+        }
+        return;
+    }
+
+    if (!isAudioNarratorEnabled && !force) return;
+    if (typeof speechSynthesis === "undefined") return;
+
+    // Cancel any active speech immediately
+    speechSynthesis.cancel();
+
+    if (!currentNode) return;
+
+    let textToNarrate = "";
+    if (currentNode.isEnding) {
+        let endType = (currentNode.endingType || "good").toUpperCase();
+        textToNarrate = `${currentNode.title || 'Story Ending'}. ${endType} Ending achieved. ${currentNode.text || ''}`;
+    } else {
+        let loc = currentNode.location ? `Location: ${currentNode.location}. ` : "";
+        textToNarrate = `${currentNode.title || ''}. ${loc}${currentNode.text || ''}`;
+    }
+
+    if (!textToNarrate.trim()) return;
+
+    let utterance = new SpeechSynthesisUtterance(textToNarrate);
+    utterance.rate = audioNarratorRate || 1.0;
+    utterance.pitch = 1.0;
+
+    let voices = speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        let chosenVoice = voices.find(v => v.voiceURI === audioNarratorVoiceURI)
+            || voices.find(v => (v.name.includes("Google") || v.name.includes("Natural")) && v.lang.startsWith("en"))
+            || voices.find(v => v.lang.startsWith("en"))
+            || voices[0];
+        if (chosenVoice) utterance.voice = chosenVoice;
+    }
+
+    utterance.onstart = () => {
+        let vis = document.getElementById("soundwaveVisualizer");
+        if (vis) vis.classList.add("speaking");
+    };
+
+    utterance.onend = () => {
+        let vis = document.getElementById("soundwaveVisualizer");
+        if (vis) vis.classList.remove("speaking");
+    };
+
+    utterance.onerror = () => {
+        let vis = document.getElementById("soundwaveVisualizer");
+        if (vis) vis.classList.remove("speaking");
+    };
+
+    currentSpeechUtterance = utterance;
+    speechSynthesis.speak(utterance);
+}
+
+if (typeof speechSynthesis !== "undefined" && speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = () => {
+        let el = document.getElementById("narratorVoiceSelect");
+        if (el) {
+            let voices = speechSynthesis.getVoices().filter(v => v.lang && v.lang.startsWith("en"));
+            el.innerHTML = voices.map(v => `<option value="${v.voiceURI}" ${v.voiceURI === audioNarratorVoiceURI ? 'selected' : ''}>${v.name.substring(0, 22)}</option>`).join('');
+        }
+    };
+}

@@ -1,4 +1,4 @@
-﻿
+
 /* ============================================================
    preview.js
    Page:  pages/admin/preview.html
@@ -43,14 +43,21 @@
    ============================================================ */
 
 var currentUser = null;
-try {
-    currentUser = JSON.parse(localStorage.getItem("user"));
-} catch (e) {
-    currentUser = null;
+
+if (typeof speechSynthesis !== "undefined") {
+    try { speechSynthesis.cancel(); } catch (e) {}
 }
 
-if (!currentUser || currentUser.role !== "Admin") {
+// Admin Security Guard — strictly require valid JWT with role === "Admin"
+if (!window.Auth || !Auth.getToken()) {
     window.location.href = "../auth/login.html";
+} else {
+    Auth.requireAuth("Admin").then(u => {
+        if (u) {
+            currentUser = u;
+            renderAdminProfileHeader();
+        }
+    });
 }
 
 
@@ -66,6 +73,11 @@ if (!currentUser || currentUser.role !== "Admin") {
 
 const urlParams    = new URLSearchParams(window.location.search);
 let storyId        = urlParams.get("id");
+if (!storyId || storyId === "undefined" || storyId === "null") {
+    try {
+        storyId = sessionStorage.getItem("lastPreviewStoryId");
+    } catch (e) {}
+}
 
 let allStories     = [];
 let currentStory   = null;
@@ -82,7 +94,10 @@ let traversalPath  = [];
 
 document.getElementById("editStoryBtn")?.addEventListener("click", () => {
     if (currentStory && currentStory.id) {
-        window.location.href = `add_stories.html?id=${currentStory.id}`;
+        try {
+            sessionStorage.setItem("lastEditStoryId", String(currentStory.id));
+        } catch (e) {}
+        window.location.href = `add_stories?id=${encodeURIComponent(currentStory.id)}`;
     } else {
         window.location.href = "admin.html";
     }
@@ -184,6 +199,80 @@ document.addEventListener("click", (e) => {
    i. Call renderCurrentScene() to begin the preview.
    ============================================================ */
 
+/* ============================================================
+   SECTION 5.5 — STORY SWITCHER: switchToStory(newStoryId)
+   Switches the previewed story in-place:
+   - Updates sessionStorage + URL
+   - Injects story meta into #previewStoryMeta
+   - Normalises nodes
+   - Resets traversalPath and renders the first scene
+   ============================================================ */
+
+function switchToStory(newStoryId) {
+    if (!newStoryId || !allStories || allStories.length === 0) return;
+    let found = allStories.find(s => String(s.id) === String(newStoryId));
+    if (!found) {
+        found = allStories[0];
+    }
+
+    currentStory = found;
+    storyId = currentStory.id;
+
+    try {
+        sessionStorage.setItem("lastPreviewStoryId", String(storyId));
+    } catch (e) {}
+
+    try {
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, "", `preview?id=${encodeURIComponent(storyId)}`);
+        }
+    } catch (e) {}
+
+    // Normalise nodes — support both array and keyed-object formats
+    let nodesList = [];
+    if (Array.isArray(currentStory.nodes)) {
+        nodesList = currentStory.nodes;
+    } else if (currentStory.nodes && typeof currentStory.nodes === "object") {
+        nodesList = Object.values(currentStory.nodes);
+    }
+    currentStory.nodes = nodesList;
+
+    // Update story meta in header
+    let metaContainer = document.getElementById("previewStoryMeta");
+    if (metaContainer) {
+        metaContainer.innerHTML = `
+            <span style="font-weight: 900; font-size: 15px; color: #0f172a; font-family: var(--font-display);">${escapeHtml(currentStory.title || "Story Preview")}</span>
+            <span style="font-size: 12px; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 3px 10px; border-radius: 100px; border: 1.5px solid #000;">✍️ ${escapeHtml(currentStory.author || "Anonymous")}</span>
+        `;
+    }
+
+    // Keep dropdown in sync
+    let storySelector = document.getElementById("storySelector");
+    if (storySelector && String(storySelector.value) !== String(storyId)) {
+        storySelector.value = String(storyId);
+    }
+
+    // Reset start node & traversal path
+    let startingNode = currentStory.nodes.find(n => n.id === currentStory.startNodeId)
+        || currentStory.nodes[0];
+
+    let sceneContainer = document.getElementById("sceneContainer");
+    if (!startingNode) {
+        if (sceneContainer) sceneContainer.innerHTML = `<p style="font-weight:700;">This story has no nodes yet.</p>`;
+        return;
+    }
+
+    currentNode   = startingNode;
+    traversalPath = [{
+        nodeId:     startingNode.id,
+        title:      startingNode.title || "Initial Scene",
+        choiceText: null
+    }];
+
+    renderCurrentScene();
+}
+
+
 async function loadStoryForPreview() {
     renderAdminProfileHeader();
     let sceneContainer = document.getElementById("sceneContainer");
@@ -207,6 +296,12 @@ async function loadStoryForPreview() {
         }
 
         // Step d/e: Resolve which story to preview
+        if (!storyId || storyId === "undefined" || storyId === "null") {
+            try {
+                storyId = sessionStorage.getItem("lastPreviewStoryId");
+            } catch (e) {}
+        }
+
         if (storyId) {
             currentStory = allStories.find(s => String(s.id) === String(storyId));
         }
@@ -215,49 +310,24 @@ async function loadStoryForPreview() {
             storyId = currentStory.id;
         }
 
-        // Step f: Normalise nodes — support both array and keyed-object formats
-        let nodesList = [];
-        if (Array.isArray(currentStory.nodes)) {
-            nodesList = currentStory.nodes;
-        } else if (currentStory.nodes && typeof currentStory.nodes === "object") {
-            nodesList = Object.values(currentStory.nodes);
-        }
-        currentStory.nodes = nodesList;
-
-        // Step g: Populate story selector dropdown
+        // Step f: Populate story selector dropdown
         let storySelector = document.getElementById("storySelector");
         if (storySelector) {
             storySelector.innerHTML = allStories.map(s =>
                 `<option value="${s.id}" ${String(s.id) === String(storyId) ? "selected" : ""}>${s.title || "Untitled"}</option>`
             ).join("");
             storySelector.onchange = () => {
-                window.location.href = `preview.html?id=${storySelector.value}`;
+                switchToStory(storySelector.value);
             };
         }
 
-        // Step h: Find start node and initialise traversalPath
-        let startingNode = currentStory.nodes.find(n => n.id === currentStory.startNodeId)
-            || currentStory.nodes[0];
-
-        if (!startingNode) {
-            if (sceneContainer) sceneContainer.innerHTML = `<p style="font-weight:700;">This story has no nodes yet.</p>`;
-            return;
-        }
-
-        currentNode   = startingNode;
-        traversalPath = [{
-            nodeId:     startingNode.id,
-            title:      startingNode.title || "Initial Scene",
-            choiceText: null
-        }];
-
-        // Step i: Render the first scene
-        renderCurrentScene();
+        // Step g: Load and render the selected story
+        switchToStory(storyId);
 
     } catch (e) {
         console.error("Preview load error:", e);
         if (sceneContainer) {
-            sceneContainer.innerHTML = `<p style="font-weight: 700; color: red;">Error loading story. Is json-server running on port 3000?</p>`;
+            sceneContainer.innerHTML = `<p style="font-weight: 700; color: red;">Error loading story. Is the Express server running on port 5000?</p>`;
         }
     }
 }
@@ -512,8 +582,12 @@ function escapeHtml(str) {
    ============================================================ */
 
 function handleLogout() {
-    localStorage.removeItem("user");
-    window.location.href = "../auth/login.html";
+    if (window.Auth) {
+        Auth.logout();
+    } else {
+        localStorage.clear();
+        window.location.href = "../auth/login.html";
+    }
 }
 
 
@@ -526,3 +600,6 @@ function handleLogout() {
 
 renderAdminProfileHeader();
 loadStoryForPreview();
+
+
+

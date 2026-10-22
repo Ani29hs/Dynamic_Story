@@ -85,44 +85,23 @@ function toggleEye() {
 let handleLogin = async (event) => {
     event.preventDefault();
 
-    // Step b: Read email and password from the form
     let email    = document.getElementById("email");
     let password = document.getElementById("password");
 
-    // Step c: Look up user by email in the database
-    let response = await fetch(`${API_BASE}/Users?email=${email.value}`);
-    let data     = await response.json();
+    try {
+        let data = await Auth.login(email.value.trim(), password.value);
+        let user = data.user;
 
-    // Step d: Guard — email not registered
-    if (data.length === 0) {
-        alert("User is not Registered!!");
-        window.location.href = "../auth/signup.html";
-        return;
-    }
-
-    let user = data[0];
-
-    // Step e: Guard — wrong password
-    if (user.password !== password.value) {
-        alert("Incorrect password");
-        return;
-    }
-
-    // Step g: Apply safe defaults for fields added after registration
-    if (user.xp === undefined) {
-        user.xp = 100;
-    }
-    if (!user.completedStories) {
-        user.completedStories = [];
-    }
-
-    // Step h: Persist authenticated user to browser localStorage
-    localStorage.setItem("user", JSON.stringify(user));
-
-    // Step i: Role-based page redirect
-    if (user.role === "Admin") {
-        window.location.href = "../admin/admin.html";
-    } else {
-        window.location.href = "../reader/stories.html";
+        // Role-based page redirect with welcome toast trigger
+        if (user.role === "Admin") {
+            sessionStorage.setItem("showAdminWelcomeToast", "true");
+            window.location.href = "../admin/admin.html";
+        } else {
+            sessionStorage.setItem("showStoryIntro", "true");
+            sessionStorage.setItem("showLoginWelcomeToast", "true");
+            window.location.href = "../reader/stories.html";
+        }
+    } catch (err) {
+        alert(err.message || "Login failed");
     }
 };

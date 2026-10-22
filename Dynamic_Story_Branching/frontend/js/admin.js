@@ -1,4 +1,24 @@
-﻿
+
+// Admin Security Guard — strictly require valid JWT with role === "Admin"
+let adminUser = null;
+
+if (!window.Auth || !Auth.getToken()) {
+    window.location.href = "../auth/login.html";
+} else {
+    Auth.requireAuth("Admin").then(u => {
+        adminUser = u;
+        if (adminUser) {
+            renderAdminProfileHeader();
+            if (sessionStorage.getItem("showAdminWelcomeToast")) {
+                sessionStorage.removeItem("showAdminWelcomeToast");
+                setTimeout(() => {
+                    showToastNotification("ADMIN DASHBOARD 🛡️", `Welcome, ${adminUser.name || 'Admin'}! Manage stories & pitches.`, "⚡");
+                }, 300);
+            }
+        }
+    });
+}
+
 /* ============================================================
    admin.js
    Page:  pages/admin/admin.html
@@ -75,11 +95,18 @@ function calculateRatingStats(story) {
    ============================================================ */
 
 function redirectStory() {
-    window.location.href = "add_stories.html";
+    try {
+        sessionStorage.removeItem("lastEditStoryId");
+    } catch (e) {}
+    window.location.href = "add_stories";
 }
 
 function editStory(storyId) {
-    window.location.href = `add_stories.html?id=${storyId}`;
+    if (!storyId) return;
+    try {
+        sessionStorage.setItem("lastEditStoryId", String(storyId));
+    } catch (e) {}
+    window.location.href = `add_stories?id=${encodeURIComponent(storyId)}`;
 }
 
 async function deleteStory(storyId) {
@@ -92,18 +119,7 @@ async function deleteStory(storyId) {
     });
 
     if (response.ok) {
-        // Remove the active reading session for this story from localStorage
-        let user = JSON.parse(localStorage.getItem("user"));
-        let userId = user ? (user.id || user.name) : "guest";
-        localStorage.removeItem(`active_session_${userId}_${storyId}`);
-
-        // Clear the currentStory draft if the editor had this story open
-        let currentStory = JSON.parse(localStorage.getItem("currentStory"));
-        if (currentStory && currentStory.id === storyId) {
-            localStorage.removeItem("currentStory");
-        }
-
-        alert("Story deleted successfully!");
+        showToastNotification("STORY DELETED 🗑️", "Story permanently removed from database.", "🗑️");
         loadStories();
     } else {
         alert("Failed to delete story.");
@@ -118,27 +134,28 @@ async function deleteStory(storyId) {
    ============================================================ */
 
 function handleLogout() {
-    localStorage.removeItem("user");
-    window.location.href = "../../Landing.html";
+    if (window.Auth) {
+        Auth.logout();
+    } else {
+        localStorage.clear();
+        window.location.href = "../../Landing.html";
+    }
 }
 
 
 /* ============================================================
    SECTION 4 — NAVBAR: renderAdminProfileHeader()
-   Reads the logged-in user from localStorage and injects the
-   profile avatar button + dropdown menu into #navAuthContainer.
-
-   Renders:
-   - User's name initial as avatar circle
-   - User's display name
-   - Dropdown with: role badge, XP badge (Readers only),
-     Admin Dashboard link, Story Preview link, Sign Out button
-   Called on: DOMContentLoaded + immediately on script parse.
+   Fetches the logged-in admin directly from MongoDB Atlas /profile
+   and injects the profile avatar button + dropdown menu.
    ============================================================ */
 
-function renderAdminProfileHeader() {
+async function renderAdminProfileHeader() {
     let navAuthContainer = document.getElementById("navAuthContainer");
-    let user = JSON.parse(localStorage.getItem("user"));
+    if (!navAuthContainer) return;
+    let user = null;
+    if (window.Auth) {
+        user = await Auth.getProfile();
+    }
     if (!navAuthContainer || !user) return;
 
     let initial     = user.name ? user.name.charAt(0).toUpperCase() : "A";
@@ -296,7 +313,7 @@ async function loadStories() {
                     <p class="story-description">${truncatedDesc}${readMoreBtnHtml}</p>
                     <div class="stat-lockup-box">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                        <span><strong>${nodeCount}</strong> SCENES / NODES</span>
+                        <span><strong>${nodeCount}</strong> SCENES &bull; <strong>${(element.nodes || []).filter(n => n.isEnding).length}</strong> ENDINGS</span>
                     </div>
                 </div>
                 <div class="story-actions">
@@ -332,7 +349,11 @@ async function loadStories() {
    ============================================================ */
 
 async function restoreSampleStory() {
-    let user = JSON.parse(localStorage.getItem("user"));
+    let user = adminUser;
+    if (!user && window.Auth) {
+        user = await Auth.getProfile();
+        adminUser = user;
+    }
 
     if (!user || user.role !== "Admin") {
         alert("Only Admin can restore sample story");
@@ -415,7 +436,7 @@ async function restoreSampleStory() {
             body:    JSON.stringify(sampleStory)
         });
         if (!response.ok) { alert("Sample story could not be created"); return; }
-        alert("Sample story restored successfully!");
+        showToastNotification("SAMPLE RESTORED 📚", "The Lost Kingdom restored successfully!", "✨");
         loadStories();
     } catch (e) {
         console.error("Error restoring sample story:", e);
@@ -522,19 +543,37 @@ function switchTab(tab) {
     let tabPitches     = document.getElementById("tabPitches");
 
     if (tab === "stories") {
-        storiesSection.style.display = "";
-        pitchesSection.style.display = "none";
-        tabStories.style.background  = "#000";
-        tabStories.style.color       = "#fff";
-        tabPitches.style.background  = "#fff";
-        tabPitches.style.color       = "#000";
+        if (storiesSection) {
+            storiesSection.style.setProperty("display", "grid", "important");
+            storiesSection.classList.remove("hidden");
+        }
+        if (pitchesSection) {
+            pitchesSection.style.display = "none";
+        }
+        if (tabStories) {
+            tabStories.style.background  = "#000";
+            tabStories.style.color       = "#fff";
+        }
+        if (tabPitches) {
+            tabPitches.style.background  = "#fff";
+            tabPitches.style.color       = "#000";
+        }
     } else {
-        storiesSection.style.display = "none";
-        pitchesSection.style.display = "flex";
-        tabStories.style.background  = "#fff";
-        tabStories.style.color       = "#000";
-        tabPitches.style.background  = "#000";
-        tabPitches.style.color       = "#fff";
+        if (storiesSection) {
+            storiesSection.style.setProperty("display", "none", "important");
+            storiesSection.classList.add("hidden");
+        }
+        if (pitchesSection) {
+            pitchesSection.style.display = "flex";
+        }
+        if (tabStories) {
+            tabStories.style.background  = "#fff";
+            tabStories.style.color       = "#000";
+        }
+        if (tabPitches) {
+            tabPitches.style.background  = "#000";
+            tabPitches.style.color       = "#fff";
+        }
         loadReaderPitches();
     }
 }
@@ -696,6 +735,12 @@ async function updatePitchStatus(pitchId, status) {
         }
     }
 
+    if (status === "approved") {
+        showToastNotification("PITCH APPROVED! ✅", "Pitch marked approved and +30 XP awarded to reader!", "🎉");
+    } else {
+        showToastNotification("PITCH REJECTED ✕", "Pitch has been rejected.", "⚠️");
+    }
+
     loadReaderPitches();
 }
 
@@ -711,6 +756,7 @@ async function saveAdminComment(pitchId) {
     });
 
     if (res.ok) {
+        showToastNotification("FEEDBACK SAVED 💾", "Admin comment saved for reader.", "📝");
         loadReaderPitches();
     } else {
         alert("Failed to save comment.");
@@ -727,6 +773,7 @@ async function deletePitch(pitchId) {
     });
 
     if (res.ok) {
+        showToastNotification("PITCH REMOVED 🗑️", "Pitch removed from your active queue.", "🗑️");
         loadReaderPitches();
     } else {
         alert("Failed to remove pitch.");
@@ -735,7 +782,11 @@ async function deletePitch(pitchId) {
 
 
 function previewStory(storyId) {
-    window.location.href = "preview.html?id=" + storyId;
-};
+    if (!storyId) return;
+    try {
+        sessionStorage.setItem("lastPreviewStoryId", String(storyId));
+    } catch (e) {}
+    window.location.href = `preview?id=${encodeURIComponent(storyId)}`;
+}
 
 

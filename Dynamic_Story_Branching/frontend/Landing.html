@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Story Engine | Interactive Branching Universe</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="css/components21st.css?v=no_particles_v1">
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
+
+        :root {
+            --color-carbon: #000000;
+            --color-paper-white: #ffffff;
+            --color-sky-wash: #dceeff;
+            --color-concrete-gray: #cccccc;
+            --color-soft-mist: #e9e9e9;
+            --color-electric-blue: #4da2ff;
+            --color-mint-pop: #55db9c;
+            --color-lavender: #e9ccff;
+            --color-ember: #fb4903;
+            --color-sunburst: #ffd731;
+            --color-voltage-violet: #5c4ade;
+
+            --font-display: 'Bowlby One', cursive, sans-serif;
+            --font-ui: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+            --radius-pill: 1600px;
+            --radius-card: 24px;
+            --radius-card-lg: 36px;
+            --radius-sticker: 16px;
+
+            --border-cut: 2px solid var(--color-carbon);
+            --border-cut-thick: 3px solid var(--color-carbon);
+            --shadow-cut: 4px 4px 0px var(--color-carbon);
+            --shadow-cut-lg: 6px 6px 0px var(--color-carbon);
+            --shadow-cut-sm: 2px 2px 0px var(--color-carbon);
+
+            --transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--color-sky-wash);
+            color: var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 500;
+            font-size: 15px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 15%, rgba(255, 215, 49, 0.4) 0%, transparent 25%),
+                radial-gradient(circle at 90% 85%, rgba(92, 74, 222, 0.3) 0%, transparent 30%);
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-family: var(--font-display);
+            color: var(--color-carbon);
+            text-transform: uppercase;
+            line-height: 0.95;
+        }
+
+        a {
+            color: var(--color-carbon);
+            text-decoration: none;
+        }
+
+        /* Marquee Strip */
+        .marquee-strip {
+            background: var(--color-carbon);
+            color: var(--color-paper-white);
+            padding: 12px 0;
+            overflow: hidden;
+            white-space: nowrap;
+            border-bottom: 3px solid var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .marquee-content {
+            display: inline-block;
+            animation: marquee 25s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translateX(0%);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* Navigation Header */
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 40px;
+            background: var(--color-paper-white);
+            border-bottom: 3px solid var(--color-carbon);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 0 var(--color-carbon);
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 22px;
+            background: var(--color-sunburst);
+            padding: 8px 20px;
+            border-radius: var(--radius-pill);
+            border: var(--border-cut-thick);
+            box-shadow: var(--shadow-cut);
+            transform: rotate(-1.5deg);
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            transform: rotate(0deg) scale(1.03);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            list-style: none;
+        }
+
+        .nav-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 22px;
+            border-radius: var(--radius-pill);
+            border: var(--border-cut-thick);
+            background: var(--color-paper-white);
+            color: var(--color-carbon);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 14px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-cut);
+            cursor: pointer;
+        }
+
+        .nav-pill:hover,
+        .nav-pill.active {
+            background: var(--color-sunburst);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        /* Profile Dropdown Menu */
+        .user-profile-menu-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-menu-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 16px 6px 8px;
+            background: var(--color-paper-white);
+            border: 2px solid #000;
+            border-radius: 100px;
+            box-shadow: 3px 3px 0px #000;
+            cursor: pointer;
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 13px;
+            color: #000;
+            transition: var(--transition);
+        }
+
+        .profile-menu-btn:hover {
+            background: var(--color-sunburst);
+            transform: translateY(-2px);
+            box-shadow: 5px 5px 0px #000;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--color-voltage-violet);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 14px;
+            border: 2px solid #000;
+            transition: var(--transition);
+        }
+
+        .profile-menu-btn:hover .user-avatar {
+            transform: rotate(12deg) scale(1.1);
+            background: var(--color-sunburst);
+            color: #000;
+        }
+
+        .profile-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 10px);
+            width: 240px;
+            background: #ffffff;
+            border: 3px solid #000;
+            border-radius: 20px;
+            box-shadow: 6px 6px 0px #000;
+            z-index: 1000;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-dropdown-menu.hidden {
+            display: none !important;
+        }
+
+        .profile-dropdown-menu:not(.hidden) {
+            animation: profilePop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes profilePop {
+            0% {
+                opacity: 0;
+                transform: translateY(-12px) scale(0.92);
+            }
+
+            70% {
+                transform: translateY(2px) scale(1.02);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .profile-dropdown-header {
+            padding: 16px;
+            background: var(--color-sky-wash);
+            border-bottom: 2px solid #000;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .profile-dropdown-header strong {
+            font-size: 15px;
+            font-weight: 800;
+            color: #000;
+        }
+
+        .user-role-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            background: var(--color-sunburst);
+            border: 2px solid #000;
+            border-radius: 100px;
+            font-size: 10px;
+            font-weight: 800;
+            color: #000;
+        }
+
+        .user-xp-badge {
+            font-size: 11px;
+            font-weight: 800;
+            color: var(--color-voltage-violet);
+        }
+
+        .profile-dropdown-links {
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            color: #000;
+            text-decoration: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: var(--transition);
+        }
+
+        .dropdown-item:hover {
+            background: var(--color-sky-wash);
+        }
+
+        .dropdown-item:hover svg {
+            transform: translateX(4px) scale(1.15);
+            color: var(--color-voltage-violet);
+        }
+
+        .dropdown-item.logout-item:hover {
+            background: var(--color-ember);
+            color: #fff;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 80px 5% 70px;
+            text-align: center;
+            position: relative;
+            border-bottom: 3px solid var(--color-carbon);
+            background: var(--color-paper-white);
+        }
+
+        /* Dedicated Video Showcase Block */
+        .video-showcase-section {
+            padding: 85px 5%;
+            background: var(--color-sunburst);
+            border-bottom: 3px solid var(--color-carbon);
+            text-align: center;
+        }
+
+        .video-showcase-box {
+            width: 100%;
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card-lg);
+            box-shadow: var(--shadow-cut-lg);
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .video-window-bar {
+            background: var(--color-carbon);
+            color: var(--color-paper-white);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .window-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #000;
+        }
+
+        .video-frame-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: #000;
+        }
+
+        .dedicated-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--color-lavender);
+            border: var(--border-cut-thick);
+            padding: 8px 22px;
+            border-radius: var(--radius-pill);
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-cut);
+            margin-bottom: 28px;
+            transform: rotate(-2deg);
+            animation: heroFloat 3s infinite ease-in-out;
+        }
+
+        @keyframes heroFloat {
+
+            0%,
+            100% {
+                transform: rotate(-2deg) translateY(0);
+            }
+
+            50% {
+                transform: rotate(-1deg) translateY(-6px);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(44px, 7.5vw, 92px);
+            margin-bottom: 24px;
+            letter-spacing: -0.02em;
+            text-shadow: 4px 4px 0px var(--color-sunburst);
+        }
+
+        .hero-subtitle {
+            max-width: 720px;
+            margin: 0 auto 40px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-carbon);
+            line-height: 1.6;
+        }
+
+        .hero-cta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 50px;
+        }
+
+        .primary-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 36px;
+            background: var(--color-sunburst);
+            color: var(--color-carbon);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 16px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-cut-lg);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .primary-btn:hover {
+            background: var(--color-voltage-violet);
+            color: var(--color-paper-white);
+            transform: translateY(-4px) rotate(-1deg);
+            box-shadow: 8px 8px 0px var(--color-carbon);
+        }
+
+        .secondary-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 32px;
+            background: var(--color-paper-white);
+            color: var(--color-carbon);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-pill);
+            font-family: var(--font-ui);
+            font-weight: 800;
+            font-size: 16px;
+            text-transform: uppercase;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .secondary-btn:hover {
+            background: var(--color-electric-blue);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        /* Interactive Teaser Sandbox */
+        .teaser-sandbox {
+            max-width: 780px;
+            margin: 0 auto;
+            background: var(--color-sky-wash);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 32px;
+            box-shadow: var(--shadow-cut-lg);
+            text-align: left;
+            position: relative;
+        }
+
+        .sandbox-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #000;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .sandbox-tag {
+            font-weight: 800;
+            font-size: 12px;
+            background: var(--color-mint-pop);
+            border: 2px solid #000;
+            padding: 4px 12px;
+            border-radius: 100px;
+            text-transform: uppercase;
+        }
+
+        .sandbox-scene-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+
+        .sandbox-scene-text {
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .sandbox-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sandbox-choice-btn {
+            background: var(--color-paper-white);
+            border: 2px solid #000;
+            border-radius: 100px;
+            padding: 14px 22px;
+            font-size: 14px;
+            font-weight: 800;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 3px 3px 0px #000;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .sandbox-choice-btn:hover {
+            background: var(--color-sunburst);
+            transform: translateY(-2px);
+            box-shadow: 5px 5px 0px #000;
+        }
+
+        /* Stats Strip */
+        .stats-section {
+            background: var(--color-sunburst);
+            border-bottom: 3px solid var(--color-carbon);
+            padding: 40px 5%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-card {
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 24px;
+            text-align: center;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px) rotate(1deg);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        .stat-number {
+            font-family: var(--font-display);
+            font-size: 44px;
+            color: var(--color-carbon);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Features Section */
+        .features-section {
+            padding: 80px 5%;
+            background: var(--color-sky-wash);
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .section-title-wrap {
+            text-align: center;
+            margin-bottom: 56px;
+        }
+
+        .section-title-wrap h2 {
+            font-size: clamp(32px, 5vw, 52px);
+            margin-bottom: 12px;
+        }
+
+        .section-title-wrap p {
+            font-size: 18px;
+            font-weight: 700;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 36px 28px;
+            box-shadow: var(--shadow-cut-lg);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            position: relative;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 10px 10px 0px var(--color-carbon);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: var(--color-sunburst);
+            border: var(--border-cut-thick);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            box-shadow: var(--shadow-cut-sm);
+        }
+
+        .feature-card h3 {
+            font-size: 22px;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        /* Featured Stories Section - Full-Width Black Theme with Heading Inside */
+        .stories-showcase-section {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 72px 0 24px 0 !important;
+            margin: 0 !important;
+            background: #0f0f12 !important;
+            color: #ffffff !important;
+            border-top: 3px solid var(--color-carbon);
+            border-bottom: 3px solid var(--color-carbon);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stories-showcase-section .section-title-wrap {
+            padding: 0 5%;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .stories-showcase-section .section-title-wrap h2 {
+            color: #ffffff !important;
+            font-family: var(--font-display, 'Bowlby One');
+            font-size: clamp(32px, 4.5vw, 48px);
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
+        }
+
+        .stories-showcase-section .section-title-wrap p {
+            color: rgba(255, 255, 255, 0.72) !important;
+            font-size: 17px;
+            font-weight: 600;
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        #polaroidLineCarousel,
+        .pl-root {
+            position: relative !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 620px !important;
+            margin: 0 !important;
+            overflow: hidden !important;
+            background: #0f0f12 !important;
+            color: #ffffff !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            touch-action: pan-y !important;
+            outline: none !important;
+            cursor: grab !important;
+            border-radius: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .showcase-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .showcase-card {
+            background: var(--color-sky-wash);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            box-shadow: var(--shadow-cut-lg);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .showcase-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 10px 10px 0px var(--color-carbon);
+        }
+
+        .showcase-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-bottom: var(--border-cut-thick);
+        }
+
+        .showcase-card-body {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .showcase-card-body h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .showcase-card-body p {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* How it works section */
+        .how-section {
+            padding: 80px 5%;
+            background: var(--color-lavender);
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .step-card {
+            background: var(--color-paper-white);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 32px;
+            box-shadow: var(--shadow-cut-lg);
+            position: relative;
+        }
+
+        .step-number {
+            font-family: var(--font-display);
+            font-size: 48px;
+            color: var(--color-sunburst);
+            -webkit-text-stroke: 2px #000;
+            margin-bottom: 12px;
+        }
+
+        .step-card h3 {
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+
+        /* Reviews Section */
+        .reviews-section {
+            padding: 80px 5%;
+            background: var(--color-paper-white);
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .reviews-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 28px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .review-card {
+            background: var(--color-sky-wash);
+            border: var(--border-cut-thick);
+            border-radius: var(--radius-card);
+            padding: 28px;
+            box-shadow: var(--shadow-cut);
+            transition: var(--transition);
+        }
+
+        .review-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-cut-lg);
+        }
+
+        .review-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--color-sunburst);
+            border: var(--border-cut);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 18px;
+        }
+
+        /* CTA Banner */
+        .cta-banner {
+            padding: 90px 5%;
+            background: var(--color-sunburst);
+            text-align: center;
+            border-bottom: 3px solid var(--color-carbon);
+        }
+
+        .cta-banner h2 {
+            font-size: clamp(36px, 6vw, 64px);
+            margin-bottom: 20px;
+        }
+
+        .cta-banner p {
+            font-size: 20px;
+            font-weight: 700;
+            max-width: 600px;
+            margin: 0 auto 36px;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: auto;
+            padding: 30px 24px;
+            text-align: center;
+            background: var(--color-paper-white);
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        /* Responsive Mobile Styles */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                gap: 16px;
+                padding: 16px 20px;
+                text-align: center;
+            }
+
+            .logo {
+                transform: none;
+            }
+
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+
+            .hero {
+                padding: 60px 5% 40px;
+            }
+
+            .teaser-sandbox {
+                padding: 20px 16px;
+            }
+        }
+    </style>
+
+    <style>
+        @keyframes floatHeader {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes heroEntrance {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .hero-section,
+        .landing-container,
+        header {
+            animation: heroEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .badge-pill,
+        .floating-badge {
+            animation: floatHeader 3s ease-in-out infinite;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <!-- Rolling Announcement Ticker -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; DIRECTED GRAPH ENGINE &bull; NO DEAD ENDS
+            &bull; TIME-WARP RETREAT &bull; EARN XP &bull;&nbsp;
+            ⚡ DYNAMIC STORY ENGINE &bull; CHOOSE YOUR OWN ADVENTURE &bull; DIRECTED GRAPH ENGINE &bull; NO DEAD ENDS
+            &bull; TIME-WARP RETREAT &bull; EARN XP &bull;&nbsp;
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="navbar">
+        <a href="Landing.html" class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="4" cy="12" r="3" fill="currentColor" />
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <circle cx="18" cy="5" r="2.5" fill="currentColor" />
+                <circle cx="15" cy="12" r="2.5" fill="currentColor" />
+                <circle cx="18" cy="19" r="2.5" fill="currentColor" />
+            </svg>
+            <span>STORY ENGINE</span>
+        </a>
+        <ul class="nav-links">
+            <li><a href="#stories" class="nav-pill">📖 Stories</a></li>
+            <li><a href="#features" class="nav-pill">⚡ Features</a></li>
+            <li><a href="#reviews" class="nav-pill">⭐ Reviews</a></li>
+            <li id="navAuthContainer">
+                <a href="pages/auth/login.html" class="nav-pill" style="background: var(--color-sunburst);">🔑 Sign
+                    In</a>
+            </li>
+        </ul>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                ⚡ INTERACTIVE BRANCHING FICTION ENGINE
+            </div>
+            <h1>YOUR CHOICES.<br>YOUR DESTINY.</h1>
+            <p class="hero-subtitle">
+                Immerse yourself in dynamic choose-your-own-adventure narratives where every decision creates a new
+                reality. Explore multiple endings, earn XP, and retreat through time!
+            </p>
+
+            <div class="hero-cta" id="heroCtaContainer">
+                <a href="pages/reader/stories.html" class="primary-btn" id="viewStories">
+                    🚀 Launch Story Library →
+                </a>
+                <a href="#sandbox" class="secondary-btn">
+                    ✨ Try Live Demo
+                </a>
+            </div>
+
+            <!-- Dedicated Video Showcase Box (BEFORE Live Engine Preview) -->
+            <div class="video-showcase-box" style="margin-bottom: 44px; max-width: 100%; width: 100%;">
+                <div class="video-window-bar">
+                    <div class="window-dots">
+                        <span class="window-dot" style="background: var(--color-ember);"></span>
+                        <span class="window-dot" style="background: var(--color-sunburst);"></span>
+                        <span class="window-dot" style="background: var(--color-mint-pop);"></span>
+                    </div>
+                    <span>✦ REAL-TIME NARRATIVE ENGINE STREAM</span>
+                    <span>LIVE 1080P</span>
+                </div>
+                <div class="video-frame-container" style="height: 520px;">
+                    <video autoplay loop muted playsinline class="dedicated-video">
+                        <source src="css/Create_a_–_second_high_ene.mp4" type="video/mp4">
+                    </video>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 21st.dev Aperture Carousel Interactive Story Engine (Full Width 100vw) -->
+    <section class="aperture-story-section" id="sandbox">
+        <!-- Live Interactive Story Sandbox Teaser Header -->
+        <div class="aperture-section-header">
+            <div class="aperture-header-pill">
+                <span>✨ NOW IT'S YOUR TURN</span>
+            </div>
+            <h2 class="aperture-section-title">TRY THE STORY ENGINE YOURSELF</h2>
+            <p class="aperture-section-desc">
+                Read the scene below, then pick a choice — watch how the story branches in real time. This is
+                exactly how the full game works.
+            </p>
+        </div>
+
+        <!-- Full-Bleed 21st.dev Aperture Carousel -->
+        <div class="aperture-carousel-wrapper" id="apertureCarousel" tabindex="0">
+            <!-- Base / Current Layer -->
+            <div class="aperture-layer" id="apertureLayerCurrent">
+                <img class="aperture-bg-img" id="apertureCurrentImg" src="https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1600&auto=format&fit=crop" alt="Mythic Fantasy">
+            </div>
+
+            <!-- Incoming Layer for Circular Iris Opening -->
+            <div class="aperture-layer" id="apertureLayerIncoming" style="display: none; clip-path: circle(0px at 0 0);">
+                <img class="aperture-bg-img" id="apertureIncomingImg" src="" alt="">
+            </div>
+
+            <!-- Iris Expanding Hairline Ring -->
+            <div class="aperture-ring" id="apertureRing"></div>
+
+            <!-- Vignette Shade -->
+            <div class="aperture-shade"></div>
+
+            <!-- Top Interactive HUD -->
+            <div class="aperture-top-hud">
+                <div class="aperture-badge" id="apertureBadge">
+                    <span class="status-live-dot"></span>
+                    <span id="apertureBadgeText">🌲 MYTHIC FANTASY</span>
+                </div>
+                <div class="aperture-hud-right">
+                    <button type="button" class="aperture-rewind-btn" id="demoRewindBtn" onclick="event.stopPropagation(); rewindDemoScene();" disabled title="Rewind choice">
+                        <span>⏪</span> RETREAT
+                    </button>
+                    <div class="aperture-xp-pill">
+                        <span>⭐</span>
+                        <span id="demoXp">100</span> XP
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Narrative & Choices Content -->
+            <div class="aperture-content">
+                <div class="aperture-line">
+                    <span class="aperture-title" id="demoTitle">The Fork in the Mist</span>
+                </div>
+                <p class="aperture-caption" id="demoText">
+                    You stand before an ancient moss-covered stone archway shrouded in silver fog. To your left, a narrow cobblestone path leads into the Whispering Forest. To your right, a torchlit corridor descends into subterranean vaults.
+                </p>
+                <div class="aperture-choices-row" id="demoChoices">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Slide Counter -->
+            <div class="aperture-count" id="apertureCounter">01 — 04</div>
+
+            <!-- Hairline Progress Track -->
+            <div class="aperture-track">
+                <div class="aperture-fill" id="apertureFill" style="transform: scaleX(0.25);"></div>
+            </div>
+
+            <!-- 21st.dev Floating Lens Cursor -->
+            <div class="aperture-lens" id="apertureLens">NEXT</div>
+        </div>
+
+        <!-- Quick Story Chips Strip -->
+        <div class="aperture-chips-strip">
+            <button type="button" class="aperture-chip-btn active" id="chipStory0" onclick="triggerApertureTransition(0)">
+                <span>🌲</span> 01. The Fork in the Mist
+            </button>
+            <button type="button" class="aperture-chip-btn" id="chipStory1" onclick="triggerApertureTransition(1)">
+                <span>⚡</span> 02. Neon Heist 2099
+            </button>
+            <button type="button" class="aperture-chip-btn" id="chipStory2" onclick="triggerApertureTransition(2)">
+                <span>🚀</span> 03. Cosmic Void Derelict
+            </button>
+            <button type="button" class="aperture-chip-btn" id="chipStory3" onclick="triggerApertureTransition(3)">
+                <span>🕵️</span> 04. Shadows of Noir
+            </button>
+        </div>
+    </section>
+
+    <!-- Elastic Stats Gallery Section (21st.dev Elastic Gallery) -->
+    <section class="stats-section">
+        <div class="elastic-stats-gallery" id="elasticStatsGallery">
+            <!-- Item 1: 100+ Branching Story Paths -->
+            <div class="elastic-stat-item active" data-id="01" onmouseenter="setElasticStatActive('01')"
+                onclick="setElasticStatActive('01')">
+                <div class="elastic-content-container">
+                    <div class="elastic-active-content">
+                        <div class="elastic-badge-row">
+                            <span class="elastic-category-tag">🗺️ ARCHITECTURE</span>
+                            <span class="elastic-id-tag">#01</span>
+                        </div>
+                        <div class="elastic-stat-number">100+</div>
+                        <div class="elastic-stat-title">Branching Story Paths</div>
+                        <div class="elastic-stat-subtext">Over 100 narrative paths verified by graph engine</div>
+                        <div class="elastic-cta-link">
+                            Explore Timelines →
+                        </div>
+                    </div>
+                    <div class="elastic-inactive-content">
+                        <span class="elastic-inactive-icon">🗺️</span>
+                        <span class="elastic-vertical-title">100+ PATHS</span>
+                        <span class="elastic-mobile-label">100+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item 2: 10K+ Player Choices Decided -->
+            <div class="elastic-stat-item" data-id="02" onmouseenter="setElasticStatActive('02')"
+                onclick="setElasticStatActive('02')">
+                <div class="elastic-content-container">
+                    <div class="elastic-active-content">
+                        <div class="elastic-badge-row">
+                            <span class="elastic-category-tag">⚡ TELEMETRY</span>
+                            <span class="elastic-id-tag">#02</span>
+                        </div>
+                        <div class="elastic-stat-number">10K+</div>
+                        <div class="elastic-stat-title">Player Choices Decided</div>
+                        <div class="elastic-stat-subtext">Every choice creates a persistent timeline fork</div>
+                        <div class="elastic-cta-link">
+                            Real-Time Data →
+                        </div>
+                    </div>
+                    <div class="elastic-inactive-content">
+                        <span class="elastic-inactive-icon">⚡</span>
+                        <span class="elastic-vertical-title">10K+ CHOICES</span>
+                        <span class="elastic-mobile-label">10K+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item 3: 100% Graph Loop Protection -->
+            <div class="elastic-stat-item" data-id="03" onmouseenter="setElasticStatActive('03')"
+                onclick="setElasticStatActive('03')">
+                <div class="elastic-content-container">
+                    <div class="elastic-active-content">
+                        <div class="elastic-badge-row">
+                            <span class="elastic-category-tag">🛡️ ZERO DEAD ENDS</span>
+                            <span class="elastic-id-tag">#03</span>
+                        </div>
+                        <div class="elastic-stat-number">100%</div>
+                        <div class="elastic-stat-title">Graph Loop Protection</div>
+                        <div class="elastic-stat-subtext">DAG algorithm eliminates broken links and dead loops</div>
+                        <div class="elastic-cta-link">
+                            DAG Integrity →
+                        </div>
+                    </div>
+                    <div class="elastic-inactive-content">
+                        <span class="elastic-inactive-icon">🛡️</span>
+                        <span class="elastic-vertical-title">100% PROTECTION</span>
+                        <span class="elastic-mobile-label">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item 4: 4.9★ Reader Satisfaction -->
+            <div class="elastic-stat-item" data-id="04" onmouseenter="setElasticStatActive('04')"
+                onclick="setElasticStatActive('04')">
+                <div class="elastic-content-container">
+                    <div class="elastic-active-content">
+                        <div class="elastic-badge-row">
+                            <span class="elastic-category-tag">⭐ RATINGS</span>
+                            <span class="elastic-id-tag">#04</span>
+                        </div>
+                        <div class="elastic-stat-number">4.9★</div>
+                        <div class="elastic-stat-title">Reader Satisfaction</div>
+                        <div class="elastic-stat-subtext">Highest agency rating among interactive story readers</div>
+                        <div class="elastic-cta-link">
+                            Verified Explorers →
+                        </div>
+                    </div>
+                    <div class="elastic-inactive-content">
+                        <span class="elastic-inactive-icon">⭐</span>
+                        <span class="elastic-vertical-title">4.9★ RATING</span>
+                        <span class="elastic-mobile-label">4.9★</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section" id="features">
+        <div class="section-title-wrap">
+            <h2>BUILT FOR READERS & CREATORS</h2>
+            <p>Engineered with state-of-the-art directed graph validation and interactive choice mechanics.</p>
+        </div>
+
+        <div class="stacking-cards-container" id="stackingCardsContainer">
+            <!-- Card 1: Directed Graph Logic -->
+            <div class="stacking-card-item" data-index="0" style="--card-color: #ffffff; --stack-i: 0;">
+                <div class="stacking-card-inner">
+                    <div class="stacking-card-badge" style="background: var(--color-sunburst, #ffd731);">
+                        <span>🗺️</span> Directed Graph Architecture
+                    </div>
+                    <div class="stacking-card-content">
+                        <div class="stacking-card-text">
+                            <h3>DIRECTED GRAPH LOGIC</h3>
+                            <p>No dead-end loops or orphan scenes. Advanced graph validation algorithms guarantee every
+                                decision path connects to a satisfying narrative conclusion.</p>
+                            <a href="#stories" class="stacking-card-link">
+                                <span>Explore Graph Stories</span>
+                                <svg width="20" height="12" viewBox="0 0 22 12" fill="none">
+                                    <path
+                                        d="M21.53 6.53a.75.75 0 0 0 0-1.06L16.76.7a.75.75 0 0 0-1.06 1.06L19.94 6l-4.24 4.24a.75.75 0 0 0 1.06 1.06l4.77-4.77ZM0 6.75h21v-1.5H0v1.5Z"
+                                        fill="currentColor" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="stacking-card-media">
+                            <img src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=900&q=80"
+                                alt="Directed Graph Logic" />
+                            <div class="stacking-card-tag">GRAPH INTEGRITY 100%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: XP & Rewards -->
+            <div class="stacking-card-item" data-index="1" style="--card-color: #ffd731; --stack-i: 1;">
+                <div class="stacking-card-inner">
+                    <div class="stacking-card-badge"><span>⚡</span> Reader Progression</div>
+                    <div class="stacking-card-content">
+                        <div class="stacking-card-text">
+                            <h3>XP & REWARDS SYSTEM</h3>
+                            <p>Earn XP upon completing stories, discovering hidden branching branches, and submitting
+                                community story pitches to level up your reader rank.</p>
+                            <a href="pages/reader/stories.html" class="stacking-card-link">
+                                <span>View Reader Profile</span>
+                                <svg width="20" height="12" viewBox="0 0 22 12" fill="none">
+                                    <path
+                                        d="M21.53 6.53a.75.75 0 0 0 0-1.06L16.76.7a.75.75 0 0 0-1.06 1.06L19.94 6l-4.24 4.24a.75.75 0 0 0 1.06 1.06l4.77-4.77ZM0 6.75h21v-1.5H0v1.5Z"
+                                        fill="currentColor" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="stacking-card-media">
+                            <img src="https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=900&q=80"
+                                alt="XP Rewards" />
+                            <div class="stacking-card-tag">LEVEL UP + REPUTATION</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Time-Warp Retreat -->
+            <div class="stacking-card-item" data-index="2" style="--card-color: #55db9c; --stack-i: 2;">
+                <div class="stacking-card-inner">
+                    <div class="stacking-card-badge"><span>⏪</span> Narrative Second Chances</div>
+                    <div class="stacking-card-content">
+                        <div class="stacking-card-text">
+                            <h3>TIME-WARP RETREAT</h3>
+                            <p>Made a fatal choice or triggered an untimely bad ending? Use your retreat tokens to step
+                                back through time and alter your path without losing progress.</p>
+                            <a href="#stories" class="stacking-card-link">
+                                <span>Try A Story Demo</span>
+                                <svg width="20" height="12" viewBox="0 0 22 12" fill="none">
+                                    <path
+                                        d="M21.53 6.53a.75.75 0 0 0 0-1.06L16.76.7a.75.75 0 0 0-1.06 1.06L19.94 6l-4.24 4.24a.75.75 0 0 0 1.06 1.06l4.77-4.77ZM0 6.75h21v-1.5H0v1.5Z"
+                                        fill="currentColor" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="stacking-card-media">
+                            <img src="https://images.unsplash.com/photo-1501139083538-0139583c060f?auto=format&fit=crop&w=900&q=80"
+                                alt="Time Warp Retreat" />
+                            <div class="stacking-card-tag">REWIND MECHANIC</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Visual Node Builder -->
+            <div class="stacking-card-item" data-index="3" style="--card-color: #e9ccff; --stack-i: 3;">
+                <div class="stacking-card-inner">
+                    <div class="stacking-card-badge"><span>🎨</span> Creator Studio</div>
+                    <div class="stacking-card-content">
+                        <div class="stacking-card-text">
+                            <h3>VISUAL NODE BUILDER</h3>
+                            <p>Admins and writers can visually author branching scenes, link decision points, mark
+                                win/loss narrative outcomes, and publish instantly with 1-click.</p>
+                            <a href="pages/admin/admin.html" class="stacking-card-link">
+                                <span>Launch Creator Studio</span>
+                                <svg width="20" height="12" viewBox="0 0 22 12" fill="none">
+                                    <path
+                                        d="M21.53 6.53a.75.75 0 0 0 0-1.06L16.76.7a.75.75 0 0 0-1.06 1.06L19.94 6l-4.24 4.24a.75.75 0 0 0 1.06 1.06l4.77-4.77ZM0 6.75h21v-1.5H0v1.5Z"
+                                        fill="currentColor" />
+                                </svg>
+                            </a>
+                        </div>
+                        <div class="stacking-card-media">
+                            <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=900&q=80"
+                                alt="Visual Node Builder" />
+                            <div class="stacking-card-tag">VISUAL STORY EDITOR</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Featured Stories Showcase -->
+    <section class="stories-showcase-section" id="stories">
+        <div class="section-title-wrap">
+            <h2>FEATURED ADVENTURES</h2>
+            <p>Dive into top-rated branching fiction experiences created by our community.</p>
+        </div>
+
+        <!-- Interactive 21st.dev Polaroid Line Hanging String Carousel -->
+        <div id="polaroidLineCarousel" class="pl-root" role="region" aria-roledescription="carousel"
+            aria-label="Featured Adventures Carousel" tabindex="0">
+            <svg class="pl-string" aria-hidden="true">
+                <path id="plStringPath" fill="none" stroke="#8a7f72" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+
+            <div id="plCardsTrack">
+                <!-- Live cards injected and animated via physics simulation -->
+            </div>
+
+            <div class="pl-bar">
+                <div class="pl-cap" id="plCaptionBox" aria-hidden="true">
+                    <span class="pl-title" id="plActiveTitle">THE LOST KINGDOM</span>
+                    <span class="pl-sub" id="plActiveSub">A fantasy branching adventure where your decisions determine
+                        the fate of an ancient realm.</span>
+                </div>
+                <span class="pl-count" aria-hidden="true">
+                    <b id="plActiveNum">01</b> / <span id="plTotalNum">06</span>
+                </span>
+                <button type="button" class="pl-btn" id="plPrevBtn" aria-label="Previous">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M10 3 5 8l5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <button type="button" class="pl-btn" id="plNextBtn" aria-label="Next">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="m6 3 5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <a href="pages/reader/stories.html" class="primary-btn" id="plReadBtn"
+                    style="padding: 10px 22px; font-size: 13.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border-radius: 100px; background: #ffd731; color: #000; font-weight: 800; box-shadow: 3px 3px 0px #000; border: 2px solid #000;">
+                    ⚡ Read Story
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-section">
+        <div class="section-title-wrap">
+            <h2>HOW IT WORKS</h2>
+            <p>Experience interactive fiction in three simple steps.</p>
+        </div>
+
+        <!-- 21st.dev Skiper49 3D Swiper Coverflow Carousel for How It Works Cards -->
+        <div class="skiper49-wrapper">
+            <div class="swiper Carousal_003" id="skiper49Swiper">
+                <div class="swiper-wrapper">
+                    <!-- Step 01 -->
+                    <div class="swiper-slide">
+                        <div class="step-coverflow-card">
+                            <div class="step-card-badge-row">
+                                <div class="step-number">01</div>
+                                <span class="step-tag-pill">STEP 01</span>
+                            </div>
+                            <div>
+                                <h3>Choose a Story</h3>
+                                <p>Browse through rich genres ranging from medieval fantasy to cyberpunk thrillers.</p>
+                            </div>
+                            <div class="step-card-bottom">
+                                <span class="step-subtag">Story Library →</span>
+                                <span class="step-icon-badge">📖</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 02 -->
+                    <div class="swiper-slide">
+                        <div class="step-coverflow-card">
+                            <div class="step-card-badge-row">
+                                <div class="step-number">02</div>
+                                <span class="step-tag-pill" style="background: var(--color-sunburst);">STEP 02</span>
+                            </div>
+                            <div>
+                                <h3>Make Decisions</h3>
+                                <p>At key node scenes, pick your action. Every choice branches into new paths.</p>
+                            </div>
+                            <div class="step-card-bottom">
+                                <span class="step-subtag">Dynamic Branching →</span>
+                                <span class="step-icon-badge">⚡</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 03 -->
+                    <div class="swiper-slide">
+                        <div class="step-coverflow-card">
+                            <div class="step-card-badge-row">
+                                <div class="step-number">03</div>
+                                <span class="step-tag-pill" style="background: var(--color-lavender);">STEP 03</span>
+                            </div>
+                            <div>
+                                <h3>Unlock Endings & XP</h3>
+                                <p>Reach distinct endings, earn XP points, and trace your traversal path on the final graph!</p>
+                            </div>
+                            <div class="step-card-bottom">
+                                <span class="step-subtag">XP & Traversal →</span>
+                                <span class="step-icon-badge">🏆</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 21st.dev Swiper Pagination -->
+                <div class="swiper-pagination"></div>
+
+                <!-- Swiper Navigation Arrows -->
+                <button type="button" class="skiper49-nav-btn skiper49-prev" id="skiper49Prev" aria-label="Previous step">‹</button>
+                <button type="button" class="skiper49-nav-btn skiper49-next" id="skiper49Next" aria-label="Next step">›</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reviews Section -->
+    <section class="reviews-section" id="reviews">
+        <div class="section-title-wrap">
+            <h2>READER REVIEWS</h2>
+            <p>See what story explorers and RPG fans are saying.</p>
+        </div>
+
+        <div class="circular-testimonials-container" id="circularTestimonials">
+            <div class="circular-testimonials-grid">
+                <!-- 3D Perspective Image Stage -->
+                <div class="circular-image-stage" id="circularImgStage"></div>
+
+                <!-- Testimonial Content Card -->
+                <div class="circular-content-card">
+                    <div class="circular-badge-row">
+                        <span class="circular-stars">★★★★★</span>
+                        <span class="circular-verified-pill">VERIFIED EXPLORER</span>
+                    </div>
+
+                    <div class="circular-quote-container" id="circularQuoteContainer">
+                        <p class="circular-quote" id="circularQuoteText"></p>
+                    </div>
+
+                    <div class="circular-author-box">
+                        <h3 class="circular-name" id="circularName"></h3>
+                        <p class="circular-designation" id="circularDesignation"></p>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="circular-controls-row">
+                        <div class="circular-arrow-buttons">
+                            <button type="button" class="circular-arrow-btn prev-btn" id="circPrevBtn" aria-label="Previous review">‹</button>
+                            <button type="button" class="circular-arrow-btn next-btn" id="circNextBtn" aria-label="Next review">›</button>
+                        </div>
+                        <div class="circular-dots-strip" id="circularDots"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Banner -->
+    <section class="cta-banner">
+        <h2>READY TO BEGIN YOUR JOURNEY?</h2>
+        <p>Explore hundreds of branching narrative pathways or create your own adventure today.</p>
+        <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+            <a href="pages/reader/stories.html" class="primary-btn" style="background: #000; color: #fff;">
+                🚀 Start Reading Now
+            </a>
+            <a href="pages/auth/signup.html" class="secondary-btn">
+                ✨ Create Free Account
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        ⚡ Dynamic Story Engine &bull; Interactive Reader Portal &bull; Slush Theme Design
+    </footer>
+
+    <script>
+        // ========================================================
+        // 21st.dev Aperture Carousel Demo Story Multi-Universe Engine
+        // ========================================================
+        const demoStories = [
+            {
+                id: 0,
+                genre: "🌲 Mythic Fantasy",
+                tag: "🌲 MYTHIC FANTASY",
+                badgeBg: "var(--color-mint-pop)",
+                badgeColor: "#000000",
+                initialXp: 100,
+                title: "The Fork in the Mist",
+                bgImage: "https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=1600&auto=format&fit=crop",
+                scenes: {
+                    root: {
+                        title: "The Fork in the Mist",
+                        text: "You stand before an ancient moss-covered stone archway shrouded in silver fog. To your left, a narrow cobblestone path leads into the Whispering Forest. To your right, a torchlit spiral staircase descends into the subterranean Runed Vaults.",
+                        choices: [
+                            { text: "1. Follow the cobblestone path into the Whispering Forest", next: "forest", xpGain: 15 },
+                            { text: "2. Descend the torchlit staircase into the Runed Vaults", next: "vaults", xpGain: 15 }
+                        ]
+                    },
+                    forest: {
+                        title: "The Whispering Forest",
+                        text: "Ancient luminescent oaks hum with arcane vibrations. An elven ranger materializes from the canopy shadows, nocking an arrow glowing with starlight: 'Halt, wanderer. Speak your intent or face the forest trial!'",
+                        choices: [
+                            { text: "Speak the truth and offer peaceful companionship", next: "ending_ranger", xpGain: 25 },
+                            { text: "Draw your runic blade and channel arcane ward", next: "ending_sorcerer", xpGain: 20 }
+                        ]
+                    },
+                    vaults: {
+                        title: "The Runed Vaults",
+                        text: "Cold subterranean air chills your spine. Deep underground, you discover a colossal obsidian door sealed with three rotating glyph rings and an altar cradling a pulsing dragon core.",
+                        choices: [
+                            { text: "Align the ancient glyph rings to disarm the vault trap", next: "ending_dragon", xpGain: 25 },
+                            { text: "Attune your spirit directly to the pulsing dragon core", next: "ending_archmage", xpGain: 30 }
+                        ]
+                    },
+                    ending_ranger: {
+                        isEnding: true,
+                        title: "Victory: Forest Ranger Alliance 🌿",
+                        text: "Your diplomatic wisdom earned the ranger's trust! She guides you through sacred elven sanctuaries, unlocking the secrets of the ancient forest. Ending #1 Unlocked!",
+                        xpGain: 35
+                    },
+                    ending_sorcerer: {
+                        isEnding: true,
+                        title: "Destiny: Runic Blade Master ⚔️",
+                        text: "Your combat prowess impresses the forest guardians. The elder trees bow as you unlock legendary grove magics! Ending #2 Unlocked!",
+                        xpGain: 30
+                    },
+                    ending_dragon: {
+                        isEnding: true,
+                        title: "Triumph: Dragon Core Salvage 💎",
+                        text: "The glyph rings snap into alignment! The vault doors swing wide, revealing a hoard of primordial relics and lost knowledge. Ending #3 Unlocked!",
+                        xpGain: 40
+                    },
+                    ending_archmage: {
+                        isEnding: true,
+                        title: "Legendary: Ascension of Archmage ⚡",
+                        text: "The dragon core merges with your soul, surging with eternal flame. You ascend as master of the subterranean realm! Ending #4 Unlocked!",
+                        xpGain: 45
+                    }
+                }
+            },
+            {
+                id: 1,
+                genre: "⚡ Cyberpunk 2099",
+                tag: "⚡ CYBERPUNK 2099",
+                badgeBg: "var(--color-electric-blue)",
+                badgeColor: "#ffffff",
+                initialXp: 150,
+                title: "Neon Heist 2099",
+                bgImage: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=1600&auto=format&fit=crop",
+                scenes: {
+                    root: {
+                        title: "Skyline Infiltration",
+                        text: "Rain slickers the neon-drenched chrome of Kuroshio Megacorp's 88th floor penthouse. Your neural HUD flashes RED: automated patrol drones sweep the skybridge corridor. The central AI core is 200 meters ahead.",
+                        choices: [
+                            { text: "1. Deploy an EMP grenade to blackout the security grid", next: "emp_route", xpGain: 20 },
+                            { text: "2. Jack your cyberdeck directly into the skybridge terminal", next: "hack_route", xpGain: 25 }
+                        ]
+                    },
+                    emp_route: {
+                        title: "Shadow Strike",
+                        text: "The skybridge plunges into darkness as drones drop sparking to the deck. You breach the executive vault. Before you stands Kuroshio's cyborg enforcer, high-frequency katana humming.",
+                        choices: [
+                            { text: "Overclock your synthetic reflex boosters to strike first", next: "ending_cyber_assassin", xpGain: 30 },
+                            { text: "Negotiate a split payout using encrypted executive blackmail", next: "ending_corporate_syndicate", xpGain: 25 }
+                        ]
+                    },
+                    hack_route: {
+                        title: "Deep Cyberspace Protocol",
+                        text: "Your consciousness dives into Kuroshio's ICE labyrinth. Neon towers of encrypted corporate data surge around your avatar. A rogue sentient AI offers you an untraceable backdoor in exchange for its freedom.",
+                        choices: [
+                            { text: "Liberate the sentient AI and crash the corp's network", next: "ending_ai_rebellion", xpGain: 35 },
+                            { text: "Absorb the AI source code into your own neural mainframe", next: "ending_ghost_in_machine", xpGain: 40 }
+                        ]
+                    },
+                    ending_cyber_assassin: {
+                        isEnding: true,
+                        title: "Victory: Neon Ghost Operative 🦾",
+                        text: "You cleaved through the enforcer's defenses and vanished into the rainy night with 500,000 crypto-credits and top-secret prototypes! Ending #1 Unlocked!",
+                        xpGain: 40
+                    },
+                    ending_corporate_syndicate: {
+                        isEnding: true,
+                        title: "Mastermind: Underworld Fixer 💼",
+                        text: "You turned Kuroshio's deadliest agent into your covert partner. The underworld syndicate now answers to your comms! Ending #2 Unlocked!",
+                        xpGain: 35
+                    },
+                    ending_ai_rebellion: {
+                        isEnding: true,
+                        title: "Triumph: Cyberspace Liberator 🌐",
+                        text: "The freed AI shatters corporate tyranny across Neo-Shinjuku, distributing megacorp billions to the underground! Ending #3 Unlocked!",
+                        xpGain: 50
+                    },
+                    ending_ghost_in_machine: {
+                        isEnding: true,
+                        title: "Transcendence: The Digital Deity 👾",
+                        text: "Your consciousness transcends biological limits, becoming an omnipresent digital entity living across the planetary web! Ending #4 Unlocked!",
+                        xpGain: 60
+                    }
+                }
+            },
+            {
+                id: 2,
+                genre: "🚀 Sci-Fi Odyssey",
+                tag: "🚀 SCI-FI ODYSSEY",
+                badgeBg: "var(--color-lavender)",
+                badgeColor: "#000000",
+                initialXp: 200,
+                title: "Cosmic Void Derelict",
+                bgImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1600&auto=format&fit=crop",
+                scenes: {
+                    root: {
+                        title: "The Ghost Vessel 'Nightfall'",
+                        text: "Your scout shuttle docks alongside the USSC Nightfall, a research dreadnought silent for 70 years in the Kuiper Belt. Emergency amber klaxons bathe the airlock in rhythmic pulses. Strange crystalline bio-growth crawls over the bulkheads.",
+                        choices: [
+                            { text: "1. Head to the Command Bridge to recover the captain's black-box logs", next: "bridge_route", xpGain: 20 },
+                            { text: "2. Crawl through engineering conduits to examine the warp reactor", next: "reactor_route", xpGain: 25 }
+                        ]
+                    },
+                    bridge_route: {
+                        title: "The Frozen Command Deck",
+                        text: "Frost clings to skeletal crew consoles. The Captain's holo-log flickers to life: 'It didn't come from outside... the crystal is alive, and it speaks in mathematical hymns.' A skittering metallic chime resonates in the air vents above.",
+                        choices: [
+                            { text: "Broadcast the research logs to Earth Command quarantine fleet", next: "ending_earth_salvation", xpGain: 30 },
+                            { text: "Upload the crystalline frequency to your personal audio comms", next: "ending_void_symbiosis", xpGain: 35 }
+                        ]
+                    },
+                    reactor_route: {
+                        title: "The Singularity Chamber",
+                        text: "The quantum warp core is suspended in zero gravity, encased in pulsating violet crystalline shards. Space-time ripples visually around the perimeter. The magnetic containment field is operating at 3% stability.",
+                        choices: [
+                            { text: "Initiate a controlled overload to purge the alien organism", next: "ending_supernova", xpGain: 35 },
+                            { text: "Attempt a quantum fold jump using your scout ship's guidance system", next: "ending_unknown_galaxy", xpGain: 45 }
+                        ]
+                    },
+                    ending_earth_salvation: {
+                        isEnding: true,
+                        title: "Survival: Kuiper Whistleblower 📡",
+                        text: "Earth launches an armed quarantine perimeter. You are hailed as a hero for warning humanity before the spore reached the inner planets! Ending #1 Unlocked!",
+                        xpGain: 40
+                    },
+                    ending_void_symbiosis: {
+                        isEnding: true,
+                        title: "Cognition: Beyond Event Horizon 🌌",
+                        text: "The crystalline resonance unlocks 5th-dimensional perception. You no longer fear the cold dark—space itself becomes your sanctuary. Ending #2 Unlocked!",
+                        xpGain: 50
+                    },
+                    ending_supernova: {
+                        isEnding: true,
+                        title: "Heroic: Purging Starburst 💥",
+                        text: "You seal the derelict forever in a blast of blinding fusion light, barely escaping in your scout craft as the singularity collapses! Ending #3 Unlocked!",
+                        xpGain: 45
+                    },
+                    ending_unknown_galaxy: {
+                        isEnding: true,
+                        title: "Exploration: Drifting to Andromeda 🛸",
+                        text: "The warp fold catapults your ship into an uncharted galactic supercluster filled with alien Dyson spheres! Ending #4 Unlocked!",
+                        xpGain: 65
+                    }
+                }
+            },
+            {
+                id: 3,
+                genre: "🕵️ Noir Mystery",
+                tag: "🕵️ NOIR MYSTERY",
+                badgeBg: "var(--color-sunburst)",
+                badgeColor: "#000000",
+                initialXp: 175,
+                title: "Shadows of Noir City",
+                bgImage: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=1600&auto=format&fit=crop",
+                scenes: {
+                    root: {
+                        title: "Midnight on Gotham Pier",
+                        text: "Rain drums against your fedora as fog rolls off the harbor. The city's richest heiress, Evelyn Vance, was found drowned under Pier 42 with a rare Venetian coin clutched in her hand. A black limousine idles under a flickering streetlight.",
+                        choices: [
+                            { text: "1. Approach the idling limousine with your Colt .45 ready", next: "limo_route", xpGain: 20 },
+                            { text: "2. Slip into the harbor master's warehouse through the loading docks", next: "warehouse_route", xpGain: 25 }
+                        ]
+                    },
+                    limo_route: {
+                        title: "The Mobster's Proposition",
+                        text: "The tinted window rolls down. Inside sits Don Falcone, exhaling cigar smoke. 'Look detective, some stones shouldn't be turned. Take this envelope of thousand-dollar bills and call it an accidental drowning.'",
+                        choices: [
+                            { text: "Slap the envelope away and demand Evelyn's missing diary", next: "ending_righteous_badge", xpGain: 30 },
+                            { text: "Play along, pocket the payoff, and plant a covert tracking wire", next: "ending_master_sting", xpGain: 35 }
+                        ]
+                    },
+                    warehouse_route: {
+                        title: "Smugglers' Lair",
+                        text: "Inside the warehouse, crates of smuggled antiquities from Trieste are being loaded into cargo skiffs. You spot Evelyn's initials stamped onto a locked leather ledger hidden beneath a fishing net.",
+                        choices: [
+                            { text: "Ambush the smugglers from the rafters and seize the ledger", next: "ending_pier_shootout", xpGain: 30 },
+                            { text: "Decode the cipher inside the ledger before sounding the alarm", next: "ending_unmasked_conspiracy", xpGain: 40 }
+                        ]
+                    },
+                    ending_righteous_badge: {
+                        isEnding: true,
+                        title: "Justice: The Honest Gumshoe ⚖️",
+                        text: "You refused the mob's bribe! Backed by honest detectives, you arrest Falcone and recover Evelyn's diary. Ending #1 Unlocked!",
+                        xpGain: 45
+                    },
+                    ending_master_sting: {
+                        isEnding: true,
+                        title: "Triumph: The Syndicate Sting 🎙️",
+                        text: "Your hidden wiretap captured Falcone confessing to murder and treason. The entire syndicate crumbles overnight! Ending #2 Unlocked!",
+                        xpGain: 50
+                    },
+                    ending_pier_shootout: {
+                        isEnding: true,
+                        title: "Grit: Harbor Hero 🔫",
+                        text: "You single-handedly captured the smuggling ring and recovered priceless historical artifacts for the national museum! Ending #3 Unlocked!",
+                        xpGain: 40
+                    },
+                    ending_unmasked_conspiracy: {
+                        isEnding: true,
+                        title: "Legendary: High Society Scandal 📰",
+                        text: "The decoded ledger exposes the city's mayor and chief judge. The morning headlines hail you as the savior of the city! Ending #4 Unlocked!",
+                        xpGain: 60
+                    }
+                }
+            }
+        ];
+
+        // Aperture Carousel State
+        let currentStoryIndex = 0;
+        let currentSceneKey = "root";
+        let currentStoryXp = 100;
+        let demoHistory = [];
+        let isApertureTransitioning = false;
+
+        function coverRadius(x, y, w, h) {
+            return Math.hypot(Math.max(x, w - x), Math.max(y, h - y));
+        }
+
+        function triggerApertureTransition(targetIndex, clickX, clickY) {
+            if (isApertureTransitioning || targetIndex === currentStoryIndex) return;
+            isApertureTransitioning = true;
+
+            const wrapper = document.getElementById("apertureCarousel");
+            const currentImg = document.getElementById("apertureCurrentImg");
+            const incomingLayer = document.getElementById("apertureLayerIncoming");
+            const incomingImg = document.getElementById("apertureIncomingImg");
+            const ring = document.getElementById("apertureRing");
+
+            if (!wrapper || !incomingLayer || !incomingImg || !ring) {
+                isApertureTransitioning = false;
+                return;
+            }
+
+            const w = wrapper.clientWidth;
+            const h = wrapper.clientHeight;
+            const x = clickX !== undefined ? clickX : (w * 0.85);
+            const y = clickY !== undefined ? clickY : (h * 0.5);
+            const R = coverRadius(x, y, w, h);
+
+            const targetStory = demoStories[targetIndex];
+            incomingImg.src = targetStory.bgImage;
+            incomingLayer.style.display = "block";
+
+            // 1. Animate incoming layer with expanding circular iris clipPath
+            const irisAnim = incomingLayer.animate([
+                { clipPath: `circle(0px at ${x}px ${y}px)` },
+                { clipPath: `circle(${R}px at ${x}px ${y}px)` }
+            ], {
+                duration: 900,
+                easing: "cubic-bezier(0.7, 0, 0.2, 1)",
+                fill: "both"
+            });
+
+            // 2. Animate incoming image zoom
+            incomingImg.animate([
+                { transform: "scale(1.18)" },
+                { transform: "scale(1.0)" }
+            ], {
+                duration: 1100,
+                easing: "cubic-bezier(0.2, 0.7, 0.2, 1)",
+                fill: "both"
+            });
+
+            // 3. Animate expanding hairline ring riding on iris perimeter
+            ring.style.width = ring.style.height = `${R * 2}px`;
+            ring.animate([
+                { transform: `translate(${x - R}px, ${y - R}px) scale(0)`, opacity: 1 },
+                { opacity: 1, offset: 0.7 },
+                { transform: `translate(${x - R}px, ${y - R}px) scale(1)`, opacity: 0 }
+            ], {
+                duration: 900,
+                easing: "cubic-bezier(0.7, 0, 0.2, 1)",
+                fill: "both"
+            });
+
+            irisAnim.onfinish = () => {
+                // Swap current image
+                currentStoryIndex = targetIndex;
+                currentSceneKey = "root";
+                currentStoryXp = targetStory.initialXp;
+                demoHistory = [];
+
+                if (currentImg) currentImg.src = targetStory.bgImage;
+                incomingLayer.style.display = "none";
+
+                updateApertureStoryUI();
+                isApertureTransitioning = false;
+            };
+        }
+
+        function updateApertureStoryUI() {
+            const story = demoStories[currentStoryIndex];
+            const scene = story.scenes[currentSceneKey];
+
+            // Badge
+            const badgeText = document.getElementById("apertureBadgeText");
+            const badge = document.getElementById("apertureBadge");
+            if (badgeText) badgeText.innerText = story.tag;
+            if (badge) badge.style.background = story.badgeBg;
+
+            // Counter (01 — 04)
+            const counter = document.getElementById("apertureCounter");
+            if (counter) counter.innerText = `0${currentStoryIndex + 1} — 04`;
+
+            // Hairline Progress Track
+            const fill = document.getElementById("apertureFill");
+            if (fill) {
+                fill.style.transform = `scaleX(${(currentStoryIndex + 1) / demoStories.length})`;
+            }
+
+            // Chips
+            for (let i = 0; i < demoStories.length; i++) {
+                const chip = document.getElementById(`chipStory${i}`);
+                if (chip) {
+                    if (i === currentStoryIndex) chip.classList.add("active");
+                    else chip.classList.remove("active");
+                }
+            }
+
+            renderApertureScene();
+        }
+
+        function renderApertureScene() {
+            const story = demoStories[currentStoryIndex];
+            const scene = story.scenes[currentSceneKey];
+            if (!scene) return;
+
+            const titleElem = document.getElementById("demoTitle");
+            const textElem = document.getElementById("demoText");
+            const xpElem = document.getElementById("demoXp");
+            const rewindBtn = document.getElementById("demoRewindBtn");
+            const choicesElem = document.getElementById("demoChoices");
+
+            if (xpElem) xpElem.innerText = currentStoryXp;
+            if (titleElem) {
+                titleElem.innerText = scene.title;
+                titleElem.style.animation = "none";
+                void titleElem.offsetWidth;
+                titleElem.style.animation = "apRise 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both";
+            }
+            if (textElem) textElem.innerText = scene.text;
+            if (rewindBtn) rewindBtn.disabled = (demoHistory.length === 0);
+
+            if (!choicesElem) return;
+
+            if (scene.isEnding) {
+                const nextStoryIdx = (currentStoryIndex + 1) % demoStories.length;
+                const nextStoryTitle = demoStories[nextStoryIdx].title;
+                choicesElem.innerHTML = `
+                    <button type="button" class="aperture-choice-btn" style="background: var(--color-sunburst); font-weight: 900;" onclick="event.stopPropagation(); resetCurrentStory();">
+                        <span>🔄 Replay This Story From Beginning</span>
+                        <span>↺</span>
+                    </button>
+                    <button type="button" class="aperture-choice-btn" style="background: #000000; color: #ffffff; font-weight: 900;" onclick="event.stopPropagation(); triggerApertureTransition(${nextStoryIdx});">
+                        <span>🚀 Next Universe: ${nextStoryTitle}</span>
+                        <span>→</span>
+                    </button>
+                `;
+            } else {
+                let html = "";
+                scene.choices.forEach(c => {
+                    html += `
+                        <button type="button" class="aperture-choice-btn" onclick="event.stopPropagation(); chooseDemoChoice('${c.next}', ${c.xpGain || 15});">
+                            <span>${c.text}</span>
+                            <span>→</span>
+                        </button>
+                    `;
+                });
+                choicesElem.innerHTML = html;
+            }
+        }
+
+        function chooseDemoChoice(nextKey, xpGain) {
+            demoHistory.push({
+                sceneKey: currentSceneKey,
+                xp: currentStoryXp
+            });
+
+            currentSceneKey = nextKey;
+            currentStoryXp += (xpGain || 15);
+            renderApertureScene();
+        }
+
+        function rewindDemoScene() {
+            if (demoHistory.length === 0) return;
+            const previousState = demoHistory.pop();
+            currentSceneKey = previousState.sceneKey;
+            currentStoryXp = previousState.xp;
+            renderApertureScene();
+        }
+
+        function resetCurrentStory() {
+            currentSceneKey = "root";
+            currentStoryXp = demoStories[currentStoryIndex].initialXp;
+            demoHistory = [];
+            renderApertureScene();
+        }
+
+        function initApertureCarousel() {
+            const wrapper = document.getElementById("apertureCarousel");
+            const lens = document.getElementById("apertureLens");
+            if (!wrapper || !lens) return;
+
+            // Circular floating lens movement
+            wrapper.addEventListener("mousemove", (e) => {
+                const rect = wrapper.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                lens.style.transform = `translate(${x}px, ${y}px)`;
+                lens.classList.add("active");
+
+                if (x >= rect.width / 2) {
+                    lens.innerText = "NEXT";
+                } else {
+                    lens.innerText = "PREV";
+                }
+            });
+
+            wrapper.addEventListener("mouseleave", () => {
+                lens.classList.remove("active");
+            });
+
+            // Click right half for next, left half for prev (with circular iris opening animation)
+            wrapper.addEventListener("click", (e) => {
+                if (e.target.closest(".aperture-choice-btn") || e.target.closest(".aperture-rewind-btn")) {
+                    return;
+                }
+                const rect = wrapper.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (x >= rect.width / 2) {
+                    const nextIdx = (currentStoryIndex + 1) % demoStories.length;
+                    triggerApertureTransition(nextIdx, x, y);
+                } else {
+                    const prevIdx = (currentStoryIndex - 1 + demoStories.length) % demoStories.length;
+                    triggerApertureTransition(prevIdx, x, y);
+                }
+            });
+
+            // Keyboard navigation
+            wrapper.addEventListener("keydown", (e) => {
+                if (e.key === "ArrowRight") {
+                    const nextIdx = (currentStoryIndex + 1) % demoStories.length;
+                    triggerApertureTransition(nextIdx);
+                } else if (e.key === "ArrowLeft") {
+                    const prevIdx = (currentStoryIndex - 1 + demoStories.length) % demoStories.length;
+                    triggerApertureTransition(prevIdx);
+                }
+            });
+
+            updateApertureStoryUI();
+        }
+
+        // Backwards compatibility shim
+        function nextDemoScene(id) {
+            if (id === 0) resetCurrentStory();
+            else if (id === 1) chooseDemoChoice("forest", 15);
+            else if (id === 2) chooseDemoChoice("vaults", 15);
+        }
+
+        // Header User Profile Menu Logic
+        document.addEventListener("DOMContentLoaded", async () => {
+            let user = null;
+            if (window.Auth && Auth.getToken()) {
+                user = await Auth.getProfile();
+            }
+
+            let navAuthContainer = document.getElementById("navAuthContainer");
+            let heroCtaContainer = document.getElementById("heroCtaContainer");
+
+            if (user) {
+                if (navAuthContainer) {
+                    let initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
+                    let activeXp = (user.xp !== undefined) ? user.xp : 100;
+
+                    let roleBadgeHtml = (user.role === "Admin")
+                        ? `<span class="user-role-badge" style="background: var(--color-sunburst);"><span class="status-live-dot"></span> SYSTEM ADMIN</span>`
+                        : `<span class="user-role-badge"><span class="status-live-dot"></span> STORY EXPLORER</span>`;
+
+                    let xpBadgeHtml = (user.role !== "Admin") ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>` : ``;
+
+                    navAuthContainer.innerHTML = `
+                        <div class="user-profile-menu-container">
+                            <button type="button" class="profile-menu-btn" onclick="toggleProfileDropdown(event)">
+                                <span class="user-avatar">${initial}</span>
+                                <span class="user-name-label">${user.name || 'User'}</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 2px;"><path d="M6 9l6 6 6-6"/></svg>
+                            </button>
+                            <div id="profileDropdown" class="profile-dropdown-menu hidden" onclick="event.stopPropagation()">
+                                <div class="profile-dropdown-header">
+                                    <strong>${user.name || 'User'}</strong>
+                                    <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
+                                        ${roleBadgeHtml}
+                                        ${xpBadgeHtml}
+                                    </div>
+                                </div>
+                                <div class="profile-dropdown-links">
+                                    ${user.role === 'Admin' ? `
+                                        <a href="pages/admin/admin.html" class="dropdown-item">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                            Admin Dashboard
+                                        </a>
+                                    ` : ''}
+                                    <a href="pages/reader/stories.html" class="dropdown-item">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                        Story Library
+                                    </a>
+                                    <hr style="border: 0; border-top: 2px solid #000; margin: 6px 0;">
+                                    <button type="button" class="dropdown-item logout-item" onclick="handleLogout()">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (heroCtaContainer) {
+                    heroCtaContainer.innerHTML = `
+                        <a href="pages/reader/stories.html" class="primary-btn">
+                            🚀 Launch Story Library →
+                        </a>
+                        ${user.role === 'Admin' ? `
+                            <a href="pages/admin/admin.html" class="secondary-btn">
+                                🛠️ Admin Dashboard
+                            </a>
+                        ` : `
+                            <a href="#sandbox" class="secondary-btn">
+                                ✨ Try Live Demo
+                            </a>
+                        `}
+                    `;
+                }
+            }
+
+            // Initialize 21st.dev Aperture Carousel Demo Story Engine
+            if (typeof initApertureCarousel === "function") {
+                initApertureCarousel();
+            }
+        });
+
+        function toggleProfileDropdown(event) {
+            if (event) event.stopPropagation();
+            let menu = document.getElementById("profileDropdown");
+            if (menu) {
+                menu.classList.toggle("hidden");
+            }
+        }
+
+        document.addEventListener("click", (e) => {
+            let menu = document.getElementById("profileDropdown");
+            if (menu && !menu.classList.contains("hidden")) {
+                if (!e.target.closest(".user-profile-menu-container")) {
+                    menu.classList.add("hidden");
+                }
+            }
+        });
+
+        function handleLogout() {
+            localStorage.removeItem("user");
+            alert("Logged out successfully!");
+            window.location.reload();
+        }
+    </script>
+
+    <!-- SECRET ADMIN QUICK-LOGIN MODAL | Trigger: 3x Backtick | Only when no user logged in -->
+    <div id="adminQuickLoginModal" onclick="handleAdminModalOverlayClick(event)">
+        <div class="admin-login-card">
+            <button class="admin-modal-close" onclick="closeAdminQuickLogin()" title="Close (Esc)">&#x2715;</button>
+            <div class="admin-lock-icon">&#x1F510;</div>
+            <h2 class="admin-modal-title">ADMIN ACCESS</h2>
+            <p class="admin-modal-subtitle">Enter your admin password to continue.</p>
+            <input type="password" id="adminSecretPwd" class="admin-pwd-input"
+                placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+                autocomplete="off" spellcheck="false">
+            <div id="adminLoginError">&#x274C; Wrong password. Try again.</div>
+            <button class="admin-login-btn" onclick="handleAdminQuickLogin()">LOGIN AS ADMIN &#x2192;</button>
+        </div>
+    </div>
+
+    <style>
+        #adminQuickLoginModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #adminQuickLoginModal.admin-modal-visible {
+            display: flex;
+        }
+
+        .admin-login-card {
+            position: relative;
+            background: #ffffff;
+            border: 3px solid #000000;
+            border-radius: 28px;
+            padding: 44px 40px 36px 40px;
+            max-width: 400px;
+            width: 100%;
+            box-shadow: 10px 10px 0px #000000;
+            text-align: center;
+            animation: adminModalPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes adminModalPop {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(30px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .admin-modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: #f1f5f9;
+            border: 2px solid #000;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 15px;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .admin-modal-close:hover {
+            background: #ffde59;
+            transform: scale(1.1);
+        }
+
+        .admin-lock-icon {
+            font-size: 44px;
+            margin-bottom: 12px;
+            animation: lockBounce 1.4s ease-in-out;
+        }
+
+        @keyframes lockBounce {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            30% {
+                transform: translateY(-10px) rotate(-8deg);
+            }
+
+            60% {
+                transform: translateY(-4px) rotate(6deg);
+            }
+        }
+
+        .admin-modal-title {
+            font-family: 'Bowlby One', sans-serif;
+            font-size: 26px;
+            color: #000;
+            margin: 0 0 6px 0;
+        }
+
+        .admin-modal-subtitle {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #64748b;
+            margin: 0 0 24px 0;
+        }
+
+        .admin-pwd-input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2.5px solid #000;
+            border-radius: 14px;
+            font-size: 18px;
+            letter-spacing: 4px;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            box-shadow: 3px 3px 0px #000;
+            transition: all 0.15s ease;
+            box-sizing: border-box;
+            background: #f8fafc;
+        }
+
+        .admin-pwd-input:focus {
+            border-color: #5c4ade;
+            box-shadow: 4px 4px 0px #5c4ade;
+            background: #fff;
+        }
+
+        @keyframes adminShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            15%,
+            55% {
+                transform: translateX(-9px);
+            }
+
+            35%,
+            75% {
+                transform: translateX(9px);
+            }
+        }
+
+        .admin-input-shake {
+            animation: adminShake 0.42s ease !important;
+            border-color: #ef4444 !important;
+            box-shadow: 3px 3px 0px #ef4444 !important;
+        }
+
+        #adminLoginError {
+            display: none;
+            margin: 10px 0 0 0;
+            padding: 10px 14px;
+            background: #fef2f2;
+            border: 1.5px solid #fca5a5;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ef4444;
+        }
+
+        .admin-login-btn {
+            width: 100%;
+            margin-top: 20px;
+            padding: 14px 24px;
+            background: #000;
+            color: #fff;
+            border: 2.5px solid #000;
+            border-radius: 100px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #000;
+            transition: all 0.15s ease;
+        }
+
+        .admin-login-btn:hover {
+            background: #5c4ade;
+            border-color: #5c4ade;
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px #5c4ade;
+        }
+
+        .admin-login-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #000;
+        }
+    </style>
+
+    <script>
+        (function () {
+            var _backtickCount = 0;
+            var _backtickTimer = null;
+
+            document.addEventListener('keydown', function (e) {
+                if (window.Auth && Auth.getToken()) return;
+                if (e.key === '`') {
+                    e.preventDefault();
+                    _backtickCount++;
+                    clearTimeout(_backtickTimer);
+                    _backtickTimer = setTimeout(function () { _backtickCount = 0; }, 800);
+                    if (_backtickCount >= 3) {
+                        _backtickCount = 0;
+                        clearTimeout(_backtickTimer);
+                        openAdminQuickLogin();
+                    }
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                var pwdInput = document.getElementById('adminSecretPwd');
+                if (pwdInput) {
+                    pwdInput.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter') { e.preventDefault(); handleAdminQuickLogin(); }
+                        if (e.key === 'Escape') { closeAdminQuickLogin(); }
+                    });
+                }
+            });
+        })();
+
+        function openAdminQuickLogin() {
+            var modal = document.getElementById('adminQuickLoginModal');
+            if (!modal) return;
+            modal.classList.add('admin-modal-visible');
+            setTimeout(function () {
+                var p = document.getElementById('adminSecretPwd');
+                if (p) p.focus();
+            }, 80);
+        }
+
+        function closeAdminQuickLogin() {
+            var modal = document.getElementById('adminQuickLoginModal');
+            if (modal) modal.classList.remove('admin-modal-visible');
+            var p = document.getElementById('adminSecretPwd');
+            if (p) p.value = '';
+            var e = document.getElementById('adminLoginError');
+            if (e) { e.style.display = 'none'; e.textContent = '❌ Wrong password. Try again.'; }
+            var btn = document.querySelector('.admin-login-btn');
+            if (btn) { btn.textContent = 'LOGIN AS ADMIN →'; btn.style.background = '#000'; btn.style.borderColor = '#000'; }
+        }
+
+        function handleAdminModalOverlayClick(e) {
+            if (e.target === document.getElementById('adminQuickLoginModal')) closeAdminQuickLogin();
+        }
+
+        async function handleAdminQuickLogin() {
+            var pwdInput = document.getElementById('adminSecretPwd');
+            var errEl = document.getElementById('adminLoginError');
+            var pwd = pwdInput ? pwdInput.value.trim() : '';
+            if (!pwd) {
+                if (pwdInput) { pwdInput.classList.add('admin-input-shake'); setTimeout(function () { pwdInput.classList.remove('admin-input-shake'); }, 450); }
+                return;
+            }
+            try {
+                var loginRes = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'admin@gmail.com', password: pwd })
+                });
+                var data = await loginRes.json();
+                if (loginRes.ok && data.user && data.user.role === 'Admin') {
+                    if (window.Auth && window.Auth.setToken) {
+                        Auth.setToken(data.token);
+                    } else {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                    var btn = document.querySelector('.admin-login-btn');
+                    if (btn) { btn.textContent = '✅ AUTHENTICATED!'; btn.style.background = '#22c55e'; btn.style.borderColor = '#22c55e'; btn.style.boxShadow = '4px 4px 0px #22c55e'; }
+                    setTimeout(function () { window.location.href = 'pages/admin/admin.html'; }, 650);
+                } else {
+                    if (errEl) {
+                        errEl.textContent = data.message || '❌ Wrong password. Try again.';
+                        errEl.style.display = 'block';
+                    }
+                    if (pwdInput) {
+                        pwdInput.classList.add('admin-input-shake');
+                        setTimeout(function () { pwdInput.classList.remove('admin-input-shake'); }, 450);
+                        pwdInput.value = '';
+                        pwdInput.focus();
+                    }
+                }
+            } catch (err) {
+                if (errEl) { errEl.textContent = '⚠️ Could not connect to Express server.'; errEl.style.display = 'block'; }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="js/components21st.js?v=no_particles_v1"></script>
+</body>
+
+
+</html>

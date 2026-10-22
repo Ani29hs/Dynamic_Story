@@ -1,4 +1,11 @@
 
+// Admin Security Guard — strictly require valid JWT with role === "Admin"
+if (!window.Auth || !Auth.getToken()) {
+    window.location.href = "../auth/login.html";
+} else {
+    Auth.requireAuth("Admin");
+}
+
 /* ============================================================
    stories.js
    Page:  pages/admin/add_stories.html
@@ -63,9 +70,22 @@
                    so the page can survive a refresh
    ============================================================ */
 
-let user        = JSON.parse(localStorage.getItem("user"));
+let user = null;
+
+async function syncAdminUser() {
+    if (window.Auth) {
+        user = await Auth.requireAuth("Admin");
+    }
+}
+syncAdminUser();
+
 const urlParams = new URLSearchParams(window.location.search);
-const storyId   = urlParams.get("id");
+let storyId     = urlParams.get("id");
+if (!storyId || storyId === "undefined" || storyId === "null") {
+    try {
+        storyId = sessionStorage.getItem("lastEditStoryId");
+    } catch (e) {}
+}
 let currentStory = null;
 
 
@@ -75,23 +95,20 @@ let currentStory = null;
 
    EDIT MODE (?id= is present in the URL):
    ─────────────────────────────────────────
-   1. Check localStorage for a cached "currentStory" first (fast).
-   2. If not cached, GET /Stories/:id from json-server.
-   3. Pre-fill the story metadata form (title, author, genre, etc.).
-   4. Call showNodes() to render all existing scene nodes.
+   1. GET /Stories/:id directly from MongoDB Atlas.
+   2. Pre-fill the story metadata form (title, author, genre, etc.).
+   3. Call showNodes() to render all existing scene nodes.
 
    CREATE MODE (no ?id= in URL):
    ─────────────────────────────────────────
-   1. Clear any leftover "currentStory" from localStorage.
-   2. Reset the story form to blank.
-   3. Show the "No Scene Nodes" empty state in the node area.
+   1. Reset the story form to blank.
+   2. Show the "No Scene Nodes" empty state in the node area.
 
    PITCH PRE-FILL (?fromPitch= is present):
    ─────────────────────────────────────────
    If a reader pitch was approved, the admin arrives here with
-   ?fromPitch=<pitchId>. The pitch data is in localStorage
-   under "pitchPrefill". Pre-fill the form fields and show a
-   success banner, then clear the prefill from localStorage.
+   ?fromPitch=<pitchId>. The pitch is fetched directly from MongoDB Atlas
+   via GET /ReaderStories/:pitchId. Pre-fill form fields and show banner.
    ============================================================ */
 
 async function initPage() {
@@ -99,7 +116,11 @@ async function initPage() {
 
     // ── EDIT MODE: ?id= in URL ──────────────────────────────────────────────
     if (storyId) {
-        // Fetch fresh story from json-server to ensure latest ratings & nodes are loaded
+        try {
+            sessionStorage.setItem("lastEditStoryId", String(storyId));
+        } catch (e) {}
+
+        // Fetch fresh story from MongoDB Atlas to ensure latest ratings & nodes are loaded
         try {
             let res = await fetch(`${API_BASE}/Stories/${storyId}`);
             if (res.ok) {
@@ -109,13 +130,12 @@ async function initPage() {
                         ? Object.values(currentStory.nodes)
                         : [];
                 }
-                localStorage.setItem("currentStory", JSON.stringify(currentStory));
             }
         } catch (e) {
-            console.warn("Could not fetch story:", e);
+            console.warn("Could not fetch story from MongoDB Atlas:", e);
         }
 
-        // Step 3: Pre-fill the metadata form with existing values
+        // Pre-fill the metadata form with existing values
         if (currentStory) {
             if (document.getElementById("story"))      document.getElementById("story").value      = currentStory.title       || "";
             if (document.getElementById("author"))     document.getElementById("author").value     = currentStory.author      || "";
@@ -123,14 +143,15 @@ async function initPage() {
             if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = currentStory.description || "";
             if (document.getElementById("image"))      document.getElementById("image").value      = currentStory.imageURL    || "";
 
-            // Step 4: Render the existing scene nodes
             showNodes(currentStory);
         }
         return;
     }
 
     // ── CREATE MODE: no ?id= in URL ────────────────────────────────────────
-    localStorage.removeItem("currentStory");
+    try {
+        sessionStorage.removeItem("lastEditStoryId");
+    } catch (e) {}
     currentStory = null;
 
     if (document.getElementById("storyForm")) {
@@ -150,26 +171,26 @@ async function initPage() {
     // ── PITCH PRE-FILL: ?fromPitch= in URL ────────────────────────────────
     let fromPitch = urlParams.get("fromPitch");
     if (fromPitch) {
-        let prefill = null;
-        try { prefill = JSON.parse(localStorage.getItem("pitchPrefill")); } catch(e) {}
+        try {
+            let pitchRes = await fetch(`${API_BASE}/ReaderStories/${fromPitch}`);
+            if (pitchRes.ok) {
+                let pitch = await pitchRes.json();
+                if (document.getElementById("story"))      document.getElementById("story").value      = pitch.title       || "";
+                if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = pitch.description || "";
+                if (document.getElementById("genre"))      document.getElementById("genre").value      = pitch.genre       || "fantasy";
+                if (document.getElementById("author")) {
+                    document.getElementById("author").value = user ? user.name : "Admin";
+                }
 
-        if (prefill && prefill.pitchId === fromPitch) {
-            // Pre-fill title, description, genre from the approved pitch
-            if (document.getElementById("story"))      document.getElementById("story").value      = prefill.title       || "";
-            if (document.getElementById("storyDescr")) document.getElementById("storyDescr").value = prefill.description || "";
-            if (document.getElementById("genre"))      document.getElementById("genre").value      = prefill.genre       || "fantasy";
-            if (document.getElementById("author")) {
-                let adminUser = JSON.parse(localStorage.getItem("user"));
-                document.getElementById("author").value = adminUser ? adminUser.name : "Admin";
+                // Show a confirmation banner above the form
+                let banner = document.createElement("div");
+                banner.style.cssText = "background:#39d39f;border:2.5px solid #000;border-radius:16px;padding:14px 22px;margin-bottom:22px;font-weight:800;font-size:14px;box-shadow:4px 4px 0px #000;display:flex;align-items:center;gap:12px;";
+                banner.innerHTML = "✨ <span>Story pre-filled from approved reader pitch in MongoDB Atlas! Review metadata, add scene nodes, then publish.</span>";
+                let storyForm = document.getElementById("storyForm");
+                if (storyForm) storyForm.parentNode.insertBefore(banner, storyForm);
             }
-            localStorage.removeItem("pitchPrefill");
-
-            // Show a confirmation banner above the form
-            let banner = document.createElement("div");
-            banner.style.cssText = "background:#39d39f;border:2.5px solid #000;border-radius:16px;padding:14px 22px;margin-bottom:22px;font-weight:800;font-size:14px;box-shadow:4px 4px 0px #000;display:flex;align-items:center;gap:12px;";
-            banner.innerHTML = "✨ <span>Story pre-filled from approved reader pitch! Review the metadata, add your scenes, then publish.</span>";
-            let storyForm = document.getElementById("storyForm");
-            if (storyForm) storyForm.parentNode.insertBefore(banner, storyForm);
+        } catch (e) {
+            console.warn("Could not prefill from pitch:", e);
         }
     }
 }
@@ -180,13 +201,7 @@ initPage();
 /* ============================================================
    SECTION 3 — METADATA HANDLER: handleStory(event)
    Triggered by: <form onsubmit="handleStory(event)"> (Story Metadata form)
-   Saves the story title, author, genre, description, and imageURL.
-
-   Logic:
-   - If a story ID already exists (edit mode) → PUT /Stories/:id (full replace)
-   - If no ID yet (create mode) → POST /Stories (creates new story)
-   - Status is preserved: "draft" if new, or keeps existing "published" state
-   - After save: mirrors the full story object to localStorage + currentStory
+   Saves story directly to MongoDB Atlas.
    ============================================================ */
 
 let handleStory = async (event) => {
@@ -197,7 +212,6 @@ let handleStory = async (event) => {
     let genre       = document.getElementById("genre");
     let description = document.getElementById("storyDescr");
     let imageURL    = document.getElementById("image");
-    let user        = JSON.parse(localStorage.getItem("user"));
 
     let existingId    = currentStory && currentStory.id ? currentStory.id : storyId;
     let currentStatus = (currentStory && currentStory.status === "published") ? "published" : "draft";
@@ -245,7 +259,6 @@ let handleStory = async (event) => {
     }
 
     currentStory = Object.assign({}, currentStory, savedStory);
-    localStorage.setItem("currentStory", JSON.stringify(currentStory));
 
     alert("💾 Story metadata saved as " + (currentStatus === "published" ? "PUBLISHED!" : "DRAFT (Private)!"));
 };
@@ -280,7 +293,7 @@ let handleStory = async (event) => {
 let handleNode = async (event) => {
     event.preventDefault();
 
-    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = currentStory;
 
     if (!activeStory) {
         alert("Please save Story Metadata first!");
@@ -294,6 +307,8 @@ let handleNode = async (event) => {
     let nodeCharacters = document.getElementById("nodeCharacters").value;
     let isEnding       = document.getElementById("isEnding").checked;
     let endingType     = document.getElementById("endingType").value;
+    let endingTeaserEl = document.getElementById("endingTeaser");
+    let endingTeaser   = endingTeaserEl ? endingTeaserEl.value.trim() : "";
     let editingNodeId  = document.getElementById("editingNodeId").value;
 
     if (editingNodeId) {
@@ -301,31 +316,33 @@ let handleNode = async (event) => {
         let node = activeStory.nodes.find(node => node.id === editingNodeId);
         if (!node) { alert("Node not found"); return; }
 
-        node.title      = nodeTitle;
-        node.text       = nodeText;
-        node.location   = nodeLocation;
-        node.characters = nodeCharacters
+        node.title        = nodeTitle;
+        node.text         = nodeText;
+        node.location     = nodeLocation;
+        node.characters   = nodeCharacters
             .split(",")
             .map(c => c.trim())
             .filter(c => c !== "");
-        node.isEnding   = isEnding;
-        node.endingType = isEnding ? endingType : null;
+        node.isEnding     = isEnding;
+        node.endingType   = isEnding ? endingType : null;
+        node.endingTeaser = isEnding ? endingTeaser : null;
         // NOTE: node.choices is intentionally NOT touched here — choices are managed separately
 
     } else {
         // ── CREATE NEW NODE ──────────────────────────────────────────────────
         let node = {
-            id:         crypto.randomUUID(),
-            title:      nodeTitle,
-            text:       nodeText,
-            location:   nodeLocation,
-            characters: nodeCharacters
+            id:           crypto.randomUUID(),
+            title:        nodeTitle,
+            text:         nodeText,
+            location:     nodeLocation,
+            characters:   nodeCharacters
                 .split(",")
                 .map(c => c.trim())
                 .filter(c => c !== ""),
-            isEnding:   isEnding,
-            endingType: isEnding ? endingType : null,
-            choices:    []           // Always starts with no choices
+            isEnding:     isEnding,
+            endingType:   isEnding ? endingType : null,
+            endingTeaser: isEnding ? endingTeaser : null,
+            choices:      []           // Always starts with no choices
         };
 
         activeStory.nodes.push(node);
@@ -348,8 +365,6 @@ let handleNode = async (event) => {
 
     if (!response.ok) { alert("Node could not be saved"); return; }
 
-    // Mirror to localStorage + in-memory state
-    localStorage.setItem("currentStory", JSON.stringify(activeStory));
     currentStory = activeStory;
 
     alert(editingNodeId ? "Node updated successfully" : "Node added successfully");
@@ -514,7 +529,6 @@ function showNodes(currentStory) {
 async function setAsStartNode(nodeId) {
     if (!currentStory) return;
     currentStory.startNodeId = nodeId;
-    localStorage.setItem("currentStory", JSON.stringify(currentStory));
 
     try {
         await fetch(`${API_BASE}/Stories/${currentStory.id}`, {
@@ -539,7 +553,7 @@ async function setAsStartNode(nodeId) {
    ============================================================ */
 
 function editNode(nodeId) {
-    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = currentStory;
     if (!activeStory) { alert("No story selected"); return; }
 
     let node = activeStory.nodes.find(node => node.id === nodeId);
@@ -555,6 +569,8 @@ function editNode(nodeId) {
     document.getElementById("nodeCharacters").value = node.characters ? node.characters.join(", ") : "";
     document.getElementById("isEnding").checked     = node.isEnding   || false;
     document.getElementById("endingType").value     = node.endingType || "good";
+    let teaserEl = document.getElementById("endingTeaser");
+    if (teaserEl) teaserEl.value                    = node.endingTeaser || "";
 
     // Show/hide the ending type dropdown based on checkbox state
     toggleEndingGroup(document.getElementById("isEnding"));
@@ -577,7 +593,7 @@ function editNode(nodeId) {
    ============================================================ */
 
 let openChoiceModal = (sourceNodeId) => {
-    let activeStory = JSON.parse(localStorage.getItem("currentStory"));
+    let activeStory = currentStory;
     if (!activeStory) { alert("Create a story first!"); return; }
 
     // Store source node ID for handleChoice()
@@ -628,7 +644,7 @@ function closeChoiceModal() {
    ============================================================ */
 
 let handleDeleteChoice = async (sourceNodeId, choiceId) => {
-    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = currentStory;
     if (!activeStory) { alert("No story selected"); return; }
 
     let sourceNode = activeStory.nodes.find(node => node.id === sourceNodeId);
@@ -646,7 +662,6 @@ let handleDeleteChoice = async (sourceNodeId, choiceId) => {
 
     if (!response.ok) { alert("Choice could not be deleted"); return; }
 
-    localStorage.setItem("currentStory", JSON.stringify(activeStory));
     currentStory = activeStory;
 
     alert("Choice deleted");
@@ -667,7 +682,7 @@ let handleDeleteChoice = async (sourceNodeId, choiceId) => {
    ============================================================ */
 
 function editChoice(sourceNodeId, choiceId) {
-    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = currentStory;
     if (!activeStory) { alert("No story selected"); return; }
 
     let sourceNode = activeStory.nodes.find(node => node.id === sourceNodeId);
@@ -717,7 +732,7 @@ function editChoice(sourceNodeId, choiceId) {
    ============================================================ */
 
 let handleDelete = async (index) => {
-    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = currentStory;
 
     // Remove node at this index
     activeStory.nodes.splice(index, 1);
@@ -738,7 +753,6 @@ let handleDelete = async (index) => {
         })
     });
 
-    localStorage.setItem("currentStory", JSON.stringify(activeStory));
     currentStory = activeStory;
 
     alert("Node deleted");
@@ -774,7 +788,7 @@ let handleDelete = async (index) => {
 let handleChoice = async (event) => {
     event.preventDefault();
 
-    let activeStory = JSON.parse(localStorage.getItem("currentStory")) || currentStory;
+    let activeStory = currentStory;
     if (!activeStory) { alert("No story selected"); return; }
 
     let sourceNodeId    = document.getElementById("sourceNodeId").value;
@@ -815,7 +829,6 @@ let handleChoice = async (event) => {
 
     if (!response.ok) { alert("Choice could not be saved"); return; }
 
-    localStorage.setItem("currentStory", JSON.stringify(activeStory));
     currentStory = activeStory;
 
     alert(editingChoiceId ? "Choice updated successfully" : "Choice added successfully");
@@ -876,7 +889,6 @@ async function publishStory() {
         if (response.ok) {
             let updated  = await response.json();
             currentStory = Object.assign({}, currentStory, updated, { status: "published" });
-            localStorage.setItem("currentStory", JSON.stringify(currentStory));
             alert("🎉 Story Published Successfully! It is now live in the Story Library.");
         } else {
             alert("Could not publish story. Please try again.");

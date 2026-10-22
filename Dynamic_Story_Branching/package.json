@@ -1,5 +1,13 @@
 {
-  "dependencies": {
-    "json-server": "^1.0.0-beta.15"
+  "name": "slush-story-engine",
+  "version": "1.0.0",
+  "description": "Slush Story Engine - Branching interactive fiction platform powered by Express and MongoDB Atlas",
+  "scripts": {
+    "start": "node backend/server.js",
+    "server": "node backend/server.js",
+    "client": "npx -y serve -p 8000 frontend",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "npx -y serve -p 8000 frontend",
+    "dev": "node backend/server.js"
   }
 }

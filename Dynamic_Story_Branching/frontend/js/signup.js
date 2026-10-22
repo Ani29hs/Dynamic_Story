@@ -59,59 +59,58 @@ function togglePassword(inputId, eyeSymbolId) {
    h. Alert success and redirect to login.html.
    ============================================================ */
 
-let handleRegister = async (event) => {
-    event.preventDefault();
+async function handleRegister(event) {
+    if (event) event.preventDefault();
 
-    // Step b: Read all form field values
-    let name            = document.getElementById("name");
-    let email           = document.getElementById("email");
-    let createPassword  = document.getElementById("password");
-    let confirmPassword = document.getElementById("cpassword");
+    try {
+        // Step b: Read all form field values
+        let name            = document.getElementById("name");
+        let email           = document.getElementById("email");
+        let createPassword  = document.getElementById("password");
+        let confirmPassword = document.getElementById("cpassword");
 
-    // Step c: Check whether this email is already registered
-    let response = await fetch("http://localhost:3000/Users?email=" + email.value);
-    let data     = await response.json();
+        if (!name || !email || !createPassword || !confirmPassword) {
+            alert("Form elements not found.");
+            return;
+        }
 
-    // Step d: Guard — email already in use
-    if (data.length > 0) {
-        alert("This email is already registered");
-        return;
+        // Step c: Check whether this email is already registered
+        let response = await fetch(API_BASE + "/Users?email=" + encodeURIComponent(email.value.trim()));
+        let data     = await response.json();
+
+        // Step d: Guard — email already in use
+        if (data.length > 0) {
+            alert("This email is already registered");
+            return;
+        }
+
+        // Step e1: Guard — password complexity rules
+        // Rule: At least 8 chars, at least 1 letter, 1 number, and 1 special character
+        let passVal    = createPassword.value;
+        let hasLetter  = /[a-zA-Z]/.test(passVal);
+        let hasDigit   = /[0-9]/.test(passVal);
+        let hasSpecial = /[^a-zA-Z0-9]/.test(passVal);
+
+        if (passVal.length < 8 || !hasLetter || !hasDigit || !hasSpecial) {
+            alert("⚠️ Password must be at least 8 characters long and contain at least one letter, one number, and one special character (e.g. @, #, $, !).");
+            return;
+        }
+
+        // Step e2: Guard — passwords do not match
+        if (createPassword.value !== confirmPassword.value) {
+            alert("Passwords do not match");
+            return;
+        }
+
+        // Step f: Register with backend using bcrypt hashing in MongoDB Atlas
+        await Auth.register(name.value.trim(), email.value.trim(), createPassword.value);
+
+        // Step g: Registration successful — redirect to login page
+        alert("Registration successful! Please log in with your credentials.");
+        window.location.href = "login.html";
+    } catch (err) {
+        console.error("handleRegister error:", err);
+        alert("Registration failed: " + (err.message || err));
     }
-
-    // Step e1: Guard — password complexity rules
-    // Rule: At least 8 chars, at least 1 letter, 1 number, and 1 special character
-    let passVal    = createPassword.value;
-    let hasLetter  = /[a-zA-Z]/.test(passVal);
-    let hasDigit   = /[0-9]/.test(passVal);
-    let hasSpecial = /[^a-zA-Z0-9]/.test(passVal);
-
-    if (passVal.length < 8 || !hasLetter || !hasDigit || !hasSpecial) {
-        alert("⚠️ Password must be at least 8 characters long and contain at least one letter, one number, and one special character (e.g. @, #, $, !).");
-        return;
-    }
-
-    // Step e2: Guard — passwords do not match
-    if (createPassword.value !== confirmPassword.value) {
-        alert("Passwords do not match");
-        return;
-    }
-
-    // Step f: Build the new user object
-    let userObject = {
-        name:     name.value,
-        email:    email.value,
-        password: createPassword.value,
-        role:     "Reader"          // Self-registered accounts are always Readers
-    };
-
-    // Step g: POST to json-server to persist user in db.json
-    await fetch("http://localhost:3000/Users", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(userObject)
-    });
-
-    // Step h: Registration successful — redirect to login
-    alert("User registered");
-    window.location.href = "login.html";
-};
+}
+window.handleRegister = handleRegister;

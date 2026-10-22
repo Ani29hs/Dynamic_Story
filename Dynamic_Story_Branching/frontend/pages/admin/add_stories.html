@@ -169,14 +169,16 @@
 
                 <div id="endingTypeGroup" class="form-group hidden" style="display: none;">
                     <label for="endingType">Ending Classification</label>
-                    <select id="endingType">
-                        <option value="good">Good Ending</option>
-                        <option value="bad">Bad Ending</option>
-                        <option value="neutral">Neutral Ending</option>
-                        <option value="tragic">Tragic Ending</option>
-                        <option value="bittersweet">Bittersweet Ending</option>
-                        <option value="ambiguous">Ambiguous Ending</option>
+                    <select id="endingType" style="margin-bottom: 12px;">
+                        <option value="good">Good Ending 🏆</option>
+                        <option value="bad">Bad Ending 💀</option>
+                        <option value="neutral">Neutral Ending ⚖️</option>
+                        <option value="tragic">Tragic Ending 😢</option>
+                        <option value="secret">Secret / True Ending ✨</option>
                     </select>
+
+                    <label for="endingTeaser" style="font-weight: 800; font-size: 13px; display: block; margin-top: 8px;">Locked Ending Clue / Teaser</label>
+                    <input type="text" id="endingTeaser" placeholder="e.g. Make a bolder choice at Scene 2 to unlock this fate..." style="padding: 10px 14px; border: 2px solid #000; border-radius: 10px; width: 100%; box-sizing: border-box; font-size: 13px;">
                 </div>
 
                 <div class="form-actions">
@@ -282,6 +284,7 @@
 
     </script>
     <script src="../../js/config.js"></script>
-<script src="../../js/stories.js?v=1787820101647"></script>
+    <script src="../../js/auth.js"></script>
+    <script src="../../js/stories.js?v=1787820101647"></script>
 </body>
 </html>

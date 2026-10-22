@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Story Library | Dynamic Story Engine</title>
+    <link rel="stylesheet" href="../../css/reader.css?v=pitch_fullwidth_v3">
+    <link rel="stylesheet" href="../../css/components21st.css?v=pitch_fullwidth_v3">
+</head>
+
+<body>
+
+    <!-- Rolling Announcement Ticker -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            ⚡ INTERACTIVE STORY LIBRARY &bull; CHOOSE YOUR DESTINY &bull; TRAVERSE BRANCHING PATHS &bull; UNLOCK ENDINGS
+            &bull;&nbsp;
+            ⚡ INTERACTIVE STORY LIBRARY &bull; CHOOSE YOUR DESTINY &bull; TRAVERSE BRANCHING PATHS &bull; UNLOCK ENDINGS
+            &bull;&nbsp;
+        </div>
+    </div>
+
+    <header class="navbar">
+        <div class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="display: inline-block; vertical-align: sub; margin-right: 6px;">
+                <circle cx="4" cy="12" r="3" fill="currentColor" />
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <circle cx="18" cy="5" r="2.5" fill="currentColor" />
+                <circle cx="15" cy="12" r="2.5" fill="currentColor" />
+                <circle cx="18" cy="19" r="2.5" fill="currentColor" />
+            </svg>
+            <span>STORY LIBRARY</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../../Landing.html" class="tab-pill">Home</a></li>
+            <li id="navAuthContainer">
+                <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
+            </li>
+        </ul>
+    </header>
+
+    <main class="reader-container">
+
+        <!-- ── View Toggle Tabs ──────────────────────────── -->
+        <div
+            style="display: flex; gap: 12px; margin-bottom: 32px; border-bottom: 3px solid #000; padding-bottom: 24px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <div class="tab-nav" id="readerNavGroup">
+                <button type="button" id="tabLibrary" class="tab-pill tab-active" data-accent="#6C4CF1"
+                    onclick="switchReaderTab('library')" aria-pressed="true">
+                    <span class="tab-pill__icon">📚</span> Story Library
+                </button>
+                <button type="button" id="tabPitch" class="tab-pill" data-accent="#FF8A3D"
+                    onclick="switchReaderTab('pitch')" aria-pressed="false">
+                    <span class="tab-pill__icon">🍊</span> Submit a Pitch
+                </button>
+                <button type="button" id="tabMyPitches" class="tab-pill" data-accent="#3DB2FF"
+                    onclick="switchReaderTab('mypitches')" aria-pressed="false">
+                    <span class="tab-pill__icon">📋</span> My Pitches
+                </button>
+                <button type="button" id="tabGallery" class="tab-pill" data-accent="#A855F7"
+                    onclick="switchReaderTab('gallery')" aria-pressed="false">
+                    <span class="tab-pill__icon">🏆</span> Endings Gallery
+                </button>
+            </div>
+
+
+            <!-- Search & Filter (only visible on library tab) -->
+            <div id="libraryControls" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <div style="position: relative;">
+                    <input type="text" id="searchInput" placeholder="Search by title or author..."
+                        onkeyup="filterStories()"
+                        style="padding: 12px 20px 12px 42px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 700; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; width: 240px; background: #fff;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); opacity: 0.6;">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                </div>
+                <select id="genreFilter" onchange="filterStories()"
+                    style="padding: 12px 20px; border: 2px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; box-shadow: 3px 3px 0px #000; outline: none; background: #fff; cursor: pointer;">
+                    <option value="all">All Genres</option>
+                    <option value="fantasy">Fantasy</option>
+                    <option value="cyberpunk">Cyberpunk</option>
+                    <option value="mystery">Mystery</option>
+                    <option value="sci-fi">Sci-Fi</option>
+                    <option value="adventure">Adventure</option>
+                    <option value="horror">Horror</option>
+                    <option value="romance">Romance</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ── Tab: Story Library ────────────────────────── -->
+        <div id="viewLibrary">
+            <section id="storiesContainer" class="stories-container"></section>
+        </div>
+
+        <!-- ── Tab: Submit a Pitch ───────────────────────── -->
+        <div id="viewPitch" style="display:none;">
+            <div class="pitch-studio-container">
+
+                <!-- Studio Header -->
+                <div class="pitch-studio-header">
+                    <div class="pitch-header-left">
+                        <div class="pitch-subbadge">
+                            <span>⚡ STORY INCUBATOR</span>
+                            <span>•</span>
+                            <span>COMMUNITY CREATORS</span>
+                        </div>
+                        <h1 class="pitch-main-title">PITCH YOUR UNIVERSE</h1>
+                        <p class="pitch-subtitle">
+                            Draft an interactive branching tale. When approved by editors, your concept will be forged into a playable story in the library.
+                        </p>
+                    </div>
+
+                    <div class="pitch-bounty-badge" id="pitchXpBadge">
+                        <span class="pitch-bounty-icon">⭐</span>
+                        <div>
+                            <div class="pitch-bounty-title">+20 XP BOUNTY</div>
+                            <div class="pitch-bounty-sub">Author credit on release</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premise Sparks Inspiration Strip -->
+                <div class="pitch-sparks-banner">
+                    <div class="pitch-sparks-label">
+                        <span>💡</span>
+                        <span>Need Inspiration? Click a Premise Spark:</span>
+                    </div>
+                    <div class="pitch-sparks-chips">
+                        <button type="button" class="pitch-spark-btn" onclick="applyPitchSpark('The Memory Merchant', 'mystery', 'In Neo-Venice, you run an antique shop trading memories bottled in crystal vials. When an anonymous client leaves behind a vial holding the final thoughts of an assassinated diplomat, every syndicate in the flooded city begins hunting your doorway.')">
+                            <span>🔍 The Memory Merchant</span>
+                            <span style="opacity: 0.5;">→</span>
+                        </button>
+                        <button type="button" class="pitch-spark-btn" onclick="applyPitchSpark('The Hollow Elevator', 'horror', 'An express freight elevator inside a 120-story research monolith malfunctions during a midnight blizzard. Instead of stopping at ground level, the floor counter keeps ticking into negative digits—descending into a frozen abyss that shouldn\'t exist.')">
+                            <span>🩸 The Hollow Elevator</span>
+                            <span style="opacity: 0.5;">→</span>
+                        </button>
+                        <button type="button" class="pitch-spark-btn" onclick="applyPitchSpark('Oxygen Debt', 'sci-fi', 'On a pressurized asteroid penal colony, every breath is taxed against your daily labor output. When a sabotage event cuts atmospheric supply in half, you and three inmates have sixty minutes to choose who gets the remaining rations.')">
+                            <span>🚀 Oxygen Debt</span>
+                            <span style="opacity: 0.5;">→</span>
+                        </button>
+                        <button type="button" class="pitch-spark-btn" onclick="applyPitchSpark('The Relic of Oakhaven', 'fantasy', 'A disgraced royal cartographer finds a living parchment that draws maps of ruins before they are discovered. The ink points directly toward the cursed Sunken Sanctum beneath the capital, where ancient monarchs were sealed alive.')">
+                            <span>🔮 The Relic of Oakhaven</span>
+                            <span style="opacity: 0.5;">→</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Main Studio 2-Column Grid -->
+                <div class="pitch-studio-grid">
+                    
+                    <!-- Left Column: Authoring Deck -->
+                    <div class="pitch-deck-card">
+                        
+                        <!-- Alert Banners -->
+                        <div id="pitchFormError"
+                            style="display:none; background:#fff0f0; border: 2.5px solid #dc2626; border-radius: 14px; padding: 14px 18px; font-weight: 800; color: #b91c1c; font-size: 14px; box-shadow: 3px 3px 0px #dc2626;">
+                        </div>
+                        <div id="pitchFormSuccess"
+                            style="display:none; background:#f0fff4; border: 2.5px solid #16a34a; border-radius: 14px; padding: 14px 18px; font-weight: 800; color: #166534; font-size: 14px; box-shadow: 3px 3px 0px #16a34a;">
+                        </div>
+
+                        <!-- Story Title Input -->
+                        <div class="pitch-field-group">
+                            <div class="pitch-field-label-row">
+                                <label for="pitchTitle" class="pitch-field-label">STORY TITLE *</label>
+                                <span class="pitch-input-counter" id="pitchTitleCounter">0 / 80 chars</span>
+                            </div>
+                            <input type="text" id="pitchTitle" placeholder="e.g. The Last Oracle of Ashveil" maxlength="80"
+                                class="pitch-text-input" oninput="updatePitchStudioPreview()">
+                        </div>
+
+                        <!-- Interactive Genre Matrix -->
+                        <div class="pitch-field-group">
+                            <label class="pitch-field-label">SELECT GENRE *</label>
+                            
+                            <!-- Hidden select for form backwards compatibility -->
+                            <select id="pitchGenre" style="display:none;" onchange="syncPitchGenreUI(this.value)">
+                                <option value="fantasy" selected>🧙 Fantasy</option>
+                                <option value="mystery">🔍 Mystery</option>
+                                <option value="horror">👻 Horror</option>
+                                <option value="adventure">⚔️ Adventure</option>
+                                <option value="sci-fi">🚀 Sci-Fi</option>
+                                <option value="cyberpunk">🤖 Cyberpunk</option>
+                                <option value="romance">💌 Romance</option>
+                                <option value="general">📖 General</option>
+                            </select>
+
+                            <!-- Visual Genre Matrix Cards -->
+                            <div class="pitch-genre-matrix" id="pitchGenreMatrix">
+                                <button type="button" class="pitch-genre-card pitch-genre-selected" data-genre="fantasy" onclick="selectPitchGenre('fantasy')" style="background:#fff9db;">
+                                    <span>🔮</span>
+                                    <span>Fantasy</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="mystery" onclick="selectPitchGenre('mystery')">
+                                    <span>🔍</span>
+                                    <span>Mystery</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="horror" onclick="selectPitchGenre('horror')">
+                                    <span>🩸</span>
+                                    <span>Horror</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="adventure" onclick="selectPitchGenre('adventure')">
+                                    <span>⚔️</span>
+                                    <span>Adventure</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="sci-fi" onclick="selectPitchGenre('sci-fi')">
+                                    <span>🚀</span>
+                                    <span>Sci-Fi</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="cyberpunk" onclick="selectPitchGenre('cyberpunk')">
+                                    <span>⚡</span>
+                                    <span>Cyberpunk</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="romance" onclick="selectPitchGenre('romance')">
+                                    <span>💌</span>
+                                    <span>Romance</span>
+                                </button>
+                                <button type="button" class="pitch-genre-card" data-genre="general" onclick="selectPitchGenre('general')">
+                                    <span>📖</span>
+                                    <span>General</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Pitch Synopsis & Word Meter -->
+                        <div class="pitch-textarea-wrap">
+                            <div class="pitch-field-label-row">
+                                <label for="pitchDescription" class="pitch-field-label">PITCH CONCEPT & DILEMMA *</label>
+                                <span id="pitchWordStatusPill" class="pitch-meter-badge meter-short">0 / 30 words min</span>
+                            </div>
+                            <textarea id="pitchDescription"
+                                placeholder="Paint the picture — who is the protagonist, what world are they in, and what impossible branching dilemma do they face? (Minimum 30 words required)"
+                                maxlength="800" rows="6" class="pitch-textarea"
+                                oninput="updatePitchStudioPreview()"></textarea>
+
+                            <!-- Backward compatibility element hidden -->
+                            <div id="pitchCharCount" style="display:none;"></div>
+
+                            <!-- Visual Word Meter Track -->
+                            <div class="pitch-meter-wrapper">
+                                <div class="pitch-meter-track">
+                                    <div class="pitch-meter-fill" id="pitchWordMeterBar"></div>
+                                </div>
+                                <div class="pitch-meter-status">
+                                    <span id="pitchWordsRemainingText" style="color: #6b7280; font-size: 11.5px;">Need at least 30 words for editor review</span>
+                                    <span id="pitchWordCountNumber" style="color: #111827; font-weight: 900;">0 words</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transmit Pitch Action Button -->
+                        <button type="button" onclick="submitPitch()" id="pitchSubmitBtn" class="pitch-submit-action">
+                            <span class="shimmer-sweep-light"></span>
+                            <span>🚀 TRANSMIT PITCH TO EDITORS →</span>
+                        </button>
+
+                        <!-- Editorial Guidelines Checklist -->
+                        <div class="pitch-editorial-tips">
+                            <div class="pitch-tips-title">
+                                <span>🎯</span>
+                                <span>3 Keys to Editorial Approval</span>
+                            </div>
+                            <div class="pitch-tip-item">
+                                <span class="pitch-tip-num">1</span>
+                                <span><strong>A True Crossroads:</strong> Give the protagonist a genuine moral or survival dilemma with no easy answer.</span>
+                            </div>
+                            <div class="pitch-tip-item">
+                                <span class="pitch-tip-num">2</span>
+                                <span><strong>Atmospheric Setting:</strong> Anchor your scene with vivid sights, sounds, or physical tension.</span>
+                            </div>
+                            <div class="pitch-tip-item">
+                                <span class="pitch-tip-num">3</span>
+                                <span><strong>Branching Potential:</strong> Provide enough seed ideas for at least 2 distinct ending paths.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── Tab: My Pitches ───────────────────────────── -->
+        <div id="viewMyPitches" style="display:none;">
+            <div style="max-width: 800px; margin: 0 auto; padding: 10px 0;">
+                <div style="margin-bottom: 28px; text-align: center;">
+                    <h1 style="font-family: var(--font-display); font-size: 36px; margin: 0 0 8px;">📋 MY PITCHES</h1>
+                    <p style="font-weight: 700; color: #555; font-size: 15px;">Track all your submitted story ideas and
+                        see admin feedback.</p>
+                </div>
+                <div id="myPitchesContainer" style="display: flex; flex-direction: column; gap: 20px;">
+                    <p style="font-weight: 700; color: #888;">Loading your pitches...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Tab: Endings Gallery Showcase ─────────────── -->
+        <div id="viewGallery" style="display:none;">
+            <div style="max-width: 1080px; margin: 0 auto; padding: 10px 0;">
+                <div class="trophy-stats-banner" id="trophyStatsBanner">
+                    <div>
+                        <h1 style="font-family: var(--font-display); font-size: 36px; margin: 0 0 6px; color: #000;">🏆
+                            ENDINGS TROPHY ROOM</h1>
+                        <p style="font-weight: 700; color: #000; font-size: 15px; margin: 0;">Discover all branching
+                            story fates, unlock secret endings, and track your achievements!</p>
+                    </div>
+                    <div id="trophyGlobalStats" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <!-- JS injects overall endings stats -->
+                    </div>
+                </div>
+
+                <div id="globalEndingsContainer" style="display: flex; flex-direction: column; gap: 32px;">
+                    <p style="font-weight: 700; color: #888;">Loading your unlocked endings showcase...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+
+    <!-- One-Time Login Scroll-Locked Video Intro Transition -->
+    <div id="storyIntroOverlay" class="story-intro-overlay" style="display: none;">
+        <video
+            id="lockedHeroVideo"
+            class="scroll-locked-video"
+            src="https://cdn.21st.dev/assets/mirror/21/21a77eac28eacbb7e142016eefeaa0b4a766619e51113629a3bc6df6af066c0f.mp4"
+            muted
+            playsinline
+            preload="auto"
+        ></video>
+
+        <div class="scroll-locked-vignette"></div>
+
+        <button type="button" class="scroll-locked-skip-btn" id="lockedHeroSkipBtn" aria-label="Skip intro">
+            Skip to Dashboard ✕
+        </button>
+
+        <div class="scroll-locked-title-wrap" id="lockedHeroTitle">
+            <span class="scroll-locked-title">ENTER THE WORLD OF STORIES</span>
+        </div>
+
+        <div class="scroll-locked-tagline-wrap" id="lockedHeroTagline">
+            <span class="scroll-locked-tagline">Every choice carves a new timeline. Step into your branching adventure.</span>
+        </div>
+
+        <button type="button" class="scroll-locked-enter-btn" id="lockedHeroEnterBtn">
+            🚀 ENTER STORY DASHBOARD NOW →
+        </button>
+
+        <div class="scroll-locked-hint" id="lockedHeroHint">
+            <span>SCROLL TO ENTER</span>
+            <svg width="14" height="18" viewBox="0 0 14 18" style="animation: metro-hero-bounce 1.6s ease-in-out infinite">
+                <style>
+                    @keyframes metro-hero-bounce {
+                        0%, 100% { transform: translateY(0); opacity: 0.5; }
+                        50% { transform: translateY(5px); opacity: 1; }
+                    }
+                </style>
+                <path d="M7 1 L7 17 M2 12 L7 17 L12 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </div>
+
+        <div class="scroll-locked-progress-track">
+            <div class="scroll-locked-progress-bar" id="lockedHeroProgress"></div>
+        </div>
+    </div>
+
+    <!-- Story Detail Showcase Modal -->
+    <div id="storyDetailModal" class="story-detail-modal-overlay hidden" onclick="closeStoryDetails(event)">
+        <div class="story-detail-card" onclick="event.stopPropagation()">
+            <!-- JS dynamically injects story details -->
+        </div>
+    </div>
+
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js?v=pitch_clean_v2"></script>
+    <script src="/js/reader.js?v=pitch_clean_v2"></script>
+    <script src="/js/components21st.js?v=pitch_clean_v2"></script>
+
+</body>
+
+</html>
