@@ -1,5 +1,5 @@
 [build]
-  publish = "."
+  publish = "frontend"
 
 # Cache-control headers to prevent stale JS/CSS
 [[headers]]
@@ -15,5 +15,10 @@
 # Redirect root to Landing page
 [[redirects]]
   from = "/"
+  to = "/Landing.html"
+  status = 200
+
+[[redirects]]
+  from = "/index.html"
   to = "/Landing.html"
   status = 200

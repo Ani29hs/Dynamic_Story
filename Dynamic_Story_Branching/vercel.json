@@ -1,0 +1,8 @@
+{
+  "outputDirectory": "frontend",
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/Landing.html" },
+    { "source": "/index.html", "destination": "/Landing.html" }
+  ]
+}
