@@ -324,54 +324,6 @@
 
     </main>
 
-
-    <!-- One-Time Login Scroll-Locked Video Intro Transition -->
-    <div id="storyIntroOverlay" class="story-intro-overlay" style="display: none;">
-        <video
-            id="lockedHeroVideo"
-            class="scroll-locked-video"
-            src="https://cdn.21st.dev/assets/mirror/21/21a77eac28eacbb7e142016eefeaa0b4a766619e51113629a3bc6df6af066c0f.mp4"
-            muted
-            playsinline
-            preload="auto"
-        ></video>
-
-        <div class="scroll-locked-vignette"></div>
-
-        <button type="button" class="scroll-locked-skip-btn" id="lockedHeroSkipBtn" aria-label="Skip intro">
-            Skip to Dashboard ✕
-        </button>
-
-        <div class="scroll-locked-title-wrap" id="lockedHeroTitle">
-            <span class="scroll-locked-title">ENTER THE WORLD OF STORIES</span>
-        </div>
-
-        <div class="scroll-locked-tagline-wrap" id="lockedHeroTagline">
-            <span class="scroll-locked-tagline">Every choice carves a new timeline. Step into your branching adventure.</span>
-        </div>
-
-        <button type="button" class="scroll-locked-enter-btn" id="lockedHeroEnterBtn">
-            🚀 ENTER STORY DASHBOARD NOW →
-        </button>
-
-        <div class="scroll-locked-hint" id="lockedHeroHint">
-            <span>SCROLL TO ENTER</span>
-            <svg width="14" height="18" viewBox="0 0 14 18" style="animation: metro-hero-bounce 1.6s ease-in-out infinite">
-                <style>
-                    @keyframes metro-hero-bounce {
-                        0%, 100% { transform: translateY(0); opacity: 0.5; }
-                        50% { transform: translateY(5px); opacity: 1; }
-                    }
-                </style>
-                <path d="M7 1 L7 17 M2 12 L7 17 L12 12" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
-        </div>
-
-        <div class="scroll-locked-progress-track">
-            <div class="scroll-locked-progress-bar" id="lockedHeroProgress"></div>
-        </div>
-    </div>
-
     <!-- Story Detail Showcase Modal -->
     <div id="storyDetailModal" class="story-detail-modal-overlay hidden" onclick="closeStoryDetails(event)">
         <div class="story-detail-card" onclick="event.stopPropagation()">

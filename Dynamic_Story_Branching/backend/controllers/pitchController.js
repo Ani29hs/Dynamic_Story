@@ -1,9 +1,9 @@
-const crypto = require('crypto');
-const ReaderStory = require('../models/ReaderStory');
-const User = require('../models/User');
+const crypto = require("crypto");
+const ReaderStory = require("../models/ReaderStory");
+const User = require("../models/User");
 
-// GET /ReaderStories
-exports.getPitches = async (req, res) => {
+// 1. GET PITCHES - Fetch reader pitches (supports filtering by submitter/status)
+const getPitches = async (req, res) => {
     try {
         const query = {};
         const filterId = req.query.submittedById || req.query.authorId;
@@ -12,15 +12,15 @@ exports.getPitches = async (req, res) => {
         }
         if (req.query.status) query.status = req.query.status;
 
-        const pitches = await ReaderStory.find(query).sort({ createdAt: -1 });
-        res.json(pitches);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const data = await ReaderStory.find(query).sort({ createdAt: -1 });
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// POST /ReaderStories
-exports.createPitch = async (req, res) => {
+// 2. CREATE PITCH - Reader submits a new branching story idea
+const createPitch = async (req, res) => {
     try {
         const pitchData = { ...req.body };
         if (!pitchData.id) {
@@ -38,7 +38,7 @@ exports.createPitch = async (req, res) => {
             pitchData.submittedAt = new Date().toISOString();
         }
 
-        // Award +20 XP once per month
+        // Award +20 XP once per calendar month
         let xpAwarded = 0;
         let newXp = undefined;
         if (userId) {
@@ -55,26 +55,28 @@ exports.createPitch = async (req, res) => {
             }
         }
 
-        const newPitch = await ReaderStory.create(pitchData);
-        const responseData = typeof newPitch.toJSON === 'function' ? newPitch.toJSON() : newPitch.toObject();
+        const data = await ReaderStory.create(pitchData);
+        const responseData = typeof data.toJSON === "function" ? data.toJSON() : data.toObject();
         responseData.xpAwarded = xpAwarded;
         responseData.newXp = newXp;
 
         res.status(201).json(responseData);
-    } catch (err) {
-        console.error("Create pitch error:", err);
-        res.status(400).json({ error: err.message });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 };
 
-// PATCH /ReaderStories/:id
-exports.updatePitch = async (req, res) => {
+// 3. UPDATE PITCH - Admin updates pitch status (approved/rejected)
+const updatePitch = async (req, res) => {
     try {
-        const pitch = await ReaderStory.findOne({ id: String(req.params.id) });
-        if (!pitch) return res.status(404).json({ error: 'Pitch not found' });
+        const id = req.params.id;
+        const pitch = await ReaderStory.findOne({ id: String(id) });
+        if (!pitch) {
+            return res.status(404).json({ error: "Pitch not found" });
+        }
 
-        // If status changes to approved, award +30 XP and set pendingToast for reader
-        if (req.body.status === 'approved' && pitch.status !== 'approved') {
+        // Award +30 XP and toast notification when admin approves pitch
+        if (req.body.status === "approved" && pitch.status !== "approved") {
             const submitterId = pitch.submittedById || pitch.authorId;
             if (submitterId) {
                 const submitter = await User.findOne({ id: String(submitterId) });
@@ -89,33 +91,43 @@ exports.updatePitch = async (req, res) => {
             }
         }
 
-        const updated = await ReaderStory.findOneAndUpdate(
-            { id: String(req.params.id) },
+        const data = await ReaderStory.findOneAndUpdate(
+            { id: String(id) },
             { $set: req.body },
-            { returnDocument: 'after' }
+            { returnDocument: "after" }
         );
-        res.json(updated);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 };
 
-// DELETE /ReaderStories/:id
-exports.deletePitch = async (req, res) => {
+// 4. DELETE PITCH - Reader or Admin removes pitch
+const deletePitch = async (req, res) => {
     try {
-        const pitch = await ReaderStory.findOne({ id: String(req.params.id) });
-        if (!pitch) return res.status(404).json({ error: 'Pitch not found' });
+        const id = req.params.id;
+        const pitch = await ReaderStory.findOne({ id: String(id) });
+        if (!pitch) {
+            return res.status(404).json({ error: "Pitch not found" });
+        }
 
-        if (req.user && req.user.role !== 'Admin') {
+        if (req.user && req.user.role !== "Admin") {
             const userId = req.user.id;
             if (pitch.authorId !== userId && pitch.submittedById !== userId) {
-                return res.status(403).json({ error: 'Not authorized to delete this pitch' });
+                return res.status(403).json({ error: "Not authorized to delete this pitch" });
             }
         }
 
-        await ReaderStory.findOneAndDelete({ id: String(req.params.id) });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        await ReaderStory.findOneAndDelete({ id: String(id) });
+        res.status(200).json({ message: "Pitch deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
+};
+
+module.exports = {
+    getPitches,
+    createPitch,
+    updatePitch,
+    deletePitch
 };

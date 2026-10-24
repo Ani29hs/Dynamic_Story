@@ -1,67 +1,85 @@
-const crypto = require('crypto');
-const StorySession = require('../models/StorySession');
+const crypto = require("crypto");
+const StorySession = require("../models/StorySession");
 
-// GET /StorySessions
-exports.getSessions = async (req, res) => {
+// 1. GET ALL SESSIONS - Query reading sessions by userId / storyId
+const getSessions = async (req, res) => {
     try {
         const query = {};
         if (req.query.userId) query.userId = String(req.query.userId);
         if (req.query.storyId) query.storyId = String(req.query.storyId);
         if (req.query.id) query.id = String(req.query.id);
 
-        const sessions = await StorySession.find(query);
-        res.json(sessions);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const data = await StorySession.find(query);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// GET /StorySessions/:id
-exports.getSessionById = async (req, res) => {
+// 2. GET SINGLE SESSION - Fetch session by ID
+const getSessionById = async (req, res) => {
     try {
-        const session = await StorySession.findOne({ id: String(req.params.id) });
-        if (!session) return res.status(404).json({ error: 'Session not found' });
-        res.json(session);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const id = req.params.id;
+        const data = await StorySession.findOne({ id: String(id) });
+
+        if (!data) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// POST /StorySessions
-exports.createSession = async (req, res) => {
+// 3. CREATE SESSION - Start a new reading playthrough session
+const createSession = async (req, res) => {
     try {
         const sessionData = { ...req.body };
         if (!sessionData.id) {
             sessionData.id = crypto.randomUUID();
         }
-        const newSession = await StorySession.create(sessionData);
-        res.status(201).json(newSession);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+
+        const data = await StorySession.create(sessionData);
+        res.status(201).json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 };
 
-// PATCH /StorySessions/:id
-exports.updateSession = async (req, res) => {
+// 4. UPDATE SESSION - Save current node, visited choices, retreat states
+const updateSession = async (req, res) => {
     try {
-        const updated = await StorySession.findOneAndUpdate(
-            { id: String(req.params.id) },
+        const id = req.params.id;
+        const data = await StorySession.findOneAndUpdate(
+            { id: String(id) },
             { $set: req.body },
-            { returnDocument: 'after', upsert: true }
+            { returnDocument: "after", upsert: true }
         );
-        if (!updated) return res.status(404).json({ error: 'Session not found' });
-        res.json(updated);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+
+        if (!data) {
+            return res.status(404).json({ error: "Session not found" });
+        }
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 };
 
-// DELETE /StorySessions/:id
-exports.deleteSession = async (req, res) => {
+// 5. DELETE SESSION - Reset or remove session
+const deleteSession = async (req, res) => {
     try {
-        await StorySession.findOneAndDelete({ id: String(req.params.id) });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const id = req.params.id;
+        await StorySession.findOneAndDelete({ id: String(id) });
+        res.status(200).json({ message: "Session deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
+};
+
+module.exports = {
+    getSessions,
+    getSessionById,
+    createSession,
+    updateSession,
+    deleteSession
 };

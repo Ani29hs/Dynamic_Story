@@ -1,11 +1,18 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/userController');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const express = require("express");
+const {
+    getUsers,
+    getUserById,
+    createUser,
+    updateUser
+} = require("../controllers/userController");
+const { authMiddleware } = require("../middleware/authMiddleware");
 
-router.get('/', userController.getUsers);
-router.get('/:id', authMiddleware, userController.getUserById);
-router.post('/', userController.createUser);
-router.patch('/:id', authMiddleware, userController.updateUser);
+const router = express.Router();
+
+// User Routes
+router.get("/", getUsers);                       // Query users list
+router.get("/:id", authMiddleware, getUserById); // Get user by ID (auth protected)
+router.post("/", createUser);                    // Create user
+router.patch("/:id", authMiddleware, updateUser); // Update user profile/XP (auth protected)
 
 module.exports = router;

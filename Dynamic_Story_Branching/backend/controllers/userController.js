@@ -1,35 +1,39 @@
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const User = require('../models/User');
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
+const User = require("../models/User");
 
-// GET /Users
-exports.getUsers = async (req, res) => {
+// 1. GET ALL USERS - Query users with optional filters (email, role, id)
+const getUsers = async (req, res) => {
     try {
         const query = {};
         if (req.query.email) query.email = String(req.query.email).toLowerCase().trim();
         if (req.query.role) query.role = req.query.role;
         if (req.query.id) query.id = String(req.query.id);
 
-        const users = await User.find(query);
-        res.json(users);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const data = await User.find(query);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// GET /Users/:id
-exports.getUserById = async (req, res) => {
+// 2. GET SINGLE USER - Fetch user by ID
+const getUserById = async (req, res) => {
     try {
-        const user = await User.findOne({ id: String(req.params.id) });
-        if (!user) return res.status(404).json({ error: 'User not found' });
-        res.json(user);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        const id = req.params.id;
+        const data = await User.findOne({ id: String(id) });
+
+        if (!data) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// POST /Users
-exports.createUser = async (req, res) => {
+// 3. CREATE USER - Store user record in MongoDB
+const createUser = async (req, res) => {
     try {
         const userData = { ...req.body };
         if (!userData.id) {
@@ -38,27 +42,40 @@ exports.createUser = async (req, res) => {
         if (userData.email) {
             userData.email = String(userData.email).toLowerCase().trim();
         }
-        if (userData.password && !userData.password.startsWith('$2a$') && !userData.password.startsWith('$2b$')) {
+        // Hash password if plain text
+        if (userData.password && !userData.password.startsWith("$2a$") && !userData.password.startsWith("$2b$")) {
             userData.password = await bcrypt.hash(userData.password, 10);
         }
-        const newUser = await User.create(userData);
-        res.status(201).json(newUser);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+
+        const data = await User.create(userData);
+        res.status(201).json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
 };
 
-// PATCH /Users/:id
-exports.updateUser = async (req, res) => {
+// 4. UPDATE USER - Update user profile, XP, or settings
+const updateUser = async (req, res) => {
     try {
-        const updated = await User.findOneAndUpdate(
-            { id: String(req.params.id) },
+        const id = req.params.id;
+        const data = await User.findOneAndUpdate(
+            { id: String(id) },
             { $set: req.body },
-            { returnDocument: 'after' }
+            { returnDocument: "after" }
         );
-        if (!updated) return res.status(404).json({ error: 'User not found' });
-        res.json(updated);
-    } catch (err) {
-        res.status(400).json({ error: err.message });
+
+        if (!data) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(400).json({ error: error.message });
     }
+};
+
+module.exports = {
+    getUsers,
+    getUserById,
+    createUser,
+    updateUser
 };

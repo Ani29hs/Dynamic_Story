@@ -338,11 +338,30 @@ async function checkWelcomeToast() {
         return;
     }
 
-    // Check 2: First login welcome toast (checked directly from user record in MongoDB Atlas)
-    let alreadyShown = Boolean(user.hasSeenWelcomeToast);
+    // Check 2: First login welcome toast (checked directly from user record and localStorage)
+    const storageKey = `hasSeenWelcomeToast_${user.id}`;
+    let alreadyShown = Boolean(user.hasSeenWelcomeToast) || localStorage.getItem(storageKey) === "true";
+
+    // Don't show the initial welcome bonus toast on the story player (play.html)
+    const isPlayerPage = window.location.pathname.includes("play.html");
+    if (isPlayerPage) {
+        if (!alreadyShown) {
+            localStorage.setItem(storageKey, "true");
+            user.hasSeenWelcomeToast = true;
+            if (user.id) {
+                fetch(`${API_BASE}/Users/${user.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ hasSeenWelcomeToast: true })
+                }).catch(e => { });
+            }
+        }
+        return;
+    }
 
     if (!alreadyShown) {
         user.hasSeenWelcomeToast = true;
+        localStorage.setItem(storageKey, "true");
 
         if (user.id) {
             fetch(`${API_BASE}/Users/${user.id}`, {

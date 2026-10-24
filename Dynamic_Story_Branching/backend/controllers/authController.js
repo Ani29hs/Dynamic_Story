@@ -1,12 +1,12 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const User = require('../models/User');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const User = require("../models/User");
 
 const SECRET_KEY = process.env.SECRET_KEY || "PASSKEY";
 
-// POST /register
-exports.register = async (req, res) => {
+// 1. REGISTER - Create a new user account with hashed password
+const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
         if (!email || !password) {
@@ -19,6 +19,7 @@ exports.register = async (req, res) => {
             return res.status(400).json({ message: "Email already exists" });
         }
 
+        // Hash password securely with bcrypt
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = await User.create({
             id: crypto.randomUUID(),
@@ -32,15 +33,8 @@ exports.register = async (req, res) => {
             unlockedEndings: {}
         });
 
-        const token = jwt.sign(
-            { id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name },
-            SECRET_KEY,
-            { expiresIn: "24h" }
-        );
-
         res.status(201).json({
             message: "User registered successfully",
-            token: token,
             user: {
                 id: newUser.id,
                 name: newUser.name,
@@ -49,13 +43,13 @@ exports.register = async (req, res) => {
                 xp: newUser.xp
             }
         });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// POST /login
-exports.login = async (req, res) => {
+// 2. LOGIN - Authenticate user credentials and return JWT token
+const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) {
@@ -68,8 +62,8 @@ exports.login = async (req, res) => {
             return res.status(404).json({ message: "Email does not exist" });
         }
 
+        // Compare password with bcrypt hash or upgrade legacy plaintext
         let isMatch = false;
-        // Verify bcrypt hash or upgrade legacy plaintext
         if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
             isMatch = await bcrypt.compare(password, user.password);
         } else {
@@ -84,15 +78,16 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: "Password does not match" });
         }
 
+        // Generate JWT token
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role, name: user.name },
             SECRET_KEY,
             { expiresIn: "24h" }
         );
 
-        res.json({
+        res.status(200).json({
             message: "User Logged In successfully",
-            token: token,
+            token,
             user: {
                 id: user.id,
                 name: user.name,
@@ -101,24 +96,24 @@ exports.login = async (req, res) => {
                 xp: user.xp || 100,
                 completedStories: user.completedStories || [],
                 usedFreeRetreatStories: user.usedFreeRetreatStories || [],
-                unlockedEndings: user.unlockedEndings || {}
+                unlockedEndings: user.unlockedEndings || {},
+                hasSeenWelcomeToast: user.hasSeenWelcomeToast || false
             }
         });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 };
 
-// GET /profile (protected)
-exports.getProfile = async (req, res) => {
+// 3. GET PROFILE - Fetch current user info from token
+const getProfile = async (req, res) => {
     try {
-        const user = await User.findOne({ email: req.user.email });
+        const user = await User.findOne({ id: String(req.user.id) });
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
 
-        res.json({
-            message: "Welcome to my profile",
+        res.status(200).json({
             user: {
                 id: user.id,
                 name: user.name,
@@ -133,7 +128,13 @@ exports.getProfile = async (req, res) => {
                 lastPitchMonth: user.lastPitchMonth || null
             }
         });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
+};
+
+module.exports = {
+    register,
+    login,
+    getProfile
 };

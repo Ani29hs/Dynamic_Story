@@ -1,20 +1,21 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
+require("dotenv").config();
 
-async function connectDB() {
-    const uri = process.env.MONGO_URI;
-    if (!uri || uri.includes('<YOUR_DB_PASSWORD>')) {
-        console.error('⚠️ [MongoDB Error] Please configure your MONGO_URI in .env');
-        return false;
-    }
+// MongoDB Atlas connection string from .env
+const url = process.env.MONGO_URI || process.env.MONGO_URL;
 
+// Function to connect to MongoDB Atlas
+const connectDB = async () => {
     try {
-        await mongoose.connect(uri);
-        console.log('✅ Connected to MongoDB Atlas successfully.');
-        return true;
-    } catch (err) {
-        console.error('❌ [MongoDB Connection Error]:', err.message);
-        return false;
+        if (!url || url.includes("<YOUR_DB_PASSWORD>")) {
+            console.log("⚠️ Please set a valid MONGO_URI in backend/.env");
+            return;
+        }
+        await mongoose.connect(url);
+        console.log("✅ Connected to MongoDB Atlas successfully");
+    } catch (error) {
+        console.error("❌ MongoDB connection failed:", error.message);
     }
-}
+};
 
 module.exports = connectDB;

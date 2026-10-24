@@ -97,7 +97,6 @@ let handleLogin = async (event) => {
             sessionStorage.setItem("showAdminWelcomeToast", "true");
             window.location.href = "../admin/admin.html";
         } else {
-            sessionStorage.setItem("showStoryIntro", "true");
             sessionStorage.setItem("showLoginWelcomeToast", "true");
             window.location.href = "../reader/stories.html";
         }

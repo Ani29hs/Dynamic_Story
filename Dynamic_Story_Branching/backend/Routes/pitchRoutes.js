@@ -1,13 +1,21 @@
-const express = require('express');
-const router = express.Router();
-const pitchController = require('../controllers/pitchController');
-const { authMiddleware, adminOnly } = require('../middleware/authMiddleware');
+const express = require("express");
+const {
+    getPitches,
+    createPitch,
+    updatePitch,
+    deletePitch
+} = require("../controllers/pitchController");
+const { authMiddleware } = require("../middleware/authMiddleware");
 
+const router = express.Router();
+
+// Pitch operations require user authentication
 router.use(authMiddleware);
 
-router.get('/', pitchController.getPitches);
-router.post('/', pitchController.createPitch);
-router.patch('/:id', pitchController.updatePitch);
-router.delete('/:id', pitchController.deletePitch);
+// Pitch Routes
+router.get("/", getPitches);          // Get pitches list
+router.post("/", createPitch);        // Submit new pitch
+router.patch("/:id", updatePitch);    // Update pitch status (approve/reject)
+router.delete("/:id", deletePitch);   // Delete pitch
 
 module.exports = router;
