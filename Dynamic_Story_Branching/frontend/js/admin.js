@@ -158,40 +158,39 @@ async function renderAdminProfileHeader() {
     }
     if (!navAuthContainer || !user) return;
 
-    let initial     = user.name ? user.name.charAt(0).toUpperCase() : "A";
-    let activeXp    = (user.xp !== undefined) ? user.xp : 100;
-    let roleTitle   = user.role || "Admin";
-    let xpBadgeHtml = (user.role !== "Admin")
-        ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>`
-        : ``;
+    let avatarContent = `<span style="font-weight: 900; font-family: var(--font-display, sans-serif); color: #000;">A</span>`;
 
     navAuthContainer.innerHTML = `
         <div class="user-profile-menu-container">
             <button type="button" class="profile-menu-btn" onclick="toggleProfileDropdown(event)">
-                <span class="user-avatar">${initial}</span>
-                <span class="user-name-label">${user.name || 'Admin'}</span>
+                <span class="user-avatar" style="background: #ffd731; color: #000; font-weight: 900; display: flex; align-items: center; justify-content: center;">${avatarContent}</span>
+                <span class="user-name-label">ADMIN</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 2px;"><path d="M6 9l6 6 6-6"/></svg>
             </button>
             <div id="profileDropdown" class="profile-dropdown-menu hidden" onclick="event.stopPropagation()">
                 <div class="profile-dropdown-header">
-                    <strong>${user.name || 'Admin'}</strong>
-                    <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
-                        <span class="user-role-badge">${roleTitle.toUpperCase()}</span>
-                        ${xpBadgeHtml}
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="user-avatar" style="width: 36px; height: 36px; font-size: 16px; background: #ffd731; color: #000; font-weight: 900; border: 2.5px solid #000; box-shadow: 2px 2px 0 #000; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">A</span>
+                        <div style="min-width: 0;">
+                            <strong style="color: #ffffff; display: block; font-size: 15px;">Admin</strong>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
+                        <span class="user-role-badge">ADMIN</span>
                     </div>
                 </div>
                 <div class="profile-dropdown-links">
                     <a href="admin.html" class="dropdown-item">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                         Admin Dashboard
                     </a>
                     <a href="preview.html" class="dropdown-item">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
                         Story Preview
                     </a>
-                    <hr style="border: 0; border-top: 2px solid #000; margin: 6px 0;">
+                    <div style="height: 1.5px; background: #e2e8f0; margin: 4px 6px;"></div>
                     <button type="button" class="dropdown-item logout-item" onclick="handleLogout()">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         Sign Out
                     </button>
                 </div>
@@ -301,6 +300,9 @@ async function loadStories() {
             <div class="story-card">
                 <div class="story-card-image">
                     ${coverImg}
+                    <div class="story-image-hover-views">
+                        <span>👁️ ${(element.views || 0).toLocaleString()} VIEWS</span>
+                    </div>
                 </div>
                 <div class="story-card-content">
                     <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
@@ -513,6 +515,9 @@ function openDescriptionModal(storyId) {
     if (modalRatingAvg)   modalRatingAvg.textContent   = rStats.avg;
     if (modalRatingCount) modalRatingCount.textContent = rStats.count;
 
+    let modalViewsCount = document.getElementById("modalViewsCount");
+    if (modalViewsCount) modalViewsCount.textContent = (story.views || 0).toLocaleString();
+
     if (modalEditBtn) {
         modalEditBtn.onclick = () => { closeDescriptionModal(); editStory(story.id); };
     }
@@ -539,43 +544,246 @@ function closeDescriptionModal() {
 function switchTab(tab) {
     let storiesSection = document.getElementById("storiesContainer");
     let pitchesSection = document.getElementById("pitchesContainer");
+    let reviewsSection = document.getElementById("reviewsCommentsContainer");
     let tabStories     = document.getElementById("tabStories");
     let tabPitches     = document.getElementById("tabPitches");
+    let tabReviews     = document.getElementById("tabReviewsComments");
 
     if (tab === "stories") {
         if (storiesSection) {
             storiesSection.style.setProperty("display", "grid", "important");
             storiesSection.classList.remove("hidden");
         }
-        if (pitchesSection) {
-            pitchesSection.style.display = "none";
-        }
-        if (tabStories) {
-            tabStories.style.background  = "#000";
-            tabStories.style.color       = "#fff";
-        }
-        if (tabPitches) {
-            tabPitches.style.background  = "#fff";
-            tabPitches.style.color       = "#000";
-        }
-    } else {
+        if (pitchesSection) pitchesSection.style.display = "none";
+        if (reviewsSection) reviewsSection.style.display = "none";
+
+        if (tabStories) { tabStories.style.background = "#000"; tabStories.style.color = "#fff"; }
+        if (tabPitches) { tabPitches.style.background = "#fff"; tabPitches.style.color = "#000"; }
+        if (tabReviews) { tabReviews.style.background = "#fff"; tabReviews.style.color = "#000"; }
+    } else if (tab === "pitches") {
         if (storiesSection) {
             storiesSection.style.setProperty("display", "none", "important");
             storiesSection.classList.add("hidden");
         }
-        if (pitchesSection) {
-            pitchesSection.style.display = "flex";
-        }
-        if (tabStories) {
-            tabStories.style.background  = "#fff";
-            tabStories.style.color       = "#000";
-        }
-        if (tabPitches) {
-            tabPitches.style.background  = "#000";
-            tabPitches.style.color       = "#fff";
-        }
+        if (pitchesSection) pitchesSection.style.display = "flex";
+        if (reviewsSection) reviewsSection.style.display = "none";
+
+        if (tabStories) { tabStories.style.background = "#fff"; tabStories.style.color = "#000"; }
+        if (tabPitches) { tabPitches.style.background = "#000"; tabPitches.style.color = "#fff"; }
+        if (tabReviews) { tabReviews.style.background = "#fff"; tabReviews.style.color = "#000"; }
         loadReaderPitches();
+    } else if (tab === "reviewsComments") {
+        if (storiesSection) {
+            storiesSection.style.setProperty("display", "none", "important");
+            storiesSection.classList.add("hidden");
+        }
+        if (pitchesSection) pitchesSection.style.display = "none";
+        if (reviewsSection) reviewsSection.style.display = "flex";
+
+        if (tabStories) { tabStories.style.background = "#fff"; tabStories.style.color = "#000"; }
+        if (tabPitches) { tabPitches.style.background = "#fff"; tabPitches.style.color = "#000"; }
+        if (tabReviews) { tabReviews.style.background = "#000"; tabReviews.style.color = "#fff"; }
+        loadAdminReviewsComments();
     }
+}
+
+let adminSelectedStoryFilter = "all";
+
+async function loadAdminReviewsComments() {
+    let container = document.getElementById("reviewsCommentsContainer");
+    if (!container) return;
+
+    container.innerHTML = `<div style="text-align:center; padding: 40px; font-weight:800; font-size:16px;">Loading platform reviews, comments, and story analytics...</div>`;
+
+    try {
+        let [storiesRes, reviewsRes, commentsRes] = await Promise.all([
+            fetch(`${API_BASE}/Stories`),
+            fetch(`${API_BASE}/Reviews`),
+            fetch(`${API_BASE}/Comments`)
+        ]);
+
+        let stories = storiesRes.ok ? await storiesRes.json() : [];
+        let allReviews = reviewsRes.ok ? await reviewsRes.json() : [];
+        let allComments = commentsRes.ok ? await commentsRes.json() : [];
+
+        let storyMap = {};
+        let totalPlatformViews = 0;
+        stories.forEach(s => {
+            storyMap[s.id] = s.title || "Untitled";
+            totalPlatformViews += (s.views || 0);
+        });
+
+        let totalScore = allReviews.reduce((sum, r) => sum + (r.rating || 0), 0);
+        let avgRating = allReviews.length > 0 ? (totalScore / allReviews.length).toFixed(1) : "0.0";
+
+        let filteredReviews = adminSelectedStoryFilter === "all"
+            ? allReviews
+            : allReviews.filter(r => String(r.storyId) === String(adminSelectedStoryFilter));
+
+        let filteredComments = adminSelectedStoryFilter === "all"
+            ? allComments
+            : allComments.filter(c => String(c.storyId) === String(adminSelectedStoryFilter));
+
+        container.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 8px;">
+                <div style="background: #e0f2fe; border: 2.5px solid #000; border-radius: 18px; padding: 20px; box-shadow: 4px 4px 0px #000;">
+                    <div style="font-size: 12px; font-weight: 900; color: #0369a1; text-transform: uppercase;">👁️ TOTAL STORY READS</div>
+                    <div style="font-family: var(--font-display); font-size: 32px; margin-top: 4px;">${totalPlatformViews.toLocaleString()}</div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-top: 4px;">Across all ${stories.length} stories</div>
+                </div>
+
+                <div style="background: #fff8db; border: 2.5px solid #000; border-radius: 18px; padding: 20px; box-shadow: 4px 4px 0px #000;">
+                    <div style="font-size: 12px; font-weight: 900; color: #854d0e; text-transform: uppercase;">⭐ TOTAL READER REVIEWS</div>
+                    <div style="font-family: var(--font-display); font-size: 32px; margin-top: 4px;">${allReviews.length}</div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-top: 4px;">Platform Avg: <strong>${avgRating} / 5.0</strong></div>
+                </div>
+
+                <div style="background: #f3e8ff; border: 2.5px solid #000; border-radius: 18px; padding: 20px; box-shadow: 4px 4px 0px #000;">
+                    <div style="font-size: 12px; font-weight: 900; color: #6b21a8; text-transform: uppercase;">💬 COMMUNITY COMMENTS</div>
+                    <div style="font-family: var(--font-display); font-size: 32px; margin-top: 4px;">${allComments.length}</div>
+                    <div style="font-size: 11.5px; font-weight: 700; color: #475569; margin-top: 4px;">Reader comments & replies</div>
+                </div>
+            </div>
+
+            <div style="background: #ffffff; border: 2.5px solid #000; border-radius: 16px; padding: 14px 20px; box-shadow: 3px 3px 0px #000; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: 900; font-size: 13.5px; text-transform: uppercase;">Filter by Story:</span>
+                    <select id="adminStoryFilterSelect" onchange="adminSelectedStoryFilter = this.value; loadAdminReviewsComments();" style="border: 2px solid #000; border-radius: 100px; padding: 6px 16px; font-weight: 800; font-size: 13px; background: #f8fafc; cursor: pointer; outline: none;">
+                        <option value="all" ${adminSelectedStoryFilter === 'all' ? 'selected' : ''}>All Stories (${stories.length})</option>
+                        ${stories.map(s => `
+                            <option value="${s.id}" ${adminSelectedStoryFilter === s.id ? 'selected' : ''}>
+                                ${s.title} (👁️ ${s.views || 0} views)
+                            </option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div style="font-size: 12.5px; font-weight: 800; color: #475569;">
+                    Showing <strong>${filteredReviews.length}</strong> reviews & <strong>${filteredComments.length}</strong> comments
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start;">
+                <div style="background: #ffffff; border: 2.5px solid #000; border-radius: 20px; padding: 22px; box-shadow: 4px 4px 0px #000;">
+                    <h3 style="font-family: var(--font-display); font-size: 18px; margin: 0 0 16px; text-transform: uppercase;">
+                        ⭐ Reader Reviews (${filteredReviews.length})
+                    </h3>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 650px; overflow-y: auto; padding-right: 4px;">
+                        ${filteredReviews.length === 0 ? `
+                            <div class="community-empty-box">No reviews found for this selection</div>
+                        ` : filteredReviews.map(r => `
+                            <div style="background: #f8fafc; border: 2px solid #000; border-radius: 14px; padding: 14px; box-shadow: 2px 2px 0px #000;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                    <div>
+                                        <div style="font-size: 11px; font-weight: 900; color: #5c4ade; text-transform: uppercase;">
+                                            📖 ${storyMap[r.storyId] || r.storyId}
+                                        </div>
+                                        <div style="font-weight: 800; font-size: 13.5px; margin-top: 2px;">
+                                            ${r.username}
+                                        </div>
+                                    </div>
+                                    <span style="background: #ffde59; border: 1.5px solid #000; border-radius: 100px; padding: 2px 8px; font-weight: 900; font-size: 11.5px;">
+                                        ⭐ ${r.rating}.0
+                                    </span>
+                                </div>
+                                <div style="font-size: 13.5px; font-weight: 600; color: #1e293b; margin: 8px 0; line-height: 1.5;">
+                                    ${escapeHtmlAdmin(r.reviewText)}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;">
+                                    <span style="font-size: 11px; font-weight: 600; color: #64748b;">${new Date(r.createdAt).toLocaleDateString()}</span>
+                                    <button type="button" onclick="deleteAdminReview('${r.id}')" style="background: #fee2e2; color: #dc2626; border: 1.5px solid #dc2626; border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 800; cursor: pointer;">🗑️ Remove Review</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div style="background: #ffffff; border: 2.5px solid #000; border-radius: 20px; padding: 22px; box-shadow: 4px 4px 0px #000;">
+                    <h3 style="font-family: var(--font-display); font-size: 18px; margin: 0 0 16px; text-transform: uppercase;">
+                        💬 Comments & Replies (${filteredComments.length})
+                    </h3>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px; max-height: 650px; overflow-y: auto; padding-right: 4px;">
+                        ${filteredComments.length === 0 ? `
+                            <div class="community-empty-box">No comments found for this selection</div>
+                        ` : filteredComments.map(c => `
+                            <div style="background: #f8fafc; border: 2px solid #000; border-radius: 14px; padding: 14px; box-shadow: 2px 2px 0px #000;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                    <div>
+                                        <div style="font-size: 11px; font-weight: 900; color: #5c4ade; text-transform: uppercase;">
+                                            📖 ${storyMap[c.storyId] || c.storyId} ${c.parentId ? '• <span style="color:#0284c7;">REPLY</span>' : '• <span style="color:#16a34a;">ROOT COMMENT</span>'}
+                                        </div>
+                                        <div style="font-weight: 800; font-size: 13.5px; margin-top: 2px;">
+                                            @${c.username}
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 12px; font-weight: 700; color: #64748b;">
+                                        👍 ${(c.likes && c.likes.length) || 0}
+                                    </span>
+                                </div>
+                                <div style="font-size: 13.5px; font-weight: 600; color: #1e293b; margin: 8px 0; line-height: 1.5;">
+                                    ${escapeHtmlAdmin(c.text)}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #cbd5e1; padding-top: 8px; margin-top: 8px;">
+                                    <span style="font-size: 11px; font-weight: 600; color: #64748b;">${new Date(c.createdAt).toLocaleDateString()}</span>
+                                    <button type="button" onclick="deleteAdminComment('${c.id}')" style="background: #fee2e2; color: #dc2626; border: 1.5px solid #dc2626; border-radius: 100px; padding: 3px 10px; font-size: 11px; font-weight: 800; cursor: pointer;">🗑️ Remove Comment</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<div class="community-empty-box">Failed to load admin reviews: ${err.message}</div>`;
+    }
+}
+
+async function deleteAdminReview(id) {
+    if (!confirm("Remove this review from the story?")) return;
+    try {
+        const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+        let res = await fetch(`${API_BASE}/Reviews/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": token ? `Bearer ${token}` : ""
+            }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Delete failed");
+        }
+        loadAdminReviewsComments();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+async function deleteAdminComment(id) {
+    if (!confirm("Remove this comment and any child replies?")) return;
+    try {
+        const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+        let res = await fetch(`${API_BASE}/Comments/${id}`, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": token ? `Bearer ${token}` : ""
+            }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || "Delete failed");
+        }
+        loadAdminReviewsComments();
+    } catch (e) {
+        alert(e.message);
+    }
+}
+
+function escapeHtmlAdmin(str) {
+    if (!str) return "";
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 

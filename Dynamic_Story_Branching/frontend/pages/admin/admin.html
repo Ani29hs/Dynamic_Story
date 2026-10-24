@@ -8,6 +8,7 @@
 
     <link rel="stylesheet" href="../../css/admin.css?v=fix_tabs_v1">
     <link rel="stylesheet" href="../../css/components21st.css?v=fix_tabs_v1">
+    <link rel="stylesheet" href="../../css/reviewsComments.css?v=hub_v1">
 </head>
 
 <body>
@@ -64,7 +65,7 @@
             </div>
 
             <!-- Tab Switcher -->
-            <div id="adminTabs" style="display: flex; gap: 12px; margin-bottom: 28px;">
+            <div id="adminTabs" style="display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;">
                 <button type="button" id="tabStories" onclick="switchTab('stories')"
                     style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #000; color: #fff; box-shadow: 3px 3px 0px #555; cursor: pointer;">
                     📚 Stories
@@ -72,6 +73,10 @@
                 <button type="button" id="tabPitches" onclick="switchTab('pitches')"
                     style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
                     ✍️ Reader Pitches
+                </button>
+                <button type="button" id="tabReviewsComments" onclick="switchTab('reviewsComments')"
+                    style="padding: 10px 24px; border: 2.5px solid #000; border-radius: 100px; font-family: var(--font-ui); font-weight: 800; font-size: 14px; background: #fff; color: #000; box-shadow: 3px 3px 0px #000; cursor: pointer;">
+                    💬 Reviews & Comments
                 </button>
             </div>
 
@@ -81,6 +86,10 @@
 
             <!-- Reader Pitches Tab -->
             <section id="pitchesContainer" style="display:none; flex-direction: column; gap: 16px;">
+            </section>
+
+            <!-- Reviews & Comments Moderation Tab -->
+            <section id="reviewsCommentsContainer" style="display:none; flex-direction: column; gap: 20px;">
             </section>
 
         </main>
@@ -111,6 +120,9 @@
                     <div class="stat-lockup-box" style="margin-bottom: 16px; background: #ffde59; border: 2px solid #000; border-radius: 12px; padding: 10px 16px; box-shadow: 3px 3px 0px #000; display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px;">
                         <span>⭐ <strong id="modalRatingAvg">0.0</strong> / 5.0 (<span id="modalRatingCount">0</span> RATINGS)</span>
                     </div>
+                    <div class="stat-lockup-box" style="margin-bottom: 16px; background: #e0f2fe; border: 2px solid #000; border-radius: 12px; padding: 10px 16px; box-shadow: 3px 3px 0px #000; display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13px; color: #0369a1;">
+                        <span>👁️ <strong id="modalViewsCount">0</strong> VIEWS</span>
+                    </div>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button type="button" id="modalEditBtn" class="primary-btn" style="padding: 10px 22px; font-size: 13px; font-weight: 800; border-radius: 100px;">✏️ Edit Story</button>
                         <button type="button" onclick="closeDescriptionModal()" class="secondary-btn" style="padding: 10px 22px; font-size: 13px; font-weight: 800; border-radius: 100px; background: #fff;">← Back to Dashboard</button>
@@ -124,10 +136,11 @@
         Dynamic Story Engine &bull; Admin Portal &bull; Slush Theme
     </footer>
 
-    <script src="../../js/config.js"></script>
-    <script src="../../js/auth.js"></script>
-    <script src="../../js/admin.js?v=fix_tabs_v1"></script>
-    <script src="../../js/components21st.js?v=fix_tabs_v1"></script>
+    <script src="../../js/config.js?v=v5_clean"></script>
+    <script src="../../js/auth.js?v=v5_clean"></script>
+    <script src="../../js/reviewsComments.js?v=v5_clean"></script>
+    <script src="../../js/admin.js?v=v5_clean"></script>
+    <script src="../../js/components21st.js?v=v5_clean"></script>
 </body>
 
 </html>

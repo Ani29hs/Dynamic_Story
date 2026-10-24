@@ -1,0 +1,1093 @@
+/* ============================================================
+   profile.css — Neo-Brutalist & LeetCode Medallions Styling
+   ============================================================ */
+
+.profile-container {
+    max-width: 1260px;
+    margin: 32px auto 60px;
+    padding: 0 24px;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ── Hero Profile Header Card ────────────────────────────── */
+.profile-hero-card {
+    background: #ffffff;
+    border: 3.5px solid #000000;
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: 6px 6px 0px #000000;
+    margin-bottom: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-hero-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: linear-gradient(90deg, #6366f1 0%, #ec4899 35%, #f59e0b 70%, #10b981 100%);
+    border-bottom: 2px solid #000000;
+}
+
+.profile-user-identity {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.profile-hero-avatar-wrap {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: 3.5px solid #000000;
+    background: #ffd731;
+    box-shadow: 4px 4px 0px #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.profile-hero-avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.profile-hero-meta h1 {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin: 0;
+    color: #0f172a;
+}
+
+.profile-persona-badge {
+    background: #e0e7ff;
+    color: #4338ca;
+    border: 2px solid #000000;
+    border-radius: 100px;
+    padding: 4px 12px;
+    font-weight: 800;
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 2px 2px 0px #000000;
+}
+
+.profile-rank-badge {
+    background: #fef08a;
+    color: #854d0e;
+    border: 2px solid #000000;
+    border-radius: 100px;
+    padding: 4px 12px;
+    font-weight: 800;
+    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 2px 2px 0px #000000;
+}
+
+.profile-hero-stats {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.profile-stat-box {
+    background: #f8fafc;
+    border: 2.5px solid #000000;
+    border-radius: 14px;
+    padding: 12px 18px;
+    box-shadow: 3px 3px 0px #000000;
+    text-align: center;
+    min-width: 100px;
+}
+
+.profile-stat-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.profile-stat-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ── Reading Skyline Card ────────────────────────────────── */
+.skyline-section-container {
+    margin-bottom: 32px;
+}
+
+/* ── 2-Column Layout Grid ────────────────────────────────── */
+.profile-layout-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 28px;
+}
+
+@media (max-width: 980px) {
+    .profile-layout-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.neo-panel-card {
+    background: #ffffff;
+    border: 3.5px solid #000000;
+    border-radius: 20px;
+    padding: 26px;
+    box-shadow: 6px 6px 0px #000000;
+}
+
+.neo-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 2.5px solid #000000;
+}
+
+.neo-panel-kicker {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4f46e5;
+}
+
+.neo-panel-title {
+    font-size: 22px;
+    font-weight: 900;
+    color: #0f172a;
+    margin: 2px 0 0;
+}
+
+/* Filter Bar */
+.badges-filter-bar {
+    display: flex;
+    gap: 6px;
+    background: #f1f5f9;
+    padding: 4px;
+    border: 2px solid #000000;
+    border-radius: 10px;
+}
+
+.badge-filter-btn {
+    border: none;
+    background: transparent;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #475569;
+    transition: all 0.15s ease;
+}
+
+.badge-filter-btn.active {
+    background: #000000;
+    color: #ffffff;
+}
+
+/* ── Authentic LeetCode Badges Card (Screenshot 4 replica) ── */
+.leetcode-authentic-card {
+    background: #282828;
+    border: 3.5px solid #000000;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 6px 6px 0px #000000;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 275px;
+    position: relative;
+    overflow: hidden;
+}
+
+.leetcode-authentic-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 8px 8px 0px #000000;
+}
+
+.leetcode-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.leetcode-card-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.02em;
+}
+
+.leetcode-card-count {
+    font-size: 34px;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.1;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.leetcode-card-arrow {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.leetcode-authentic-card:hover .leetcode-card-arrow {
+    transform: translateX(4px);
+    color: #ffffff;
+}
+
+.leetcode-medallion-showcase {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 0;
+}
+
+.leetcode-hexagon-svg {
+    filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.leetcode-authentic-card:hover .leetcode-hexagon-svg {
+    transform: scale(1.08) rotate(-2deg);
+}
+
+.leetcode-card-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 14px;
+    margin-top: 6px;
+}
+
+.leetcode-recent-label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.leetcode-recent-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-top: 4px;
+    letter-spacing: 0.01em;
+}
+
+/* ── Clean Shelf Layout for Badges Grid ── */
+.badges-grid-clean {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.shelf-badge-card {
+    background: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 12px;
+    padding: 14px 10px;
+    box-shadow: 3px 3px 0px #000000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.shelf-badge-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px #000000;
+}
+
+.shelf-badge-card.unlocked {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.shelf-badge-card.locked {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    opacity: 0.88;
+}
+
+.shelf-badge-card.locked:hover {
+    opacity: 1;
+    border-color: #000000;
+}
+
+.shelf-medallion-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2.5px solid #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    margin-bottom: 8px;
+}
+
+.shelf-badge-title {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+
+.shelf-badge-tier {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.shelf-badge-status {
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 100px;
+    padding: 2px 8px;
+    border: 1.5px solid #000000;
+}
+
+.shelf-badge-status.unlocked {
+    background: #bbf7d0;
+    color: #14532d;
+}
+
+.shelf-badge-status.locked {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+/* ── LEETCODE-STYLE BADGES GRID & 3D MEDALLIONS ──────────── */
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 16px;
+}
+
+.leetcode-badge-card {
+    position: relative;
+    background: #ffffff;
+    border: 2.5px solid #000000;
+    border-radius: 14px;
+    padding: 18px 14px 14px;
+    box-shadow: 4px 4px 0px #000000;
+    display: flex;
+    flex-col: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.leetcode-badge-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 6px 6px 0px #000000;
+}
+
+.leetcode-badge-card.locked {
+    background: #f8fafc;
+    border-color: #64748b;
+    opacity: 0.88;
+}
+
+.leetcode-badge-card.locked:hover {
+    opacity: 1;
+}
+
+/* 3D Medallion Emblem */
+.leetcode-badge-medallion {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    border: 3px solid #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+    flex-shrink: 0;
+}
+
+.leetcode-badge-medallion.frosted {
+    background: #334155 !important;
+    border-color: #475569;
+}
+
+.medallion-emblem {
+    font-size: 30px;
+    line-height: 1;
+    z-index: 2;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.medallion-ring {
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    border: 1px dashed rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+}
+
+.medallion-sheen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 55%);
+    pointer-events: none;
+}
+
+.medallion-lock-icon {
+    position: absolute;
+    font-size: 20px;
+    z-index: 3;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.badge-tier-ribbon {
+    font-size: 9.5px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: #000000;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 100px;
+    margin-bottom: 6px;
+}
+
+.badge-tier-ribbon.locked {
+    background: #64748b;
+}
+
+.badge-card-title {
+    font-size: 15px;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.2;
+    margin-bottom: 5px;
+}
+
+.badge-card-desc {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #475569;
+    line-height: 1.35;
+    margin-bottom: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 31px;
+}
+
+.badge-unlocked-status {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1.5px solid #e2e8f0;
+    padding-top: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #059669;
+}
+
+.badge-xp-pill {
+    background: #fef08a;
+    color: #854d0e;
+    border: 1.5px solid #000000;
+    border-radius: 100px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.badge-progress-box {
+    width: 100%;
+    border-top: 1.5px solid #cbd5e1;
+    padding-top: 8px;
+}
+
+.badge-progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.badge-progress-track {
+    width: 100%;
+    height: 7px;
+    background: #e2e8f0;
+    border: 1px solid #000000;
+    border-radius: 100px;
+    overflow: hidden;
+}
+
+.badge-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #3b82f6);
+    border-radius: 100px;
+    transition: width 0.3s ease;
+}
+
+/* ── MODAL INSPECTION ────────────────────────────────────── */
+.badge-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.badge-modal-box {
+    background: #ffffff;
+    border: 3.5px solid #000000;
+    border-radius: 20px;
+    padding: 28px 24px 22px;
+    box-shadow: 8px 8px 0px #000000;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    animation: scaleUp 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.badge-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: transparent;
+    border: 2px solid #000000;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: background 0.15s ease;
+}
+
+.badge-modal-close:hover {
+    background: #fee2e2;
+}
+
+.badge-modal-medallion-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.leetcode-badge-medallion.modal-view {
+    width: 100px;
+    height: 100px;
+    border-width: 4px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+/* ── PROFILE CUSTOMIZATION & PHOTO UPLOAD STUDIO ─────────── */
+.avatar-upload-hero-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #f8fafc;
+    border: 2.5px solid #000000;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.edit-avatar-preview-wrap {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid #000000;
+    background: #ffd731;
+    box-shadow: 3px 3px 0px #000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.edit-avatar-preview-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.avatar-upload-actions {
+    flex: 1;
+}
+
+.upload-file-btn {
+    display: inline-block;
+    background: #4f46e5;
+    color: #ffffff;
+    border: 2px solid #000000;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px #000000;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.upload-file-btn:hover {
+    background: #4338ca;
+    transform: translateY(-1px);
+}
+
+.avatar-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.avatar-choice-btn {
+    aspect-ratio: 1;
+    border: 2px solid #000000;
+    background: #ffffff;
+    border-radius: 8px;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.avatar-choice-btn:hover {
+    background: #fef08a;
+    transform: scale(1.08);
+}
+
+.avatar-choice-btn.active {
+    background: #6366f1;
+    border-color: #000000;
+    box-shadow: 0 0 0 2px #4f46e5;
+    transform: scale(1.1);
+}
+
+/* Persona Chips */
+.persona-chips-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.persona-chip-btn {
+    background: #f1f5f9;
+    border: 1.5px solid #000000;
+    border-radius: 100px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.persona-chip-btn:hover {
+    background: #e2e8f0;
+}
+
+.persona-chip-btn.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #000000;
+    box-shadow: 2px 2px 0px #000000;
+}
+
+/* Form Controls */
+.form-field-group {
+    margin-bottom: 18px;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.neo-text-input,
+.neo-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 2.5px solid #000000;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    background: #ffffff;
+    box-shadow: 2px 2px 0px #000000;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.neo-text-input:focus,
+.neo-textarea:focus {
+    border-color: #4f46e5;
+    box-shadow: 3px 3px 0px #4f46e5;
+}
+
+.neo-textarea {
+    resize: vertical;
+    min-height: 75px;
+}
+
+.save-profile-btn {
+    width: 100%;
+    background: #ffd731;
+    color: #000000;
+    border: 3px solid #000000;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000000;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    margin-top: 10px;
+}
+
+.save-profile-btn:hover {
+    background: #ffcc00;
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+}
+
+.save-profile-btn:active {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px #000000;
+}
+
+/* ── LEETCODE IN-MIDDLE CONGRATULATIONS CELEBRATION MODAL ── */
+.leetcode-celebration-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 15, 29, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: leetcodeFadeIn 0.3s ease forwards;
+}
+
+.leetcode-celebration-box {
+    position: relative;
+    background: #18181b;
+    border: 4px solid #000000;
+    border-radius: 24px;
+    padding: 36px 32px 30px;
+    box-shadow: 10px 10px 0px #000000, 0 0 40px rgba(255, 215, 49, 0.25);
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    color: #ffffff;
+    overflow: hidden;
+    animation: leetcodeModalBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.leetcode-celebration-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    height: 500px;
+    margin-left: -250px;
+    margin-top: -250px;
+    background: conic-gradient(from 0deg, rgba(255, 215, 49, 0.12) 0deg 30deg, transparent 30deg 60deg, rgba(255, 215, 49, 0.12) 60deg 90deg, transparent 90deg 120deg, rgba(255, 215, 49, 0.12) 120deg 150deg, transparent 150deg 180deg, rgba(255, 215, 49, 0.12) 180deg 210deg, transparent 210deg 240deg, rgba(255, 215, 49, 0.12) 240deg 270deg, transparent 270deg 300deg, rgba(255, 215, 49, 0.12) 300deg 330deg, transparent 330deg 360deg);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: leetcodeRayRotate 24s linear infinite;
+    z-index: 1;
+}
+
+.leetcode-celebration-content {
+    position: relative;
+    z-index: 2;
+}
+
+.celebration-kicker {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ffd731;
+    margin-bottom: 6px;
+    display: inline-block;
+}
+
+.celebration-title {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin: 0 0 16px;
+    background: linear-gradient(135deg, #ffffff 0%, #fef08a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(255, 215, 49, 0.3);
+}
+
+.celebration-medallion-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0 20px;
+    animation: leetcodeBadgeFloat 3s ease-in-out infinite;
+}
+
+.celebration-badge-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+.celebration-badge-tier {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 900;
+    border: 2px solid #000000;
+    box-shadow: 2px 2px 0px #000000;
+    margin-bottom: 12px;
+}
+
+.celebration-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    line-height: 1.45;
+    margin-bottom: 18px;
+    padding: 0 10px;
+}
+
+.celebration-xp-pill {
+    background: #fef08a;
+    color: #854d0e;
+    border: 2px solid #000000;
+    border-radius: 100px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 3px 3px 0px #000000;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 22px;
+}
+
+.celebration-btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.celebration-claim-btn {
+    flex: 1.4;
+    background: #ffd731;
+    color: #000000;
+    border: 3px solid #000000;
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000000;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.celebration-claim-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+    background: #ffcc00;
+}
+
+.celebration-continue-btn {
+    flex: 1;
+    background: #27272a;
+    color: #ffffff;
+    border: 3px solid #000000;
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000000;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.celebration-continue-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+    background: #3f3f46;
+}
+
+.celebration-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #ffffff;
+    border-radius: 8px;
+    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    transition: background 0.15s ease;
+}
+
+.celebration-close-btn:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+@keyframes leetcodeFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes leetcodeModalBounce {
+    0% { transform: scale(0.7) translateY(40px); opacity: 0; }
+    60% { transform: scale(1.04) translateY(-4px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes leetcodeRayRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes leetcodeBadgeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+/* ── ALL EARNED BADGES COLLECTION MODAL ── */
+.collection-modal-box {
+    max-width: 680px;
+    width: 95%;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    padding: 24px;
+}
+
+.collection-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    overflow-y: auto;
+    padding: 10px 4px;
+    max-height: 55vh;
+}

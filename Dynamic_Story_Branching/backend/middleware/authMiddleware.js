@@ -19,7 +19,32 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// 2. ADMIN ONLY - Restricts route access strictly to Admin role
+// 2. OPTIONAL AUTH - Decodes JWT if present, or falls back to body user info
+const optionalAuth = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+        const token = authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader;
+        try {
+            const decoded = jwt.verify(token, SECRET_KEY);
+            req.user = decoded;
+            return next();
+        } catch (error) {
+            // Token invalid, fall through
+        }
+    }
+
+    if (req.body && (req.body.userId || req.body.id)) {
+        req.user = {
+            id: req.body.userId || req.body.id,
+            name: req.body.username || req.body.name || "Reader",
+            role: req.body.role || "User"
+        };
+    }
+
+    next();
+};
+
+// 3. ADMIN ONLY - Restricts route access strictly to Admin role
 const adminOnly = (req, res, next) => {
     if (!req.user || req.user.role !== "Admin") {
         return res.status(403).json({ message: "Access denied. Admin privileges required." });
@@ -27,7 +52,8 @@ const adminOnly = (req, res, next) => {
     next();
 };
 
-// Export both as default function and as named properties
+// Export all middlewares
 module.exports = authMiddleware;
 module.exports.authMiddleware = authMiddleware;
+module.exports.optionalAuth = optionalAuth;
 module.exports.adminOnly = adminOnly;

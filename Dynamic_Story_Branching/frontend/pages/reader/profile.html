@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reader Profile & LeetCode Badges | Dynamic Story Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../css/reader.css?v=skyline_v2">
+    <link rel="stylesheet" href="../../css/components21st.css?v=skyline_v2">
+    <link rel="stylesheet" href="../../css/profile.css?v=skyline_v2">
+</head>
+
+<body>
+
+    <!-- Rolling Announcement Ticker -->
+    <div class="marquee-strip">
+        <div class="marquee-content">
+            ⚡ READER PROFILE &bull; LEETCODE-STYLE MEDALLIONS &bull; UPLOAD AVATAR &bull; 3D READING SKYLINE &bull; UNLOCK FORBIDDEN STORY BRANCHES &bull;&nbsp;
+            ⚡ READER PROFILE &bull; LEETCODE-STYLE MEDALLIONS &bull; UPLOAD AVATAR &bull; 3D READING SKYLINE &bull; UNLOCK FORBIDDEN STORY BRANCHES &bull;&nbsp;
+        </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <header class="navbar">
+        <div class="logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="display: inline-block; vertical-align: sub; margin-right: 6px;">
+                <circle cx="4" cy="12" r="3" fill="currentColor" />
+                <path d="M7 12H13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <path d="M7 12C10 12 11 5 14 5H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <path d="M7 12C10 12 11 19 14 19H17" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+                <circle cx="18" cy="5" r="2.5" fill="currentColor" />
+                <circle cx="15" cy="12" r="2.5" fill="currentColor" />
+                <circle cx="18" cy="19" r="2.5" fill="currentColor" />
+            </svg>
+            <span>STORY ENGINE</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../../Landing.html" class="tab-pill">Home</a></li>
+            <li><a href="stories.html" class="tab-pill" style="background: #e0e7ff; color: #4338ca;">📚 Story Library</a></li>
+            <li id="navAuthContainer">
+                <button onclick="handleLogout()" class="nav-pill logout-btn">Sign Out</button>
+            </li>
+        </ul>
+    </header>
+
+    <main class="profile-container">
+
+        <!-- ── Hero Profile Header Card ──────────────────────── -->
+        <section class="profile-hero-card">
+            <div class="profile-user-identity">
+                <div class="profile-hero-avatar-wrap" id="heroAvatarBox">
+                    <span>🧙‍♂️</span>
+                </div>
+                <div class="profile-hero-meta">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h1 id="heroName">Reader Profile</h1>
+                        <span class="user-role-badge">READER</span>
+                    </div>
+                    <div style="font-size: 13px; font-weight: 700; color: #64748b; margin-top: 2px;" id="heroEmail">reader@storyengine.com</div>
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px;">
+                        <span class="profile-persona-badge" id="heroPersona">🏷️ Story Explorer</span>
+                        <span class="profile-rank-badge">🏆 Level 2 Adventurer</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-hero-stats">
+                <div class="profile-stat-box">
+                    <div class="profile-stat-number" id="heroStatXp" style="color: #ca8a04;">130 XP</div>
+                    <div class="profile-stat-label">⭐ Total XP</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-number" id="heroStatStories" style="color: #4f46e5;">2</div>
+                    <div class="profile-stat-label">📚 Stories Read</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-number" id="heroStatEndings" style="color: #059669;">6</div>
+                    <div class="profile-stat-label">🏆 Endings Discovered</div>
+                </div>
+                <div class="profile-stat-box">
+                    <div class="profile-stat-number" id="heroStatBadges" style="color: #dc2626;">0 / 8</div>
+                    <div class="profile-stat-label">🎖️ Badges Earned</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Daily Reading & Activity Skyline Card (3D Orbit & 2D Grid) ── -->
+        <section class="skyline-section-container" id="skylineMount">
+            <!-- JS injects Contribution Skyline Canvas Engine here -->
+        </section>
+
+        <!-- ── Main 2-Column Grid: LeetCode Badges & Profile Studio ──────── -->
+        <div class="profile-layout-grid">
+
+            <!-- Column 1: LeetCode Badges Medallion Showcase -->
+            <section class="badges-column-container" style="display: flex; flex-direction: column; gap: 20px;">
+                
+                <!-- Authentic LeetCode Badges Widget (Exact Match to Screenshot 4) -->
+                <div class="leetcode-authentic-card" id="leetcodeWidgetCard" onclick="openAllBadgesModal()">
+                    <div class="leetcode-card-header">
+                        <div>
+                            <div class="leetcode-card-label">Badges</div>
+                            <div class="leetcode-card-count" id="heroBadgeCount">1</div>
+                        </div>
+                        <button type="button" class="leetcode-card-arrow" aria-label="View all badges">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                <polyline points="12 5 19 12 12 19"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Prominent 3D Hexagon Medallion (Screenshot 4 style) -->
+                    <div class="leetcode-medallion-showcase" id="leetcodeMedallionShowcase">
+                        <!-- Injected by JS with interactive 3D metallic Hexagon SVG -->
+                    </div>
+
+                    <div class="leetcode-card-footer">
+                        <div class="leetcode-recent-label">Most Recent Badge</div>
+                        <div class="leetcode-recent-title" id="mostRecentBadgeTitle">50 Days Badge 2026</div>
+                    </div>
+                </div>
+
+                <!-- Clean Medallions Shelf & Collection -->
+                <div class="neo-panel-card" style="padding: 22px;">
+                    <div class="neo-panel-header" style="margin-bottom: 16px; padding-bottom: 12px;">
+                        <div>
+                            <div class="neo-panel-kicker">COLLECTION</div>
+                            <h3 class="neo-panel-title" style="font-size: 19px;">Medallions Shelf</h3>
+                        </div>
+                        <div class="badges-filter-bar" style="flex-wrap: wrap;">
+                            <button type="button" class="badge-filter-btn active" data-filter="all" onclick="filterBadges('all')">
+                                All (10)
+                            </button>
+                            <button type="button" class="badge-filter-btn" data-filter="unlocked" onclick="filterBadges('unlocked')">
+                                ✨ Earned
+                            </button>
+                            <button type="button" class="badge-filter-btn" data-filter="locked" onclick="filterBadges('locked')">
+                                🔒 In Progress
+                            </button>
+                            <button type="button" class="badge-filter-btn" style="background: #ffd731; color: #000; font-weight: 900;" onclick="testCelebrationModal()">
+                                🎉 Celebration Demo
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="badges-grid-clean" id="badgesGrid">
+                        <!-- Injected clean medallion shelf items -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 2: Customize Identity & Photo Upload Studio -->
+            <section class="neo-panel-card customization-column">
+                <div class="neo-panel-header">
+                    <div>
+                        <div class="neo-panel-kicker">PROFILE CUSTOMIZATION</div>
+                        <h2 class="neo-panel-title">🎨 Identity & Avatar</h2>
+                    </div>
+                </div>
+
+                <form id="profileForm" onsubmit="handleSaveProfile(event)">
+                    
+                    <!-- Avatar Upload & Selection -->
+                    <div class="form-field-group">
+                        <label class="form-label">Profile Picture / Avatar</label>
+                        
+                        <div class="avatar-upload-hero-row">
+                            <div class="edit-avatar-preview-wrap" id="editAvatarPreview">
+                                <span>🧙‍♂️</span>
+                            </div>
+                            <div class="avatar-upload-actions">
+                                <label for="avatarFileInput" class="upload-file-btn">
+                                    📁 Upload Photo
+                                </label>
+                                <input type="file" id="avatarFileInput" accept="image/png, image/jpeg, image/webp" style="display: none;">
+                                <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-top: 4px;">
+                                    JPG, PNG, or WEBP. Automatically saved to your account.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 14px;">
+                            <div style="font-size: 12px; font-weight: 800; color: #334155; margin-bottom: 6px;">
+                                Or Pick a Themed Character Preset:
+                            </div>
+                            <div class="avatar-selection-grid" id="avatarGrid">
+                                <!-- JS injects 16 preset buttons -->
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 10px;">
+                            <input type="text" id="customAvatarUrl" class="neo-text-input" 
+                                   placeholder="Or paste an image web link (https://...)" 
+                                   oninput="updateAvatarPreview()" style="font-size: 12.5px; padding: 9px 12px;">
+                        </div>
+                    </div>
+
+                    <!-- Persona / Title -->
+                    <div class="form-field-group">
+                        <label class="form-label">Persona Tag / Title</label>
+                        <input type="text" id="personaTitleInput" class="neo-text-input" 
+                               placeholder="e.g. Story Explorer, RPG Fan, Lore Hunter..." maxlength="40" required>
+                        <div class="persona-chips-container" id="personaChips">
+                            <!-- JS injects quick-click presets -->
+                        </div>
+                    </div>
+
+                    <!-- Display Name -->
+                    <div class="form-field-group">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" id="displayNameInput" class="neo-text-input" 
+                               placeholder="Your Reader Name" required maxlength="50">
+                    </div>
+
+                    <!-- Bio / About Me -->
+                    <div class="form-field-group">
+                        <label class="form-label">About Myself & Reading Style</label>
+                        <textarea id="bioInput" class="neo-textarea" 
+                                  placeholder="Tell other readers about your favorite story genres, dramatic choices, or theories..." maxlength="300"></textarea>
+                    </div>
+
+                    <button type="submit" id="saveProfileBtn" class="save-profile-btn">
+                        💾 Save Profile Changes
+                    </button>
+                </form>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- Global Application Scripts -->
+    <script src="/js/config.js?v=v3_stable"></script>
+    <script src="/js/auth.js?v=v3_stable"></script>
+    <script src="/js/components21st.js?v=v3_stable"></script>
+    <script src="/js/reader.js?v=v5_clean"></script>
+    <script src="/js/skyline.js?v=v3_stable"></script>
+    <script src="/js/badgeCelebration.js?v=v3_stable"></script>
+    <script src="/js/profile.js?v=v3_stable"></script>
+</body>
+
+</html>

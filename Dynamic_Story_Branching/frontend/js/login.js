@@ -1,30 +1,7 @@
 /* ============================================================
    login.js
    Page:  pages/auth/login.html
-   Role:  Handles user authentication on the Login page.
-
-   FLOW:
-   1. Page loads → Lottie animation initialises (Welcome.json)
-   2. User types email + password and submits the form
-   3. handleLogin() fires:
-        a. Prevent default form submission
-        b. Fetch user record from json-server by email
-        c. If not found → redirect to signup page
-        d. Validate password — if wrong → alert and stop
-        e. Ensure xp (default 100) and completedStories ([]) defaults
-        f. Save user object to localStorage under key "user"
-        g. Redirect by role:
-             Admin  → pages/admin/admin.html
-             Reader → pages/reader/stories.html
-   4. toggleEye() — switches password field between text/password
-   ============================================================ */
-
-
-/* ============================================================
-   SECTION 1 — LOTTIE ANIMATION
-   Initialises the Welcome.json animation inside #lottieContainer
-   on the left decorative panel of the login card.
-   Runs after DOM is ready; fails silently if lottie is missing.
+   Role:  Handles user authentication with high-visibility popup alerts.
    ============================================================ */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -38,15 +15,40 @@ document.addEventListener("DOMContentLoaded", () => {
             path:      "../../css/Welcome.json"
         });
     }
+
+    // Check if redirected from registration
+    const urlParams = new URLSearchParams(window.location.search);
+    const signupMsg = sessionStorage.getItem("signupSuccessMessage");
+    if (urlParams.get("registered") === "true" || signupMsg) {
+        sessionStorage.removeItem("signupSuccessMessage");
+        const banner = document.getElementById("loginErrorBanner");
+        if (banner) {
+            banner.className = "auth-success-banner";
+            banner.innerHTML = `<span class="banner-icon">🎉</span> <span class="banner-text">Account created successfully! Please sign in with your email and password.</span>`;
+            banner.classList.remove("hidden");
+        }
+        const savedEmail = sessionStorage.getItem("registeredEmail");
+        if (savedEmail) {
+            sessionStorage.removeItem("registeredEmail");
+            const emailInput = document.getElementById("email");
+            if (emailInput) {
+                emailInput.value = savedEmail;
+                const passwordInput = document.getElementById("password");
+                if (passwordInput) passwordInput.focus();
+            }
+        }
+    }
+
+    // Dismiss banners on typing
+    document.querySelectorAll("input").forEach(input => {
+        input.addEventListener("input", () => {
+            const banner = document.getElementById("loginErrorBanner");
+            if (banner && banner.classList.contains("auth-error-banner")) {
+                banner.classList.add("hidden");
+            }
+        });
+    });
 });
-
-
-/* ============================================================
-   SECTION 2 — PASSWORD VISIBILITY TOGGLE
-   Called by the 👁️ eye-toggle button inside the password field.
-   Switches input[type] between "password" and "text"
-   and swaps the emoji label accordingly.
-   ============================================================ */
 
 function toggleEye() {
     let passwordInput = document.getElementById("password");
@@ -61,46 +63,95 @@ function toggleEye() {
     }
 }
 
+/**
+ * Show a high-contrast Cyber / Neo-Brutalist banner inside the card
+ */
+function showAuthPopup(title, message, icon = "⚠️") {
+    const existing = document.getElementById("authPopupOverlay");
+    if (existing) existing.remove();
 
-/* ============================================================
-   SECTION 3 — LOGIN HANDLER: handleLogin(event)
-   Triggered by: <form onsubmit="handleLogin(event)">
+    // Update inline banner
+    const banner = document.getElementById("loginErrorBanner");
+    if (banner) {
+        banner.className = "auth-error-banner";
+        banner.innerHTML = `<span class="banner-icon">${icon}</span> <span class="banner-text">${message}</span>`;
+        banner.classList.remove("hidden");
+        banner.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+}
 
-   Step-by-step:
-   a. Prevent the default HTML form POST.
-   b. Read email and password values from DOM inputs.
-   c. GET /Users?email=<value> from json-server (port 3000).
-   d. If no matching user → alert + redirect to signup.html.
-   e. Compare entered password against stored password.
-   f. If mismatch → alert and return early.
-   g. Apply safe defaults for xp and completedStories
-      (these may be missing for accounts created before those
-       fields were added to the schema).
-   h. Persist the complete user object in localStorage ("user").
-   i. Role-based redirect:
-        "Admin"  → ../admin/admin.html
-        "Reader" → ../reader/stories.html
-   ============================================================ */
+function closeAuthPopup() {
+    const existing = document.getElementById("authPopupOverlay");
+    if (existing) existing.remove();
+    const banner = document.getElementById("loginErrorBanner");
+    if (banner) banner.classList.add("hidden");
+}
+window.closeAuthPopup = closeAuthPopup;
 
 let handleLogin = async (event) => {
-    event.preventDefault();
+    if (event) event.preventDefault();
 
-    let email    = document.getElementById("email");
-    let password = document.getElementById("password");
+    let emailEl    = document.getElementById("email");
+    let passwordEl = document.getElementById("password");
+
+    const email = emailEl ? emailEl.value.trim() : "";
+    const password = passwordEl ? passwordEl.value : "";
+
+    // 1. Client-Side Validations with Immediate Popups
+    if (!email) {
+        showAuthPopup("MISSING EMAIL ✉️", "Please enter your email address to log in.");
+        if (emailEl) emailEl.focus();
+        return;
+    }
+
+    // Basic email format check
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        showAuthPopup("INVALID EMAIL FORMAT ✉️", "Please enter a valid email address (e.g. name@example.com).");
+        if (emailEl) emailEl.focus();
+        return;
+    }
+
+    if (!password) {
+        showAuthPopup("MISSING PASSWORD 🔑", "Please enter your account password to continue.");
+        if (passwordEl) passwordEl.focus();
+        return;
+    }
 
     try {
-        let data = await Auth.login(email.value.trim(), password.value);
+        let submitBtn = document.querySelector("input[type='submit']");
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.value = "LOGGING IN...";
+        }
+
+        let data = await Auth.login(email, password);
         let user = data.user;
 
-        // Role-based page redirect with welcome toast trigger
+        // Role-based page redirect
         if (user.role === "Admin") {
-            sessionStorage.setItem("showAdminWelcomeToast", "true");
             window.location.href = "../admin/admin.html";
         } else {
-            sessionStorage.setItem("showLoginWelcomeToast", "true");
             window.location.href = "../reader/stories.html";
         }
     } catch (err) {
-        alert(err.message || "Login failed");
+        let submitBtn = document.querySelector("input[type='submit']");
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.value = "LOG IN →";
+        }
+
+        const msg = err.message || "Login failed. Please check your credentials.";
+        if (msg.includes("Email does not exist")) {
+            showAuthPopup("ACCOUNT NOT FOUND 🔍", "No account registered with this email. Please check your spelling or register as a new user.", "❌");
+        } else if (msg.includes("Password does not match")) {
+            showAuthPopup("INCORRECT PASSWORD 🔒", "The password you entered is incorrect. Please check for typos and try again.", "⚠️");
+            if (passwordEl) {
+                passwordEl.value = "";
+                passwordEl.focus();
+            }
+        } else {
+            showAuthPopup("AUTHENTICATION FAILED 🛑", msg, "⚠️");
+        }
     }
 };

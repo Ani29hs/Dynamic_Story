@@ -12,7 +12,11 @@ const UserSchema = new mongoose.Schema({
     pendingToast: { type: mongoose.Schema.Types.Mixed, default: null },
     hasSeenWelcomeToast: { type: Boolean, default: false },
     lastPitchMonth: { type: String, default: null },
-    unlockedEndings: { type: mongoose.Schema.Types.Mixed, default: {} }
+    unlockedEndings: { type: mongoose.Schema.Types.Mixed, default: {} },
+    avatar: { type: String, default: '🧙‍♂️' },
+    title: { type: String, default: 'Story Explorer' },
+    bio: { type: String, default: '' },
+    seenBadges: { type: Array, default: [] }
 }, {
     timestamps: true,
     strict: false,

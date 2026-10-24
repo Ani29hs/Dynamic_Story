@@ -477,16 +477,17 @@ body {
 .profile-dropdown-menu {
     position: absolute;
     right: 0;
-    top: calc(100% + 10px);
-    width: 240px;
+    top: calc(100% + 12px);
+    width: 260px;
     background: #ffffff;
-    border: 3px solid #000;
-    border-radius: 20px;
-    box-shadow: 6px 6px 0px #000;
+    border: 3px solid #000000;
+    border-radius: 18px;
+    box-shadow: 6px 6px 0px #000000;
     z-index: 1000;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    animation: dropdownPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .profile-dropdown-menu.hidden {
@@ -495,51 +496,64 @@ body {
 
 .profile-dropdown-header {
     padding: 16px;
-    background: var(--color-sky);
-    border-bottom: 2px solid #000;
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+    border-bottom: 2.5px solid #000000;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+    color: #ffffff;
 }
 
 .profile-dropdown-header strong {
-    font-size: 15px;
-    font-weight: 800;
-    color: #000;
+    font-size: 16px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.01em;
 }
 
 .user-role-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 3px 10px;
-    background: var(--color-yellow);
-    border: 2px solid #000;
+    background: #ffd731;
+    border: 2px solid #000000;
     border-radius: 100px;
-    font-size: 10px;
-    font-weight: 800;
-    color: #000;
+    font-size: 10.5px;
+    font-weight: 900;
+    color: #000000;
+    box-shadow: 2px 2px 0px #000000;
 }
 
 .user-xp-badge {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--color-violet);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 10px;
+    background: #fef08a;
+    border: 2px solid #000000;
+    border-radius: 100px;
+    font-size: 10.5px;
+    font-weight: 900;
+    color: #854d0e;
+    box-shadow: 2px 2px 0px #000000;
 }
 
 .profile-dropdown-links {
     display: flex;
     flex-direction: column;
     padding: 8px;
+    gap: 3px;
 }
 
 .dropdown-item {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     padding: 10px 14px;
-    border-radius: 12px;
+    border-radius: 10px;
     font-weight: 800;
-    font-size: 13px;
-    color: #000;
+    font-size: 13.5px;
+    color: #1e293b;
     text-decoration: none;
     background: transparent;
     border: none;
@@ -547,6 +561,23 @@ body {
     width: 100%;
     text-align: left;
     transition: all 0.15s ease;
+}
+
+.dropdown-item:hover {
+    background: #f1f5f9;
+    color: #4f46e5;
+    transform: translateX(3px);
+}
+
+.dropdown-item.logout-item:hover {
+    background: #fee2e2;
+    color: #dc2626;
+    transform: translateX(3px);
+}
+
+@keyframes dropdownPop {
+    from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* =====================================================
@@ -1122,10 +1153,10 @@ body {
 
 @keyframes pulseGlow {
     0%, 100% {
-        box-shadow: 3px 3px 0px #000, 0 0 0 0 rgba(255, 222, 89, 0.7);
+        box-shadow: 2px 2px 0px #000, 0 0 0 0 rgba(255, 222, 89, 0.5);
     }
     50% {
-        box-shadow: 3px 3px 0px #000, 0 0 0 10px rgba(255, 222, 89, 0);
+        box-shadow: 2px 2px 0px #000, 0 0 0 6px rgba(255, 222, 89, 0);
     }
 }
 
@@ -1723,4 +1754,232 @@ body {
     outline: none;
     cursor: pointer;
     box-shadow: 2px 2px 0px #000000;
+}
+
+/* ── LEETCODE IN-MIDDLE CONGRATULATIONS CELEBRATION MODAL ── */
+.leetcode-celebration-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 15, 29, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: leetcodeFadeIn 0.3s ease forwards;
+}
+
+.leetcode-celebration-box {
+    position: relative;
+    background: #18181b;
+    border: 4px solid #000000;
+    border-radius: 24px;
+    padding: 36px 32px 30px;
+    box-shadow: 10px 10px 0px #000000, 0 0 40px rgba(255, 215, 49, 0.25);
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+    color: #ffffff;
+    overflow: hidden;
+    animation: leetcodeModalBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.leetcode-celebration-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 500px;
+    height: 500px;
+    margin-left: -250px;
+    margin-top: -250px;
+    background: conic-gradient(from 0deg, rgba(255, 215, 49, 0.12) 0deg 30deg, transparent 30deg 60deg, rgba(255, 215, 49, 0.12) 60deg 90deg, transparent 90deg 120deg, rgba(255, 215, 49, 0.12) 120deg 150deg, transparent 150deg 180deg, rgba(255, 215, 49, 0.12) 180deg 210deg, transparent 210deg 240deg, rgba(255, 215, 49, 0.12) 240deg 270deg, transparent 270deg 300deg, rgba(255, 215, 49, 0.12) 300deg 330deg, transparent 330deg 360deg);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: leetcodeRayRotate 24s linear infinite;
+    z-index: 1;
+}
+
+.leetcode-celebration-content {
+    position: relative;
+    z-index: 2;
+}
+
+.celebration-kicker {
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #ffd731;
+    margin-bottom: 6px;
+    display: inline-block;
+}
+
+.celebration-title {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin: 0 0 16px;
+    background: linear-gradient(135deg, #ffffff 0%, #fef08a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 10px rgba(255, 215, 49, 0.3);
+}
+
+.celebration-medallion-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 16px 0 20px;
+    animation: leetcodeBadgeFloat 3s ease-in-out infinite;
+}
+
+.celebration-badge-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+.celebration-badge-tier {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 900;
+    border: 2px solid #000000;
+    box-shadow: 2px 2px 0px #000000;
+    margin-bottom: 12px;
+}
+
+.celebration-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+    line-height: 1.45;
+    margin-bottom: 18px;
+    padding: 0 10px;
+}
+
+.celebration-xp-pill {
+    background: #fef08a;
+    color: #854d0e;
+    border: 2px solid #000000;
+    border-radius: 100px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 3px 3px 0px #000000;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 22px;
+}
+
+.celebration-btn-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.celebration-claim-btn {
+    flex: 1.4;
+    background: #ffd731;
+    color: #000000;
+    border: 3px solid #000000;
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-size: 14px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000000;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.celebration-claim-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+    background: #ffcc00;
+}
+
+.celebration-continue-btn {
+    flex: 1;
+    background: #27272a;
+    color: #ffffff;
+    border: 3px solid #000000;
+    border-radius: 14px;
+    padding: 13px 18px;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000000;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.celebration-continue-btn:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+    background: #3f3f46;
+}
+
+.celebration-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid #ffffff;
+    border-radius: 8px;
+    color: #ffffff;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    transition: background 0.15s ease;
+}
+
+.celebration-close-btn:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+@keyframes leetcodeFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes leetcodeModalBounce {
+    0% { transform: scale(0.7) translateY(40px); opacity: 0; }
+    60% { transform: scale(1.04) translateY(-4px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes leetcodeRayRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes leetcodeBadgeFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
 }

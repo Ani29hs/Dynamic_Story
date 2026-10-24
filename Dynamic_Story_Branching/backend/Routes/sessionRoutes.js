@@ -6,12 +6,12 @@ const {
     updateSession,
     deleteSession
 } = require("../controllers/sessionController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const { optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// All session operations require user authentication
-router.use(authMiddleware);
+// Session operations accept token or reader body/query identifiers
+router.use(optionalAuth);
 
 // Story Session Routes
 router.get("/", getSessions);             // Get active sessions

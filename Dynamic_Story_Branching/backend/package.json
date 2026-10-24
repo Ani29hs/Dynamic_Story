@@ -4,8 +4,8 @@
   "description": "Express + MongoDB Atlas backend with JWT & bcrypt authentication for Dynamic Story Engine",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
+    "start": "node --max-http-header-size=1048576 server.js",
+    "dev": "node --max-http-header-size=1048576 server.js",
     "migrate": "node scripts/migrate_db.js"
   },
   "dependencies": {

@@ -96,7 +96,39 @@ function calculateRatingStats(story) {
    If no user or role is not "Reader" → redirect to login.html.
    ============================================================ */
 
-let user = null;
+var user = null;
+var allPublishedStories = [];
+var storyId = null;
+var currentStory = null;
+var currentNode = null;
+var traversalPath = [];
+var storySession = null;
+var currentModalStoryId = null;
+try {
+    const rawUser = localStorage.getItem("user");
+    if (rawUser) {
+        user = JSON.parse(rawUser);
+        window.user = user;
+    } else {
+        const token = localStorage.getItem("token");
+        if (token && token.includes(".")) {
+            const parts = token.split(".");
+            if (parts.length >= 2) {
+                const payload = JSON.parse(decodeURIComponent(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")).split("").map(c => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")));
+                if (payload && (payload.id || payload.email)) {
+                    user = {
+                        id: payload.id,
+                        name: payload.name || "Reader",
+                        email: payload.email,
+                        role: payload.role || "Reader"
+                    };
+                    localStorage.setItem("user", JSON.stringify(user));
+                    window.user = user;
+                }
+            }
+        }
+    }
+} catch (e) {}
 
 // Immediate token guard: if no token exists, immediately redirect to login
 if (!window.Auth || !Auth.getToken()) {
@@ -115,34 +147,56 @@ async function verifyAndSyncReaderUser() {
             if (user.xp === undefined) user.xp = 100;
             if (!user.completedStories) user.completedStories = [];
             if (!user.usedFreeRetreatStories) user.usedFreeRetreatStories = [];
+            localStorage.setItem("user", JSON.stringify(user));
+            window.user = user;
+            if (window.checkUserBadgeMilestones) {
+                window.checkUserBadgeMilestones(user, {}, false);
+            }
             renderUserProfileHeader();
-            checkWelcomeToast();
+            const isStoriesPage = window.location.pathname.includes("stories") || Boolean(document.getElementById("storiesContainer"));
+            if (isStoriesPage) {
+                checkWelcomeToast();
+            }
         }
     }
 }
 verifyAndSyncReaderUser();
 
 
-/* ============================================================
-   SECTION 3 — NAVBAR: renderUserProfileHeader()
-   Reads `user` from localStorage and injects the avatar button
-   + dropdown menu into #navAuthContainer.
-
-   Renders:
-   - Name initial as avatar circle
-   - Display name + role badge + XP badge
-   - Dropdown links: Story Library | Sign Out
-   - Extra "Admin Dashboard" link if user is also an Admin
-   Called on: DOMContentLoaded + immediately on script parse.
-   ============================================================ */
+function syncCurrentUser(newUser) {
+    if (newUser) {
+        user = Object.assign({}, user || {}, newUser);
+        window.user = user;
+        try {
+            localStorage.setItem("user", JSON.stringify(user));
+        } catch (e) {}
+        renderUserProfileHeader();
+    }
+}
+window.syncCurrentUser = syncCurrentUser;
 
 function renderUserProfileHeader() {
     let navAuthContainer = document.getElementById("navAuthContainer");
+    if (!user && window.user) user = window.user;
     if (!navAuthContainer || !user) return;
 
     let initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
     let activeXp = (user.xp !== undefined) ? user.xp : 100;
     let roleTitle = user.role || "Reader";
+    let personaTitle = user.title || "Story Explorer";
+    let isImageUrl = user.avatar && (
+        user.avatar.startsWith("data:image/") || 
+        user.avatar.startsWith("http://") || 
+        user.avatar.startsWith("https://") || 
+        user.avatar.startsWith("/")
+    );
+
+    let avatarContent = isImageUrl
+        ? `<img src="${user.avatar}" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;" onerror="this.onerror=null; this.parentElement.innerHTML='${initial}';">`
+        : (user.avatar
+            ? `<span style="font-size: 16px; line-height: 1;">${user.avatar}</span>`
+            : initial);
+
     let xpBadgeHtml = (user.role !== "Admin")
         ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>`
         : ``;
@@ -150,14 +204,22 @@ function renderUserProfileHeader() {
     navAuthContainer.innerHTML = `
         <div class="user-profile-menu-container">
             <button type="button" class="profile-menu-btn" onclick="toggleProfileDropdown(event)">
-                <span class="user-avatar">${initial}</span>
+                <span class="user-avatar">${avatarContent}</span>
                 <span class="user-name-label">${user.name || 'User'}</span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 2px;"><path d="M6 9l6 6 6-6"/></svg>
             </button>
             <div id="profileDropdown" class="profile-dropdown-menu hidden" onclick="event.stopPropagation()">
                 <div class="profile-dropdown-header">
-                    <strong>${user.name || 'User'}</strong>
-                    <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span class="user-avatar" style="width: 36px; height: 36px; font-size: 16px; border: 2.5px solid #ffd731; box-shadow: 0 0 10px rgba(255, 215, 49, 0.35); flex-shrink: 0;">${avatarContent}</span>
+                        <div style="min-width: 0;">
+                            <strong style="color: #ffffff; display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.name || 'User'}</strong>
+                            <div style="font-size: 11px; font-weight: 800; color: #c7d2fe; margin-top: 2px; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(165, 180, 252, 0.35); padding: 1px 8px; border-radius: 100px; display: inline-flex; align-items: center; gap: 3px;">
+                                🏷️ ${personaTitle}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
                         <span class="user-role-badge">${roleTitle.toUpperCase()}</span>
                         ${xpBadgeHtml}
                     </div>
@@ -165,17 +227,22 @@ function renderUserProfileHeader() {
                 <div class="profile-dropdown-links">
                     ${user.role === 'Admin' ? `
                         <a href="../admin/admin.html" class="dropdown-item">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                             Admin Dashboard
                         </a>
-                    ` : ''}
-                    <a href="stories.html" class="dropdown-item">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    ` : `
+                        <a href="/pages/reader/profile.html" class="dropdown-item" style="color: #4338ca; font-weight: 800;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            My Profile & Badges
+                        </a>
+                    `}
+                    <a href="/pages/reader/stories.html" class="dropdown-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                         Story Library
                     </a>
-                    <hr style="border: 0; border-top: 2px solid #000; margin: 6px 0;">
+                    <div style="height: 1.5px; background: #e2e8f0; margin: 4px 6px;"></div>
                     <button type="button" class="dropdown-item logout-item" onclick="handleLogout()">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                         Sign Out
                     </button>
                 </div>
@@ -217,14 +284,22 @@ document.addEventListener("click", (e) => {
    Also call renderUserProfileHeader() immediately in case DOM is ready.
    ============================================================ */
 
+function initStoryPlayer() {
+    if (window.__storyLoadingInitiated) return;
+    if (document.getElementById("sceneContainer") && typeof loadStory === "function") {
+        window.__storyLoadingInitiated = true;
+        loadStory();
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     renderUserProfileHeader();
-    checkWelcomeToast();
     if (document.getElementById("storiesContainer")) loadStories();
-    if (document.getElementById("sceneContainer") && typeof loadStory === "function") loadStory();
+    initStoryPlayer();
 });
 renderUserProfileHeader();
 if (document.getElementById("storiesContainer")) loadStories();
+initStoryPlayer();
 
 
 /* ============================================================
@@ -295,7 +370,21 @@ function showToastNotification(title, message, icon = "🎉", duration = 4500) {
 let isToastChecking = false;
 async function checkWelcomeToast() {
     if (!user || user.role === "Admin" || isToastChecking) return;
+
+    // Only run on the Story Library page (stories.html)
+    const isStoriesPage = window.location.pathname.includes("stories") || Boolean(document.getElementById("storiesContainer"));
+    if (!isStoriesPage) return;
+
     isToastChecking = true;
+
+    // Clean up legacy localStorage clutter keys
+    try {
+        Object.keys(localStorage).forEach(k => {
+            if (k.startsWith("hasSeenWelcomeToast_") || k.startsWith("seen_badges_")) {
+                localStorage.removeItem(k);
+            }
+        });
+    } catch (e) {}
 
     // Check 1: Admin-set pending toast (pitch approval XP award)
     let toastData = user.pendingToast;
@@ -315,7 +404,6 @@ async function checkWelcomeToast() {
     }
 
     if (toastData) {
-        // Clear pendingToast from MongoDB Atlas and local user object
         delete user.pendingToast;
         if (user.id) {
             fetch(`${API_BASE}/Users/${user.id}`, {
@@ -327,7 +415,6 @@ async function checkWelcomeToast() {
 
         renderUserProfileHeader();
 
-        // Show the toast after a short delay for visual effect
         setTimeout(() => {
             showToastNotification(
                 "PITCH ACCEPTED! 🎉",
@@ -338,56 +425,33 @@ async function checkWelcomeToast() {
         return;
     }
 
-    // Check 2: First login welcome toast (checked directly from user record and localStorage)
-    const storageKey = `hasSeenWelcomeToast_${user.id}`;
-    let alreadyShown = Boolean(user.hasSeenWelcomeToast) || localStorage.getItem(storageKey) === "true";
-
-    // Don't show the initial welcome bonus toast on the story player (play.html)
-    const isPlayerPage = window.location.pathname.includes("play.html");
-    if (isPlayerPage) {
-        if (!alreadyShown) {
-            localStorage.setItem(storageKey, "true");
-            user.hasSeenWelcomeToast = true;
-            if (user.id) {
-                fetch(`${API_BASE}/Users/${user.id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ hasSeenWelcomeToast: true })
-                }).catch(e => { });
-            }
-        }
-        return;
+    // Check 2: First login welcome toast — checked directly from MongoDB Atlas user record
+    if (user.hasSeenWelcomeToast) {
+        return; // Already seen in MongoDB Atlas; never show again!
     }
 
-    if (!alreadyShown) {
-        user.hasSeenWelcomeToast = true;
-        localStorage.setItem(storageKey, "true");
+    // Mark as seen in user object, local state, and persist to MongoDB Atlas
+    user.hasSeenWelcomeToast = true;
+    try {
+        localStorage.setItem("user", JSON.stringify(user));
+        window.user = user;
+    } catch (e) {}
 
-        if (user.id) {
-            fetch(`${API_BASE}/Users/${user.id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ hasSeenWelcomeToast: true })
-            }).catch(e => { });
-        }
-
-        setTimeout(() => {
-            showToastNotification(
-                "WELCOME EXPLORER!",
-                `Welcome, ${user.name || 'Reader'}! You earned +100 XP starting bonus! ⭐`,
-                "🎉"
-            );
-        }, 400);
-    } else if (sessionStorage.getItem("showLoginWelcomeToast")) {
-        sessionStorage.removeItem("showLoginWelcomeToast");
-        setTimeout(() => {
-            showToastNotification(
-                "WELCOME BACK! ⚡",
-                `Welcome back, ${user.name || 'Explorer'}! Your story library is ready.`,
-                "👋"
-            );
-        }, 400);
+    if (user.id) {
+        fetch(`${API_BASE}/Users/${user.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ hasSeenWelcomeToast: true })
+        }).catch(e => { });
     }
+
+    setTimeout(() => {
+        showToastNotification(
+            "WELCOME EXPLORER!",
+            `Welcome, ${user.name || 'Reader'}! You earned +100 XP starting bonus! ⭐`,
+            "🎉"
+        );
+    }, 400);
 }
 
 
@@ -409,7 +473,7 @@ async function checkWelcomeToast() {
    need extra network requests after the initial fetch.
    ============================================================ */
 
-let allPublishedStories = [];
+allPublishedStories = allPublishedStories || [];
 
 
 /* ============================================================
@@ -462,16 +526,35 @@ async function recordUnlockedEnding(storyId, nodeId) {
     if (!user.unlockedEndings[storyId].includes(nodeId)) {
         user.unlockedEndings[storyId].push(nodeId);
 
-        if (user.id) {
+        try {
+            localStorage.setItem("user", JSON.stringify(user));
+            window.user = user;
+        } catch (e) {}
+
+        const uid = user.id || user._id;
+        const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+        const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        };
+
+        if (uid) {
             try {
-                await fetch(`${API_BASE}/Users/${user.id}`, {
+                await fetch(`${API_BASE}/Users/${uid}`, {
                     method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
+                    headers: headers,
                     body: JSON.stringify({ unlockedEndings: user.unlockedEndings })
                 });
             } catch (e) {
                 console.error("Error syncing unlocked endings", e);
             }
+        }
+        if (window.Auth && Auth.updateProfile && token) {
+            Auth.updateProfile({ unlockedEndings: user.unlockedEndings }).catch(() => {});
+        }
+
+        if (window.checkUserBadgeMilestones) {
+            window.checkUserBadgeMilestones(user, {}, true);
         }
     }
 }
@@ -637,7 +720,7 @@ function filterStories() {
    startStory is an alias for openStoryDetails (shows details first).
    ============================================================ */
 
-let currentModalStoryId = null;
+currentModalStoryId = null;
 
 function openStoryDetails(storyId, activeSubTab = 'synopsis') {
     let story = allPublishedStories.find(s => String(s.id) === String(storyId));
@@ -673,12 +756,25 @@ function openStoryDetails(storyId, activeSubTab = 'synopsis') {
                 <button type="button" class="tab-pill ${activeSubTab === 'endings' ? 'tab-active' : ''}" onclick="openStoryDetails('${story.id}', 'endings')">
                     🏆 Endings Showcase (${unlockedCount}/${totalEndings})
                 </button>
+                <button type="button" class="tab-pill ${activeSubTab === 'community' ? 'tab-active' : ''}" onclick="openStoryDetails('${story.id}', 'community')">
+                    💬 Reviews & Comments
+                </button>
             </div>
             <button type="button" class="modal-close-btn" onclick="closeStoryDetails(event)" aria-label="Close details modal">&times;</button>
         </div>
     `;
 
-    if (activeSubTab === 'endings') {
+    if (activeSubTab === 'community') {
+        card.innerHTML = `
+            ${modalTabsHtml}
+            <div style="grid-column: 1 / -1; width: 100%;">
+                <div id="modalCommunityContainer"></div>
+            </div>
+        `;
+        if (typeof CommunityHub !== "undefined") {
+            CommunityHub.init('modalCommunityContainer', story.id, story.views || 0);
+        }
+    } else if (activeSubTab === 'endings') {
         let endingsCardsHtml = endingNodes.map((node, index) => {
             let isUnlocked = unlockedList.includes(node.id);
             let endType = (node.endingType || 'good').toLowerCase();
@@ -750,7 +846,7 @@ function openStoryDetails(storyId, activeSubTab = 'synopsis') {
                 <div class="detail-badges-row">
                     <span class="badge-genre">${(story.genre || "General").toUpperCase()}</span>
                     <span class="badge-status status-published">PUBLISHED</span>
-                            <span class="badge-rating" style="background: #FFDE59; color: #000; border: 2px solid #000; border-radius: 100px; padding: 4px 12px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; gap: 4px;">${calculateRatingStats(story).display}</span>
+                    <span class="badge-rating" style="background: #FFDE59; color: #000; border: 2px solid #000; border-radius: 100px; padding: 4px 12px; font-weight: 800; font-size: 11px; letter-spacing: 0.5px; box-shadow: 2px 2px 0px #000; display: inline-flex; align-items: center; gap: 4px;">${calculateRatingStats(story).display}</span>
                 </div>
 
                 <h1 class="detail-title">${story.title}</h1>
@@ -779,6 +875,9 @@ function openStoryDetails(storyId, activeSubTab = 'synopsis') {
                     </button>
                     <button type="button" class="secondary-btn" onclick="openStoryDetails('${story.id}', 'endings')">
                         🏆 VIEW ENDINGS SHOWCASE (${unlockedCount}/${totalEndings})
+                    </button>
+                    <button type="button" class="secondary-btn" onclick="openStoryDetails('${story.id}', 'community')" style="background: #fff8db;">
+                        💬 REVIEWS & COMMENTS
                     </button>
                     <button type="button" class="back-library-btn" onclick="closeStoryDetails()">
                         ← Back to Library
@@ -828,7 +927,7 @@ function enterStoryWorld(storyId) {
         sessionStorage.setItem("lastSelectedStoryId", targetId);
     } catch (e) { }
     closeStoryDetails();
-    window.location.href = `/pages/reader/play?id=${encodeURIComponent(targetId)}`;
+    window.location.href = `/pages/reader/play.html?id=${encodeURIComponent(targetId)}`;
 }
 
 function startStory(storyId) {
@@ -857,12 +956,7 @@ function startStory(storyId) {
    ============================================================ */
 
 const urlParams = new URLSearchParams(window.location.search);
-let storyId = urlParams.get("id");
-
-let currentStory = null;
-let currentNode = null;
-let traversalPath = [];
-let storySession = null;
+if (!storyId) storyId = urlParams.get("id");
 
 
 /* ============================================================
@@ -920,22 +1014,72 @@ async function loadStory() {
     }
     if (!rawId || rawId === "undefined" || rawId === "null" || rawId.startsWith("[object")) {
         console.error("loadStory: Invalid or missing storyId in query string or sessionStorage:", rawId);
-        alert("Please select a story from the library.");
-        window.location.href = "/pages/reader/stories";
+        window.location.href = "/pages/reader/stories.html";
         return;
     }
     storyId = rawId;
 
+    // Ensure the browser address bar ALWAYS has ?id=<storyId> so it is never missing from URL params
     try {
-        // Fetch the full story object from the backend
-        let response = await fetch(`${API_BASE}/Stories/${storyId}`);
-        if (!response.ok) {
-            alert("Story not found.");
-            window.location.href = "/pages/reader/stories";
+        if (!new URLSearchParams(window.location.search).get("id")) {
+            window.history.replaceState(null, "", `/pages/reader/play.html?id=${encodeURIComponent(rawId)}`);
+        }
+    } catch (e) {}
+
+    try {
+        // Fetch the full story object from the backend with automatic retry resilience
+        let response = null;
+        try {
+            response = await fetch(`${API_BASE}/Stories/${storyId}`);
+        } catch (fetchErr) {
+            console.warn("Initial story fetch failed, retrying once...", fetchErr);
+            await new Promise(r => setTimeout(r, 600));
+            try {
+                response = await fetch(`${API_BASE}/Stories/${storyId}`);
+            } catch (retryErr) {
+                console.error("Story fetch failed after retry:", retryErr);
+            }
+        }
+
+        if (!response || !response.ok) {
+            let sceneContainer = document.getElementById("sceneContainer");
+            if (sceneContainer) {
+                sceneContainer.innerHTML = `
+                    <div style="background: #ffffff; border: 3px solid #000; border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: 6px 6px 0 #000; max-width: 500px; margin: 40px auto;">
+                        <div style="font-size: 36px; margin-bottom: 12px;">⚠️</div>
+                        <h2 style="font-family: var(--font-display); font-size: 22px; margin-bottom: 10px; text-transform: uppercase;">Story Server Reconnecting</h2>
+                        <p style="font-size: 14px; color: #475569; font-weight: 600; line-height: 1.5; margin-bottom: 22px;">The story engine is synchronizing with the database. Click retry to load the scene.</p>
+                        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                            <button type="button" class="primary-btn" onclick="location.reload()" style="width: auto; padding: 10px 24px; font-size: 13px;">🔄 Retry</button>
+                            <a href="/pages/reader/stories.html" class="secondary-btn" style="width: auto; padding: 10px 24px; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center;">📚 Story Library</a>
+                        </div>
+                    </div>
+                `;
+            }
             return;
         }
 
         currentStory = await response.json();
+
+        // Increment unique view count in MongoDB Atlas (once per reader/browser)
+        const viewStorageKey = `viewed_story_${storyId}`;
+        if (!localStorage.getItem(viewStorageKey)) {
+            const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+            const activeUser = user || (typeof CommunityHub !== "undefined" && CommunityHub.getCurrentUser ? CommunityHub.getCurrentUser() : null);
+            fetch(`${API_BASE}/Stories/${storyId}/view`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": token ? `Bearer ${token}` : ""
+                },
+                body: JSON.stringify({ userId: activeUser ? activeUser.id : null })
+            })
+            .then(r => r.json())
+            .then(() => {
+                localStorage.setItem(viewStorageKey, "true");
+            })
+            .catch(() => {});
+        }
 
         // Normalise nodes — support both array and keyed-object formats
         if (!Array.isArray(currentStory.nodes)) {
@@ -957,23 +1101,71 @@ async function loadStory() {
         let userId = user ? (user.id || user.name) : "guest";
 
         /* ── Query MongoDB Atlas for an active session ─────────── */
+        const historicalVisited = new Set();
         try {
             let sessionRes = await fetch(
                 `${API_BASE}/StorySessions?userId=${encodeURIComponent(userId)}&storyId=${encodeURIComponent(storyId)}`
             );
             if (sessionRes.ok) {
                 let sessions = await sessionRes.json();
+                if (Array.isArray(sessions)) {
+                    sessions.forEach(s => {
+                        if (Array.isArray(s.visitedNodeIds)) {
+                            s.visitedNodeIds.forEach(id => historicalVisited.add(id));
+                        }
+                    });
+                }
+                const unlocked = getUserUnlockedEndings(storyId);
+                if (Array.isArray(unlocked)) {
+                    unlocked.forEach(id => historicalVisited.add(id));
+                }
+
                 if (sessions && sessions.length > 0) {
                     storySession = sessions[sessions.length - 1]; // Use latest session from MongoDB Atlas
                     traversalPath = storySession.traversalPath || [];
+
+                    // Ensure all historical choices are preserved in visitedNodeIds
+                    if (Array.isArray(storySession.visitedNodeIds)) {
+                        storySession.visitedNodeIds.forEach(id => historicalVisited.add(id));
+                    }
+                    storySession.visitedNodeIds = Array.from(historicalVisited);
 
                     currentNode = currentStory.nodes.find(
                         node => node.id === storySession.currentNodeId
                     );
 
+                    // If previous session had already reached an ending, start fresh from prologue BUT PRESERVE visited choices!
+                    if (storySession.ended) {
+                        storySession.ended = false;
+                        storySession.endingType = null;
+                        storySession.currentNodeId = startingNode.id;
+                        storySession.traversalPath = [{
+                            nodeId: startingNode.id,
+                            title: startingNode.title,
+                            choiceText: null
+                        }];
+                        historicalVisited.add(startingNode.id);
+                        storySession.visitedNodeIds = Array.from(historicalVisited);
+                        currentNode = startingNode;
+                        traversalPath = storySession.traversalPath;
+                        showStory();
+                        saveStorySession();
+                        return;
+                    }
+
                     if (!currentNode) {
-                        // Corrupted session — start fresh
-                        await createNewSession(startingNode, userId);
+                        storySession.currentNodeId = startingNode.id;
+                        storySession.traversalPath = [{
+                            nodeId: startingNode.id,
+                            title: startingNode.title,
+                            choiceText: null
+                        }];
+                        historicalVisited.add(startingNode.id);
+                        storySession.visitedNodeIds = Array.from(historicalVisited);
+                        currentNode = startingNode;
+                        traversalPath = storySession.traversalPath;
+                        showStory();
+                        saveStorySession();
                         return;
                     }
 
@@ -990,7 +1182,7 @@ async function loadStory() {
         }
 
         /* ── No session found in MongoDB Atlas — create a new one ────────── */
-        await createNewSession(startingNode, userId);
+        await createNewSession(startingNode, userId, Array.from(historicalVisited));
 
     } catch (error) {
         console.error("Error loading story player:", error);
@@ -999,7 +1191,7 @@ async function loadStory() {
 
 
 /* ============================================================
-   SECTION 16 — CREATE NEW SESSION: createNewSession(startingNode, userId)
+   SECTION 16 — CREATE NEW SESSION: createNewSession(startingNode, userId, preservedVisited)
    Called by loadStory() when no existing session is found.
 
    Steps:
@@ -1012,7 +1204,7 @@ async function loadStory() {
    7. Call showStory() to render the first scene.
    ============================================================ */
 
-async function createNewSession(startingNode, userId) {
+async function createNewSession(startingNode, userId, preservedVisited = []) {
     currentNode = startingNode;
     traversalPath = [{
         nodeId: startingNode.id,
@@ -1023,12 +1215,19 @@ async function createNewSession(startingNode, userId) {
     let userXp = (user && user.xp !== undefined) ? user.xp : STARTING_XP;
     let isFreeUsed = Boolean(user && user.usedFreeRetreatStories && user.usedFreeRetreatStories.includes(storyId));
 
+    const initialVisited = new Set(preservedVisited);
+    initialVisited.add(startingNode.id);
+    const userUnlocked = getUserUnlockedEndings(storyId);
+    if (Array.isArray(userUnlocked)) {
+        userUnlocked.forEach(id => initialVisited.add(id));
+    }
+
     storySession = {
         userId: userId,
         storyId: storyId,
         currentNodeId: startingNode.id,
         traversalPath: traversalPath,
-        visitedNodeIds: [startingNode.id],
+        visitedNodeIds: Array.from(initialVisited),
         freeRetreatUsed: isFreeUsed,
         xp: userXp,
         alreadyClaimed: false,
@@ -1253,7 +1452,7 @@ function showStory() {
                     </div>
 
                     ${xpMsg}
-                    ${starRatingHtml}
+                    <div id="endingCommunityHubContainer" style="width: 100%; max-width: 680px; margin: 16px 0 24px;"></div>
                     ${finalPathHtml}
 
                     <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; width: 100%; margin-top: 10px;">
@@ -1263,6 +1462,11 @@ function showStory() {
                 </div>
             </div>
         `;
+
+        // Initialize Community Reviews & Comments Hub
+        if (typeof CommunityHub !== "undefined") {
+            CommunityHub.init("endingCommunityHubContainer", currentStory.id, currentStory.views || 0);
+        }
 
         // 21st.dev Confetti celebration
         if (typeof trigger21stConfetti === "function") {
@@ -1283,32 +1487,58 @@ function showStory() {
             }
         }, 100);
 
-        // Award COMPLETION_XP if this is the reader's first completion
-        if (!isAlreadyCompleted && !storySession.alreadyClaimed) {
-            storySession.alreadyClaimed = true;
-
-            if (user) {
-                user.xp = (user.xp || 0) + COMPLETION_XP;
-                if (!user.completedStories) user.completedStories = [];
+        // Always ensure story is marked completed in user record
+        if (user) {
+            if (!user.completedStories) user.completedStories = [];
+            if (!user.completedStories.some(id => String(id) === String(storyId))) {
                 user.completedStories.push(storyId);
+            }
 
-                // Sync XP + completedStories to the backend
-                if (user.id) {
-                    fetch(`${API_BASE}/Users/${user.id}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            xp: user.xp,
-                            completedStories: user.completedStories
-                        })
-                    }).catch(e => console.warn("Could not sync completion XP:", e));
-                }
-
+            // Award COMPLETION_XP if this is the reader's first completion
+            if (!isAlreadyCompleted && !storySession.alreadyClaimed) {
+                storySession.alreadyClaimed = true;
+                user.xp = (user.xp || 100) + COMPLETION_XP;
                 showToastNotification(
                     "STORY COMPLETE! 🏆",
                     `You completed "${currentStory.title}"! +${COMPLETION_XP} XP earned!`,
                     "🏆"
                 );
+            }
+
+            try {
+                localStorage.setItem("user", JSON.stringify(user));
+                window.user = user;
+            } catch (e) {}
+
+            const uid = user.id || user._id;
+            const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+            const headers = {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            };
+
+            // Sync XP + completedStories + unlockedEndings to MongoDB Atlas
+            if (uid) {
+                fetch(`${API_BASE}/Users/${uid}`, {
+                    method: "PATCH",
+                    headers: headers,
+                    body: JSON.stringify({
+                        xp: user.xp,
+                        completedStories: user.completedStories,
+                        unlockedEndings: user.unlockedEndings
+                    })
+                }).catch(e => console.warn("Could not sync completion to backend:", e));
+            }
+            if (window.Auth && Auth.updateProfile && token) {
+                Auth.updateProfile({
+                    xp: user.xp,
+                    completedStories: user.completedStories,
+                    unlockedEndings: user.unlockedEndings
+                }).catch(() => {});
+            }
+
+            if (window.checkUserBadgeMilestones) {
+                window.checkUserBadgeMilestones(user, {}, true);
             }
         }
 
@@ -1562,12 +1792,22 @@ function restartStory() {
     let activeXp = (user && user.xp !== undefined) ? user.xp : STARTING_XP;
     let isFreeUsed = Boolean(user && user.usedFreeRetreatStories && user.usedFreeRetreatStories.includes(storyId));
 
-    storySession.currentNodeId = startingNode.id;
-    storySession.traversalPath = traversalPath;
-    storySession.freeRetreatUsed = isFreeUsed;
-    storySession.xp = activeXp;
-    storySession.ended = startingNode.isEnding || false;
-    storySession.endingType = startingNode.isEnding ? startingNode.endingType : null;
+    const visitedSet = new Set(storySession ? storySession.visitedNodeIds || [] : []);
+    visitedSet.add(startingNode.id);
+    const userUnlocked = getUserUnlockedEndings(storyId);
+    if (Array.isArray(userUnlocked)) {
+        userUnlocked.forEach(id => visitedSet.add(id));
+    }
+
+    if (storySession) {
+        storySession.currentNodeId = startingNode.id;
+        storySession.traversalPath = traversalPath;
+        storySession.visitedNodeIds = Array.from(visitedSet);
+        storySession.freeRetreatUsed = isFreeUsed;
+        storySession.xp = activeXp;
+        storySession.ended = startingNode.isEnding || false;
+        storySession.endingType = startingNode.isEnding ? startingNode.endingType : null;
+    }
 
     showStory();
     saveStorySession();
@@ -1624,9 +1864,20 @@ function selectChoice(targetNodeId, choiceText) {
         storySession.traversalPath = traversalPath;
     }
 
+    recordDailyReadingActivity(1);
     showStory();
     saveStorySession();
 }
+
+function recordDailyReadingActivity(count = 1) {
+    try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        let log = JSON.parse(localStorage.getItem("story_reading_activity_log") || "{}");
+        log[todayStr] = (log[todayStr] || 0) + count;
+        localStorage.setItem("story_reading_activity_log", JSON.stringify(log));
+    } catch (e) {}
+}
+window.recordDailyReadingActivity = recordDailyReadingActivity;
 
 
 /* ============================================================
@@ -2099,9 +2350,13 @@ async function submitPitch() {
     };
 
     try {
+        const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
         let res = await fetch(`${API_BASE}/ReaderStories`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            },
             body: JSON.stringify(pitchObject)
         });
 
@@ -2163,13 +2418,20 @@ async function loadMyPitches() {
     if (!container) return;
     container.innerHTML = '<p style="font-weight: 700; color: #888; padding: 16px;">Loading your pitches...</p>';
 
-    if (!user || !user.id) {
+    const activeUser = user || (window.Auth && Auth.getUser ? Auth.getUser() : null);
+    const uid = activeUser ? (activeUser.id || activeUser._id) : null;
+    if (!uid) {
         container.innerHTML = '<p style="font-weight: 700; color: #888; padding: 16px;">Please log in to see your pitches.</p>';
         return;
     }
 
     try {
-        let res = await fetch(`${API_BASE}/ReaderStories?submittedById=${user.id}`);
+        const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+        const headers = {
+            "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+        };
+        let res = await fetch(`${API_BASE}/ReaderStories?submittedById=${encodeURIComponent(uid)}`, { headers });
         let pitches = res.ok ? await res.json() : [];
 
         if (pitches.length === 0) {
@@ -2243,8 +2505,12 @@ async function deleteMyPitch(pitchId) {
     if (!confirm("Are you sure you want to delete this pitch permanently?")) return;
 
     try {
+        const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
         let res = await fetch(`${API_BASE}/ReaderStories/` + pitchId, {
-            method: "DELETE"
+            method: "DELETE",
+            headers: {
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            }
         });
         if (res.ok) {
             loadMyPitches();
@@ -2509,4 +2775,8 @@ if (typeof speechSynthesis !== "undefined" && speechSynthesis.onvoiceschanged !=
             el.innerHTML = voices.map(v => `<option value="${v.voiceURI}" ${v.voiceURI === audioNarratorVoiceURI ? 'selected' : ''}>${v.name.substring(0, 22)}</option>`).join('');
         }
     };
+}
+
+if (typeof initStoryPlayer === "function") {
+    initStoryPlayer();
 }

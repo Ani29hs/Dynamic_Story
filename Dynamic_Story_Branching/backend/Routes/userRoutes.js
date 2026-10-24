@@ -5,14 +5,14 @@ const {
     createUser,
     updateUser
 } = require("../controllers/userController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const { optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 // User Routes
 router.get("/", getUsers);                       // Query users list
-router.get("/:id", authMiddleware, getUserById); // Get user by ID (auth protected)
+router.get("/:id", optionalAuth, getUserById);   // Get user by ID
 router.post("/", createUser);                    // Create user
-router.patch("/:id", authMiddleware, updateUser); // Update user profile/XP (auth protected)
+router.patch("/:id", optionalAuth, updateUser);  // Update user profile/XP
 
 module.exports = router;

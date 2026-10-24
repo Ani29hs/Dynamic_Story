@@ -109,11 +109,49 @@ const deleteStory = async (req, res) => {
     }
 };
 
+// 7. INCREMENT VIEWS - Track unique story read counts per user
+const incrementStoryViews = async (req, res) => {
+    try {
+        const id = req.params.id;
+        let viewerId = null;
+        if (req.user && req.user.id) {
+            viewerId = `user_${req.user.id}`;
+        } else if (req.body && req.body.userId) {
+            viewerId = `user_${req.body.userId}`;
+        } else {
+            const ip = req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || req.ip || "127.0.0.1";
+            viewerId = `ip_${ip}`;
+        }
+
+        const story = await Story.findOne({ $or: [{ id: String(id) }, { _id: (typeof id === 'string' && id.length === 24) ? id : null }] });
+        if (!story) {
+            return res.status(404).json({ error: "Story not found" });
+        }
+
+        if (!Array.isArray(story.viewedBy)) {
+            story.viewedBy = [];
+        }
+
+        // Only increment view if this user/ip has not viewed this story yet
+        if (story.viewedBy.includes(viewerId)) {
+            return res.status(200).json({ id: story.id, views: story.views || 0, isNewView: false });
+        }
+
+        story.viewedBy.push(viewerId);
+        story.views = (story.views || 0) + 1;
+        await story.save();
+        return res.status(200).json({ id: story.id, views: story.views, isNewView: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getAllStories,
     getStoryById,
     createStory,
     updateStory,
     replaceStory,
-    deleteStory
+    deleteStory,
+    incrementStoryViews
 };

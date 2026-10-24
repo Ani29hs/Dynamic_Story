@@ -7,8 +7,18 @@ var Auth = window.Auth || {
         localStorage.setItem("token", token);
     },
 
+    getUser() {
+        try {
+            const raw = localStorage.getItem("user");
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
     removeToken() {
-        localStorage.clear();
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
     },
 
     async getProfile() {
@@ -20,15 +30,54 @@ var Auth = window.Auth || {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) {
-                this.removeToken();
-                return null;
+                return this.getUser();
             }
             const data = await res.json();
+            if (data.user) {
+                const local = this.getUser();
+                if (local) {
+                    const stories = Array.from(new Set([...(data.user.completedStories || []), ...(local.completedStories || [])]));
+                    data.user.completedStories = stories;
+
+                    const mergedEndings = Object.assign({}, local.unlockedEndings || {}, data.user.unlockedEndings || {});
+                    data.user.unlockedEndings = mergedEndings;
+
+                    const seenBadges = Array.from(new Set([...(data.user.seenBadges || []), ...(local.seenBadges || [])]));
+                    data.user.seenBadges = seenBadges;
+
+                    data.user.xp = Math.max(data.user.xp || 100, local.xp || 100);
+                }
+                localStorage.setItem("user", JSON.stringify(data.user));
+                window.user = data.user;
+            }
             return data.user;
         } catch (e) {
             console.error("Auth.getProfile error:", e);
-            return null;
+            return this.getUser();
         }
+    },
+
+    async updateProfile(updates) {
+        const token = this.getToken();
+        if (!token) throw new Error("Not authenticated");
+
+        const res = await fetch(`${API_BASE}/profile`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(updates)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.message || data.error || "Profile update failed");
+        }
+        if (data.user) {
+            localStorage.setItem("user", JSON.stringify(data.user));
+            window.user = data.user;
+        }
+        return data.user;
     },
 
     async login(email, password) {
@@ -42,6 +91,10 @@ var Auth = window.Auth || {
             throw new Error(data.message || "Login failed");
         }
         this.setToken(data.token);
+        if (data.user) {
+            localStorage.setItem("user", JSON.stringify(data.user));
+            window.user = data.user;
+        }
         return data;
     },
 
@@ -54,6 +107,13 @@ var Auth = window.Auth || {
         const data = await res.json();
         if (!res.ok) {
             throw new Error(data.message || "Registration failed");
+        }
+        if (data.token) {
+            this.setToken(data.token);
+        }
+        if (data.user) {
+            localStorage.setItem("user", JSON.stringify(data.user));
+            window.user = data.user;
         }
         return data;
     },

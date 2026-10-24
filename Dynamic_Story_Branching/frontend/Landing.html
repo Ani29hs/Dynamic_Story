@@ -7,8 +7,8 @@
     <title>Dynamic Story Engine | Interactive Branching Universe</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link rel="stylesheet" href="css/components21st.css?v=no_particles_v1">
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
+    <script src="js/config.js?v=v5_clean"></script>
+    <script src="js/auth.js?v=v5_clean"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bowlby+One&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap');
 
@@ -1013,8 +1013,7 @@
             <li><a href="#features" class="nav-pill">⚡ Features</a></li>
             <li><a href="#reviews" class="nav-pill">⭐ Reviews</a></li>
             <li id="navAuthContainer">
-                <a href="pages/auth/login.html" class="nav-pill" style="background: var(--color-sunburst);">🔑 Sign
-                    In</a>
+                <a href="/pages/auth/login.html" class="nav-pill" style="background: var(--color-sunburst);">🔑 Sign In</a>
             </li>
         </ul>
     </header>
@@ -1032,8 +1031,8 @@
             </p>
 
             <div class="hero-cta" id="heroCtaContainer">
-                <a href="pages/reader/stories.html" class="primary-btn" id="viewStories">
-                    🚀 Launch Story Library →
+                <a href="/pages/auth/login.html" class="primary-btn" id="viewStories">
+                    🔑 Sign In to Start →
                 </a>
                 <a href="#sandbox" class="secondary-btn">
                     ✨ Try Live Demo
@@ -2060,8 +2059,18 @@
         // Header User Profile Menu Logic
         document.addEventListener("DOMContentLoaded", async () => {
             let user = null;
-            if (window.Auth && Auth.getToken()) {
-                user = await Auth.getProfile();
+            try {
+                const rawUser = localStorage.getItem("user");
+                if (rawUser) user = JSON.parse(rawUser);
+            } catch (e) {}
+
+            if (window.Auth && typeof Auth.getToken === "function" && Auth.getToken()) {
+                try {
+                    const freshUser = await Auth.getProfile();
+                    if (freshUser) user = freshUser;
+                } catch (e) {
+                    if (!user) user = Auth.getUser();
+                }
             }
 
             let navAuthContainer = document.getElementById("navAuthContainer");
@@ -2069,41 +2078,63 @@
 
             if (user) {
                 if (navAuthContainer) {
-                    let initial = user.name ? user.name.charAt(0).toUpperCase() : "U";
+                    let isAdmin = (user.role === 'Admin');
+                    let initial = isAdmin ? 'A' : (user.name ? user.name.charAt(0).toUpperCase() : "U");
                     let activeXp = (user.xp !== undefined) ? user.xp : 100;
+                    let av = user.avatar || "";
 
-                    let roleBadgeHtml = (user.role === "Admin")
-                        ? `<span class="user-role-badge" style="background: var(--color-sunburst);"><span class="status-live-dot"></span> SYSTEM ADMIN</span>`
-                        : `<span class="user-role-badge"><span class="status-live-dot"></span> STORY EXPLORER</span>`;
-
-                    let xpBadgeHtml = (user.role !== "Admin") ? `<span class="user-xp-badge">⭐ ${activeXp} XP</span>` : ``;
+                    let avatarImgHtml = "";
+                    if (isAdmin) {
+                        avatarImgHtml = `<span style="font-weight: 900; font-family: var(--font-display, sans-serif); color: #000;">A</span>`;
+                    } else if (av && (av.startsWith("data:image/") || av.startsWith("http://") || av.startsWith("https://") || av.startsWith("/"))) {
+                        avatarImgHtml = `<img src="${av}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.onerror=null; this.parentElement.innerText='${initial}';">`;
+                    } else if (av && av.length <= 4) {
+                        avatarImgHtml = `<span style="font-size: 17px; line-height: 1;">${av}</span>`;
+                    } else if (av && av.length > 4) {
+                        avatarImgHtml = `<img src="${av}" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;" onerror="this.onerror=null; this.parentElement.innerText='${initial}';">`;
+                    } else {
+                        avatarImgHtml = `<span>${initial}</span>`;
+                    }
 
                     navAuthContainer.innerHTML = `
                         <div class="user-profile-menu-container">
                             <button type="button" class="profile-menu-btn" onclick="toggleProfileDropdown(event)">
-                                <span class="user-avatar">${initial}</span>
-                                <span class="user-name-label">${user.name || 'User'}</span>
+                                <span class="user-avatar" style="overflow: hidden; padding: 0; display: flex; align-items: center; justify-content: center; background: #ffd731;">${avatarImgHtml}</span>
+                                <span class="user-name-label">${isAdmin ? 'ADMIN' : (user.name || 'User')}</span>
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-left: 2px;"><path d="M6 9l6 6 6-6"/></svg>
                             </button>
                             <div id="profileDropdown" class="profile-dropdown-menu hidden" onclick="event.stopPropagation()">
-                                <div class="profile-dropdown-header">
-                                    <strong>${user.name || 'User'}</strong>
-                                    <div style="display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
-                                        ${roleBadgeHtml}
-                                        ${xpBadgeHtml}
+                                <div class="profile-dropdown-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); padding: 16px 18px; border-bottom: 3px solid #000; color: #fff;">
+                                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                        <div style="width: 38px; height: 38px; border-radius: 50%; border: 2.5px solid #ffd731; box-shadow: 0 0 10px rgba(255,215,49,0.35); overflow: hidden; display: flex; align-items: center; justify-content: center; background: #ffd731; flex-shrink: 0;">
+                                            ${avatarImgHtml}
+                                        </div>
+                                        <div style="min-width: 0;">
+                                            <div style="font-size: 15px; font-weight: 900; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${isAdmin ? 'Admin' : (user.name || 'User')}</div>
+                                            ${!isAdmin ? `<div style="font-size: 11px; font-weight: 800; color: #c4b5fd;">🏷️ ${user.title || 'Story Explorer'}</div>` : ''}
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                        <span class="user-role-badge" style="background: #ffd731; border: 2px solid #000; border-radius: 100px; padding: 3px 10px; font-size: 10px; font-weight: 900; color: #000; box-shadow: 2px 2px 0 #000;">${isAdmin ? 'ADMIN' : 'READER'}</span>
+                                        ${!isAdmin ? `<span class="user-xp-badge" style="background: #fef08a; border: 2px solid #000; border-radius: 100px; padding: 3px 10px; font-size: 10px; font-weight: 900; color: #854d0e; box-shadow: 2px 2px 0 #000;">⭐ ${activeXp} XP</span>` : ''}
                                     </div>
                                 </div>
                                 <div class="profile-dropdown-links">
-                                    ${user.role === 'Admin' ? `
-                                        <a href="pages/admin/admin.html" class="dropdown-item">
+                                    ${!isAdmin ? `
+                                        <a href="/pages/reader/profile.html" class="dropdown-item">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            My Profile & Badges
+                                        </a>
+                                        <a href="/pages/reader/stories.html" class="dropdown-item">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                            Story Library
+                                        </a>
+                                    ` : `
+                                        <a href="/pages/admin/admin.html" class="dropdown-item">
                                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                                             Admin Dashboard
                                         </a>
-                                    ` : ''}
-                                    <a href="pages/reader/stories.html" class="dropdown-item">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                                        Story Library
-                                    </a>
+                                    `}
                                     <hr style="border: 0; border-top: 2px solid #000; margin: 6px 0;">
                                     <button type="button" class="dropdown-item logout-item" onclick="handleLogout()">
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -2117,18 +2148,23 @@
 
                 if (heroCtaContainer) {
                     heroCtaContainer.innerHTML = `
-                        <a href="pages/reader/stories.html" class="primary-btn">
-                            🚀 Launch Story Library →
+                        <a href="${user.role === 'Admin' ? '/pages/admin/admin.html' : '/pages/reader/stories.html'}" class="primary-btn">
+                            ${user.role === 'Admin' ? '🛠️ Admin Dashboard →' : '🚀 Launch Story Library →'}
                         </a>
-                        ${user.role === 'Admin' ? `
-                            <a href="pages/admin/admin.html" class="secondary-btn">
-                                🛠️ Admin Dashboard
-                            </a>
-                        ` : `
-                            <a href="#sandbox" class="secondary-btn">
-                                ✨ Try Live Demo
-                            </a>
-                        `}
+                        <a href="#sandbox" class="secondary-btn">
+                            ✨ Try Live Demo
+                        </a>
+                    `;
+                }
+            } else {
+                if (heroCtaContainer) {
+                    heroCtaContainer.innerHTML = `
+                        <a href="/pages/auth/login.html" class="primary-btn" id="viewStories">
+                            🔑 Sign In to Start →
+                        </a>
+                        <a href="#sandbox" class="secondary-btn">
+                            ✨ Try Live Demo
+                        </a>
                     `;
                 }
             }
@@ -2139,13 +2175,13 @@
             }
         });
 
+        // Dropdown toggle and logout functions for Landing page
         function toggleProfileDropdown(event) {
             if (event) event.stopPropagation();
             let menu = document.getElementById("profileDropdown");
-            if (menu) {
-                menu.classList.toggle("hidden");
-            }
+            if (menu) menu.classList.toggle("hidden");
         }
+        window.toggleProfileDropdown = toggleProfileDropdown;
 
         document.addEventListener("click", (e) => {
             let menu = document.getElementById("profileDropdown");
@@ -2157,10 +2193,14 @@
         });
 
         function handleLogout() {
+            localStorage.removeItem("token");
             localStorage.removeItem("user");
-            alert("Logged out successfully!");
+            if (window.Auth && typeof Auth.removeToken === "function") {
+                Auth.removeToken();
+            }
             window.location.reload();
         }
+        window.handleLogout = handleLogout;
     </script>
 
     <!-- SECRET ADMIN QUICK-LOGIN MODAL | Trigger: 3x Backtick | Only when no user logged in -->
@@ -2441,15 +2481,14 @@
                 });
                 var data = await loginRes.json();
                 if (loginRes.ok && data.user && data.user.role === 'Admin') {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
                     if (window.Auth && window.Auth.setToken) {
                         Auth.setToken(data.token);
-                    } else {
-                        localStorage.setItem('token', data.token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
                     }
                     var btn = document.querySelector('.admin-login-btn');
                     if (btn) { btn.textContent = '✅ AUTHENTICATED!'; btn.style.background = '#22c55e'; btn.style.borderColor = '#22c55e'; btn.style.boxShadow = '4px 4px 0px #22c55e'; }
-                    setTimeout(function () { window.location.href = 'pages/admin/admin.html'; }, 650);
+                    setTimeout(function () { window.location.href = '/pages/admin/admin.html'; }, 650);
                 } else {
                     if (errEl) {
                         errEl.textContent = data.message || '❌ Wrong password. Try again.';
@@ -2468,7 +2507,7 @@
         }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="js/components21st.js?v=no_particles_v1"></script>
+    <script src="js/components21st.js?v=v5_clean"></script>
 </body>
 
 

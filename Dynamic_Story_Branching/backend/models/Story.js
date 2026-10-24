@@ -32,7 +32,9 @@ const StorySchema = new mongoose.Schema({
         userId: String,
         score: Number,
         createdAt: { type: Date, default: Date.now }
-    }]
+    }],
+    views: { type: Number, default: 0 },
+    viewedBy: [{ type: String }]
 }, {
     timestamps: true,
     strict: false,

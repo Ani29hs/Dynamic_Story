@@ -33,8 +33,8 @@ Think of it as your personal interactive story publishing studio meets reading p
 | Real Backend | Node.js + Express + MongoDB Atlas Cluster | ✅ Completed |
 | Multiple Endings Showcase | Visual endings gallery per story | ✅ Completed |
 | Audio Mode | High-End Text-to-speech for story narration | ✅ Completed |
-| Comments on Stories | Readers leave reviews and ratings | Planned |
-| Achievement Badges | Unlock badges for completing stories and earning XP | Planned |
+| Comments on Stories | Readers leave reviews, rating breakdown graph, YouTube-style comments & replies | ✅ Completed |
+| Achievement Badges | Unlock badges for completing stories and earning XP | ✅ Completed |
 | Notifications | Admin notifies readers when a new story is published | Planned |
 | Mobile App | React Native version | Planned |
 | Multi-Author Support | Multiple admins collaborating on the same story | Planned |

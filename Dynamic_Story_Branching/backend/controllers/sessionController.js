@@ -16,6 +16,7 @@ const getSessions = async (req, res) => {
     }
 };
 
+
 // 2. GET SINGLE SESSION - Fetch session by ID
 const getSessionById = async (req, res) => {
     try {

@@ -10,6 +10,8 @@ const storyRoutes = require("./Routes/storyRoutes");
 const sessionRoutes = require("./Routes/sessionRoutes");
 const pitchRoutes = require("./Routes/pitchRoutes");
 const userRoutes = require("./Routes/userRoutes");
+const reviewRoutes = require("./Routes/reviewRoutes");
+const commentRoutes = require("./Routes/commentRoutes");
 
 const app = express();
 
@@ -45,14 +47,18 @@ app.use("/Stories", storyRoutes);         // /Stories, /Stories/:id
 app.use("/StorySessions", sessionRoutes); // /StorySessions, /StorySessions/:id
 app.use("/ReaderStories", pitchRoutes);   // /ReaderStories, /ReaderStories/:id
 app.use("/Users", userRoutes);            // /Users, /Users/:id
+app.use("/Reviews", reviewRoutes);        // /Reviews
+app.use("/Comments", commentRoutes);      // /Comments
 
 // Server Port & Startup
+const http = require("http");
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     await connectDB();
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running on http://localhost:${PORT}`);
+    const server = http.createServer({ maxHeaderSize: 1048576 }, app);
+    server.listen(PORT, () => {
+        console.log(`🚀 Server running on http://localhost:${PORT} (maxHeaderSize: 1MB)`);
     });
 };
 

@@ -5,12 +5,12 @@ const {
     updatePitch,
     deletePitch
 } = require("../controllers/pitchController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const { optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Pitch operations require user authentication
-router.use(authMiddleware);
+// Pitch operations support optional authentication
+router.use(optionalAuth);
 
 // Pitch Routes
 router.get("/", getPitches);          // Get pitches list

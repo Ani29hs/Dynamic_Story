@@ -21,7 +21,12 @@ const getUsers = async (req, res) => {
 const getUserById = async (req, res) => {
     try {
         const id = req.params.id;
-        const data = await User.findOne({ id: String(id) });
+        const mongoose = require("mongoose");
+        const query = { $or: [{ id: String(id) }, { email: String(id).toLowerCase() }] };
+        if (mongoose.isValidObjectId(id)) {
+            query.$or.push({ _id: id });
+        }
+        const data = await User.findOne(query);
 
         if (!data) {
             return res.status(404).json({ error: "User not found" });
@@ -58,8 +63,13 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
     try {
         const id = req.params.id;
+        const mongoose = require("mongoose");
+        const query = { $or: [{ id: String(id) }, { email: String(id).toLowerCase() }] };
+        if (mongoose.isValidObjectId(id)) {
+            query.$or.push({ _id: id });
+        }
         const data = await User.findOneAndUpdate(
-            { id: String(id) },
+            query,
             { $set: req.body },
             { returnDocument: "after" }
         );
