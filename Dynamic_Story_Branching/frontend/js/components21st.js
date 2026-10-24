@@ -569,7 +569,7 @@
     window.initSkiper49Swiper = initSkiper49Swiper;
 
     // ── 16. 21st.dev Circular Testimonials (3D Rotating Stage) ───────────────
-    const circularReviewsData = [
+    const fallbackReviews = [
         {
             quote: "The choices genuinely feel meaningful! Replaying stories to unlock every ending is super fun. Hands down the most engaging interactive fiction experience.",
             name: "Alex Rivera",
@@ -587,14 +587,10 @@
             name: "Marcus Vance",
             designation: "RPG Enthusiast",
             src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=800&auto=format&fit=crop"
-        },
-        {
-            quote: "As a writer, seeing the live graph update with every decision node is pure magic. It sets the new gold standard for interactive web fiction.",
-            name: "Elena Rostova",
-            designation: "Narrative Designer",
-            src: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop"
         }
     ];
+
+    let circularReviewsData = [...fallbackReviews];
 
     let currentReviewIdx = 0;
     let reviewAutoplayTimer = null;
@@ -740,6 +736,162 @@
     }
     window.initCircularTestimonials = initCircularTestimonials;
 
+    // Load real 5-star story reviews from MongoDB Atlas (failsafe with fallback)
+    // Load real 5-star story reviews from MongoDB Atlas using reviewers' actual pictures / avatars
+    async function loadRealStoryReviews() {
+        const stage = document.getElementById('circularImgStage');
+        if (!stage) return;
+
+        try {
+            const apiBase = (typeof API_BASE !== 'undefined') ? API_BASE : 'http://localhost:5000';
+
+            const [reviewsRes, storiesRes, usersRes] = await Promise.allSettled([
+                fetch(`${apiBase}/Reviews`),
+                fetch(`${apiBase}/Stories`),
+                fetch(`${apiBase}/Users`)
+            ]);
+
+            if (reviewsRes.status !== 'fulfilled' || !reviewsRes.value.ok) return;
+
+            const allReviews = await reviewsRes.value.json();
+            if (!Array.isArray(allReviews) || allReviews.length === 0) return;
+
+            // Map story IDs to titles
+            const storyTitleMap = {};
+            if (storiesRes.status === 'fulfilled' && storiesRes.value.ok) {
+                try {
+                    const allStories = await storiesRes.value.json();
+                    if (Array.isArray(allStories)) {
+                        allStories.forEach(s => {
+                            if (s && s.id && s.title) {
+                                storyTitleMap[String(s.id)] = s.title;
+                            }
+                        });
+                    }
+                } catch (_) {}
+            }
+
+            // Map user IDs and usernames to user avatars / pictures
+            const userAvatarMap = {};
+            if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+                try {
+                    const allUsers = await usersRes.value.json();
+                    if (Array.isArray(allUsers)) {
+                        allUsers.forEach(u => {
+                            const uid = u.id || u._id || u.userId;
+                            const pic = u.avatar || u.profilePicture || u.picture;
+                            if (pic) {
+                                if (uid) userAvatarMap[String(uid)] = pic;
+                                if (u.username) userAvatarMap[String(u.username).toLowerCase()] = pic;
+                            }
+                        });
+                    }
+                } catch (_) {}
+            }
+
+            // Strictly filter 5-star reviews with valid text
+            const fiveStarReviews = allReviews.filter(r => {
+                const rating = Number(r.rating);
+                const text = (r.reviewText || r.comment || r.text || '').trim();
+                return rating === 5 && text.length > 3;
+            });
+
+            if (fiveStarReviews.length === 0) return;
+
+            // Sort to select the 3 best reviews: prioritize helpfulness, then review detail / length
+            fiveStarReviews.sort((a, b) => {
+                const helpDiff = (Number(b.helpfulCount) || 0) - (Number(a.helpfulCount) || 0);
+                if (helpDiff !== 0) return helpDiff;
+                const textA = (a.reviewText || a.comment || a.text || '').trim().length;
+                const textB = (b.reviewText || b.comment || b.text || '').trim().length;
+                return textB - textA;
+            });
+
+            // Pick 3 best
+            const topThree = fiveStarReviews.slice(0, 3);
+
+            // Generates an SVG avatar with the user's chosen emoji or name initial (no hardcoded stock photos)
+            function getReviewerAvatar(candidate, name, index) {
+                const trimmed = (candidate || '').trim();
+                // If it is a real uploaded base64 picture or web image URL, use it directly!
+                if (
+                    trimmed.startsWith('data:image/') ||
+                    trimmed.startsWith('http://') ||
+                    trimmed.startsWith('https://') ||
+                    trimmed.startsWith('blob:') ||
+                    trimmed.startsWith('/uploads/') ||
+                    trimmed.startsWith('./')
+                ) {
+                    return trimmed;
+                }
+
+                // Vibrant modern SVG avatar for user emoji or initial
+                const gradients = [
+                    ['#4f46e5', '#7c3aed'], // Indigo -> Purple
+                    ['#ec4899', '#f43f5e'], // Pink -> Rose
+                    ['#0ea5e9', '#2563eb'], // Sky -> Blue
+                    ['#10b981', '#14b8a6'], // Emerald -> Teal
+                    ['#f59e0b', '#ef4444']  // Amber -> Red
+                ];
+                const [c1, c2] = gradients[index % gradients.length];
+                const isEmoji = trimmed && (trimmed.length <= 4 || /\p{Extended_Pictographic}/u.test(trimmed));
+                const displayChar = isEmoji ? trimmed : ((name || 'U').trim().charAt(0).toUpperCase() || '★');
+                const fontSize = isEmoji ? '135' : '110';
+                const yOffset = isEmoji ? '62%' : '58%';
+
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+                    <defs>
+                        <linearGradient id="user_grad_${index}" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="${c1}"/>
+                            <stop offset="100%" stop-color="${c2}"/>
+                        </linearGradient>
+                    </defs>
+                    <rect width="100%" height="100%" rx="36" fill="url(#user_grad_${index})"/>
+                    <text x="50%" y="${yOffset}" font-size="${fontSize}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="800" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">${displayChar}</text>
+                </svg>`;
+
+                return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+            }
+
+            const realMapped = topThree.map((r, i) => {
+                const quoteText = (r.reviewText || r.comment || r.text || '').trim();
+                const rawName = (r.username || r.userName || (r.userId ? "Explorer " + String(r.userId).slice(-4) : "Story Explorer")).trim();
+                const userName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+                const storyName = storyTitleMap[String(r.storyId)];
+                const designation = storyName ? `Explorer of "${storyName}"` : "Verified 5★ Explorer";
+                
+                // Priority: review's own avatar -> user's profile avatar from /Users -> dynamic SVG avatar
+                const candidateAvatar = r.userAvatar || userAvatarMap[String(r.userId)] || (rawName ? userAvatarMap[rawName.toLowerCase()] : '') || '';
+                const portrait = getReviewerAvatar(candidateAvatar, userName, i);
+
+                return {
+                    quote: quoteText,
+                    name: userName,
+                    designation: designation,
+                    src: portrait
+                };
+            });
+
+            // Pad with fallback reviews if fewer than 3 reviews returned, applying dynamic avatar
+            while (realMapped.length < 3) {
+                const fallback = fallbackReviews[realMapped.length];
+                realMapped.push({
+                    ...fallback,
+                    src: getReviewerAvatar('', fallback.name, realMapped.length)
+                });
+            }
+
+            circularReviewsData = realMapped;
+
+            // Smoothly refresh stage with real reviews
+            stage.removeAttribute('data-init');
+            initCircularTestimonials();
+        } catch (err) {
+            console.warn("Could not load real story reviews, keeping defaults:", err);
+        }
+    }
+    window.loadRealStoryReviews = loadRealStoryReviews;
+
     // ── 17. 21st.dev Scroll-Locked Video Hero Engine (Disabled) ──────────────────────────
     function initScrollLockedHero() {
         return;
@@ -754,6 +906,7 @@
         initStackingCards();
         initSkiper49Swiper();
         initCircularTestimonials();
+        loadRealStoryReviews();
         initScrollLockedHero();
 
         let mutationDebounce = null;
