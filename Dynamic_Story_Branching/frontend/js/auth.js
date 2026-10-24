@@ -102,6 +102,37 @@ var Auth = window.Auth || {
 
 window.Auth = Auth;
 
+// Universal Fetch Interceptor: automatically attaches Bearer token to all requests directed to API_BASE
+if (window.fetch && !window.__fetchIntercepted) {
+    window.__fetchIntercepted = true;
+    const _nativeFetch = window.fetch;
+    window.fetch = function(resource, init = {}) {
+        try {
+            const token = window.Auth ? window.Auth.getToken() : localStorage.getItem("token");
+            const url = typeof resource === 'string' ? resource : (resource && resource.url ? resource.url : '');
+            if (token && typeof API_BASE !== 'undefined' && url.includes(API_BASE)) {
+                init = init || {};
+                let headers = init.headers || {};
+                if (headers instanceof Headers) {
+                    if (!headers.has("Authorization")) {
+                        headers.set("Authorization", `Bearer ${token}`);
+                    }
+                } else if (Array.isArray(headers)) {
+                    headers.push(["Authorization", `Bearer ${token}`]);
+                } else {
+                    if (!headers["Authorization"]) {
+                        headers["Authorization"] = `Bearer ${token}`;
+                    }
+                }
+                init.headers = headers;
+            }
+        } catch (e) {
+            console.warn("Fetch interceptor error:", e);
+        }
+        return _nativeFetch.call(this, resource, init);
+    };
+}
+
 // Universal Toast Notification System
 function showToastNotification(title, message, icon = "🎉", duration = 4500) {
     let container = document.getElementById("toastContainer");
