@@ -596,6 +596,8 @@
     let reviewAutoplayTimer = null;
 
     function calculateCircularGap(width) {
+        if (width <= 480) return 22;
+        if (width <= 768) return 36;
         const minWidth = 1024;
         const maxWidth = 1456;
         const minGap = 55;
