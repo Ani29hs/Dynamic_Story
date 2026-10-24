@@ -6,6 +6,16 @@ const getAllStories = async (req, res) => {
         const query = {};
         if (req.query.status) query.status = req.query.status;
         if (req.query.id) query.id = String(req.query.id);
+        if (req.query.genre && req.query.genre !== "All" && req.query.genre !== "All Genres") {
+            query.genre = { $regex: new RegExp(req.query.genre.trim(), "i") };
+        }
+        if (req.query.search) {
+            query.$or = [
+                { title: { $regex: new RegExp(req.query.search.trim(), "i") } },
+                { author: { $regex: new RegExp(req.query.search.trim(), "i") } },
+                { synopsis: { $regex: new RegExp(req.query.search.trim(), "i") } }
+            ];
+        }
 
         const data = await Story.find(query).sort({ createdAt: -1 });
         res.status(200).json(data);
