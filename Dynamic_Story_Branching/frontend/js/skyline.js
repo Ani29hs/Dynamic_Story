@@ -297,7 +297,7 @@
                         <canvas id="skylineCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; outline: none; cursor: grab;"></canvas>
                         
                         <!-- Tooltip -->
-                        <div id="skylineTip" style="pointer-events: none; position: absolute; top: 12px; left: 12px; z-index: 30; opacity: 0; transition: opacity 0.15s ease; background: #000; color: #fff; border: 2px solid #4f46e5; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+                        <div id="skylineTip" style="pointer-events: none; position: absolute; top: 0; left: 0; z-index: 30; opacity: 0; transition: opacity 0.15s ease; background: #000; color: #fff; border: 2px solid #4f46e5; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
                             <span id="skylineTipText">No activity</span>
                         </div>
                     </div>
@@ -558,7 +558,10 @@
                 const z = zs[i] + hover[i] * lift;
                 const tx = px(wk[i] + 0.5, dy[i] + 0.5);
                 const ty = Math.min(py(wk[i] + off, dy[i] + off, z), py(wk[i] + off + w, dy[i] + off, z));
-                tip.style.transform = `translate(${Math.max(10, Math.min(W - 180, tx - 70))}px, ${Math.max(10, ty - 38)}px)`;
+                const tw = tip.offsetWidth || 180;
+                const posX = Math.max(8, Math.min(W - tw - 8, tx - tw / 2));
+                const posY = Math.max(8, ty - 42);
+                tip.style.transform = `translate(${posX}px, ${posY}px)`;
             }
         };
 
@@ -656,11 +659,12 @@
                 if (found !== activeIdx) {
                     activeIdx = found;
                     if (activeIdx >= 0) {
-                        const isToday = cell.date === (options.endDate || toKey(Date.now()));
-                        if (cell.count > 0) {
+                        const cell = grid.cells[activeIdx];
+                        const isToday = cell && cell.date === (options.endDate || toKey(Date.now()));
+                        if (cell && cell.count > 0) {
                             tipText.innerHTML = `<strong>${cell.count} stor${cell.count === 1 ? 'y' : 'ies'} read</strong> on ${cell.date}${isToday ? ' (Today)' : ''}`;
-                        } else {
-                            tipText.innerHTML = `<span style="color: #cbd5e1;">⚪ 0 stories read on ${cell.date}</span>`;
+                        } else if (cell) {
+                            tipText.innerHTML = `<span style="color: #cbd5e1;">⚪ 0 stories read on ${cell.date}${isToday ? ' (Today)' : ''}</span>`;
                         }
                         tip.style.opacity = '1';
                     } else {
@@ -669,6 +673,12 @@
                     kick();
                 }
             }
+        });
+
+        canvas.addEventListener('pointerleave', () => {
+            tip.style.opacity = '0';
+            activeIdx = -1;
+            kick();
         });
 
         window.addEventListener('pointerup', () => {
