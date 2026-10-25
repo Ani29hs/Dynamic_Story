@@ -1,376 +1,503 @@
-# Slush Story Engine
+# Dynamic Story Branching Engine
 
-A branching interactive fiction platform — write, publish, and play choose-your-own-adventure stories with dynamic narrative paths.
-
----
-
-## What Is This?
-
-Slush Story Engine is a web application that lets:
-- Admins write and publish branching narrative stories using a node-based scene editor.
-- Readers play those stories, earn XP, use retreat tokens to rewind scenes, and pitch their own story ideas.
-
-Think of it as your personal interactive story publishing studio meets reading platform, built entirely on HTML, CSS, Vanilla JavaScript, and json-server.
+A full-stack interactive fiction platform and branching narrative system powered by Node.js, Express, MongoDB Atlas, and modern client-side web technologies.
 
 ---
 
-## Bored? Here Is How This Cures It
+## Overview
 
-- Play a branching mystery story — every choice takes you down a different path!
-- Earn XP as you complete stories and submit pitches.
-- Time-Warp Retreat — rewind a scene if you regret your last choice.
-- Multiple Endings Showcase — discover and unlock visual endings gallery per story!
-- Audio Mode (Text-to-Speech) — high-end, smooth voice narrator with voice selection and playback speed controls!
-- Pitch your own story idea — the admin might turn it into a full story!
-- Create your own stories — become the admin and build a multi-path narrative with scenes and choices.
+The Dynamic Story Branching Engine is an interactive storytelling platform that enables creators to author branching narratives and readers to explore choice-driven story paths. Built on a Directed Acyclic Graph (DAG) architecture, the platform enforces story integrity—preventing orphaned scenes and infinite loops—while providing readers with features such as Time-Warp rewind mechanics, real-time audio narration, 3D activity tracking, and community discussions.
+
+![Dynamic Story Engine - Hero Showcase](docs/screenshots/landing_hero.png)
 
 ---
 
-## Future Scope
+## Table of Contents
 
-| Feature | Description | Status |
-|---|---|---|
-| Real Backend | Node.js + Express + MongoDB Atlas Cluster | ✅ Completed |
-| Multiple Endings Showcase | Visual endings gallery per story | ✅ Completed |
-| Audio Mode | High-End Text-to-speech for story narration | ✅ Completed |
-| Comments on Stories | Readers leave reviews, rating breakdown graph, YouTube-style comments & replies | ✅ Completed |
-| Achievement Badges | Unlock badges for completing stories and earning XP | ✅ Completed |
-| Notifications | Admin notifies readers when a new story is published | Planned |
-| Mobile App | React Native version | Planned |
-| Multi-Author Support | Multiple admins collaborating on the same story | Planned |
-| Custom Themes | Readers pick their preferred UI theme | Planned |
-| Story Analytics | Admin sees reads, completion rate, and popular choices | Planned |
-
----
-
-## How to Start the Project
-
-### Prerequisites
-- Node.js installed (v18+)
-- VS Code with Live Server extension
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Application Flow](#application-flow)
+- [Technology Stack](#technology-stack)
+- [Project Directory Structure](#project-directory-structure)
+- [Prerequisites](#prerequisites)
+- [Installation and Setup](#installation-and-setup)
+  - [1. Clone the Repository](#1-clone-the-repository)
+  - [2. Install Dependencies](#2-install-dependencies)
+  - [3. Environment Configuration](#3-environment-configuration)
+  - [4. Start the Backend Server](#4-start-the-backend-server)
+  - [5. Start the Frontend Client](#5-start-the-frontend-client)
+  - [6. Access the Application](#6-access-the-application)
+- [Default Credentials](#default-credentials)
+- [API Reference](#api-reference)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
-### Step 1 — Install Dependencies
+## Key Features
 
-```bash
-npm install
+### 1. Interactive Story Reader
+- **Directed Graph Narrative Engine**: Choices act as directed edges transitioning readers between narrative scene vertices.
+- **Time-Warp Retreat**: Allows readers to step back to prior scenes and alter decisions without restarting the story.
+- **Audio Narration Mode**: Built-in speech synthesis engine utilizing the Web Speech API with adjustable rate, pitch, and voice presets.
+- **Decision History & Path Tracking**: Real-time HUD showing traversal trails and decision counts.
+
+![Interactive Story Reader](docs/screenshots/story_reader.png)
+
+---
+
+### 2. Story Library and Genre Filtering
+- **Dynamic Catalog**: Displays published stories with cover images, scene counts, view totals, and average star ratings.
+- **Search & Multi-Genre Filter**: Instant client-side search by title or author, with filters for Fantasy, Mystery, Horror, Adventure, Sci-Fi, Cyberpunk, and Romance.
+- **Endings Showcase Counter**: Live indicator showing reader completion status against total story endings.
+
+![Story Library Catalog](docs/screenshots/story_library.png)
+
+---
+
+### 3. Community Reviews and Rating Analytics
+- **Verified Reader Reviews**: 1 to 5 star ratings with detailed written feedback.
+- **Rating Breakdown Histogram**: Automated distribution metrics calculating percentages across all star tiers.
+- **Discussion System**: Nested comment threads supporting user responses, timestamp tracking, and community likes.
+
+![Reviews and Ratings Breakdown](docs/screenshots/reviews_modal.png)
+
+---
+
+### 4. Community Pitch Incubator
+- **User-Generated Story Ideas**: Readers submit story premises, genre classifications, and narrative dilemmas to earn +20 XP.
+- **Editorial Review System**: Admins review, approve, or reject submissions and provide feedback comments.
+
+![Community Pitch Studio](docs/screenshots/pitch_studio.png)
+
+---
+
+### 5. Reader Profile and 3D Skyline Activity
+- **Reader Progress Dashboard**: Displays Total XP, Stories Read, Endings Discovered, and earned milestone badges.
+- **3D Reading Skyline**: WebGL-powered isometric activity visualization tracking daily reading sessions.
+
+![Reader Profile and 3D Skyline](docs/screenshots/reader_profile.png)
+
+---
+
+### 6. Admin Story Management & Scene Editor
+- **Full CRUD Management**: Create, update, preview, and delete stories.
+- **Node Graph Authoring**: Visually define scene vertices, choice edges, start nodes, and win/loss ending flags.
+- **Sample Data Restoration**: Built-in restore function allowing instant seeding of pre-configured sample stories.
+
+---
+
+### 7. Authentication and Security
+- **Role-Based Access Control**: Differentiates between Reader and Admin accounts.
+- **JWT Authorization**: Stateless Bearer token verification on protected endpoints.
+- **Password Security**: Passwords hashed with bcrypt (salt factor: 10).
+
+![Authentication Portal](docs/screenshots/login_portal.png)
+
+---
+
+## System Architecture
+
+```
++-----------------------------------------------------------------------------------+
+|                                  CLIENT LAYER                                     |
+|                                                                                   |
+|  [ Landing Page ]      [ Story Library ]      [ Story Reader ]    [ Admin Panel ] |
+|   Landing.html          stories.html           play.html           admin.html     |
+|   components21st.js     stories.js             reader.js           admin.js       |
+|                                                                                   |
+|                   Shared Authentication & API Client: auth.js                     |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         | HTTP / JSON (REST API)
+                                         v
++-----------------------------------------------------------------------------------+
+|                             BACKEND API LAYER (Express)                           |
+|                                                                                   |
+|  [ Routing & Middleware ]                                                         |
+|   - CORS Middleware (Cross-Origin Resource Sharing)                               |
+|   - JSON Body Parser (10MB Payload Limit)                                         |
+|   - authMiddleware.js (JWT Verification)                                          |
+|                                                                                   |
+|  [ Controllers ]                                                                  |
+|   - authController.js     : Registration, Login, Profile                          |
+|   - storyController.js    : Stories, Nodes, Choices, Scene Traversal              |
+|   - sessionController.js  : Reading Sessions & Retract Paths                      |
+|   - pitchController.js    : Reader Story Proposals & Review                       |
+|   - reviewController.js   : Ratings, Star Breakdown Analytics                     |
+|   - commentController.js  : Community Comments & Replies                          |
+|   - userController.js     : XP Management, Badges, Profiles                       |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         | Mongoose ODM (Object Data Modeling)
+                                         v
++-----------------------------------------------------------------------------------+
+|                               DATABASE LAYER (MongoDB)                            |
+|                                                                                   |
+|  [ Collections ]                                                                  |
+|   - users           : Credentials, Roles, XP, Badges, Traversal History           |
+|   - stories         : Metadata, Scene Vertices, Directed Edges, Endings           |
+|   - storysessions   : Active Reader Sessions, Visited Nodes, Retreat Stack        |
+|   - readerstories   : Reader Pitch Proposals & Status Lifecycle                   |
+|   - reviews         : Star Ratings (1-5) and Written Story Critiques              |
+|   - comments        : Nested Discussion Threads and Reactions                     |
++-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-### Step 2 — Start the Backend (Express + MongoDB Atlas)
+## Application Flow
+
+```
+[ Visitor / Reader ]
+        |
+        v
++--------------------+      Create Account       +--------------------+
+|    Landing Page    | ------------------------> |    Signup Page     |
+|   (Landing.html)   |                           |    (signup.html)   |
++--------------------+                           +--------------------+
+        |                                                  |
+        | Log In                                           v
+        +------------------------------------->  +--------------------+
+                                                 |     Login Page     |
+                                                 |    (login.html)    |
+                                                 +--------------------+
+                                                           |
+                                  +------------------------+------------------------+
+                                  | Role === "Reader"                               | Role === "Admin"
+                                  v                                                 v
+                      +-----------------------+                         +-----------------------+
+                      |     Story Library     |                         |    Admin Dashboard    |
+                      |     (stories.html)    |                         |     (admin.html)      |
+                      +-----------------------+                         +-----------------------+
+                                  |                                                 |
+            +---------------------+---------------------+                           |-- Manage Stories
+            |                     |                     |                           |-- Review Pitches
+            v                     v                     v                           |-- Moderate Comments
+  +-------------------+ +-------------------+ +-------------------+                 v
+  |    Play Story     | |    Submit Pitch   | |   View Profile    |     +-----------------------+
+  |    (play.html)    | | (Pitch Incubator) | |   (profile.html)  |     |   Story Scene Editor  |
+  +-------------------+ +-------------------+ +-------------------+     |   (add_stories.html)  |
+            |                     |                     |               +-----------------------+
+            |-- Traverse Choices  |-- +20 XP Bounty     |-- 3D Skyline              |
+            |-- Audio Narrator    |-- Admin Feedback    |-- XP Medallions           |-- Define Nodes
+            |-- Time-Warp Rewind  |                     |-- Reading Stats           |-- Connect Choices
+            |-- Unlock Endings    |                                                 |-- Validate Graph
+            |-- Write Review      |                                                 |-- Publish to Readers
+            v                     v                                                 v
+  +-----------------------------------------------------------------------------------+
+  |                       MongoDB Atlas Persistent Cloud Storage                      |
+  +-----------------------------------------------------------------------------------+
+```
+
+---
+
+## Technology Stack
+
+| Layer | Component | Description |
+|---|---|---|
+| **Runtime Environment** | Node.js | Asynchronous JavaScript server runtime (v18+) |
+| **Backend Framework** | Express.js 4.x | Fast, unopinionated REST API framework |
+| **Database** | MongoDB Atlas | Cloud-hosted NoSQL document database |
+| **ODM Library** | Mongoose 8.x | Schema-based data modeling and validation |
+| **Authentication** | JWT & bcryptjs | Stateless token authentication and salted password hashing |
+| **Frontend Architecture** | Vanilla HTML5 / CSS3 / ES6+ | Zero-framework, lightweight frontend architecture |
+| **Visual 3D Engine** | Three.js (WebGL) | Powers the interactive 3D reading activity skyline |
+| **Speech Engine** | Web Speech API | Browser-native Text-To-Speech audio narration |
+| **Design System** | Custom Neo-Brutalist CSS | High-contrast layouts, geometric borders, and fluid typography |
+
+---
+
+## Project Directory Structure
+
+```
+Dynamic_Story_Branching/
+│
+├── backend/                              # Express REST API & Database Integration
+│   ├── config/
+│   │   └── db.js                         # MongoDB connection utility
+│   ├── controllers/
+│   │   ├── authController.js             # User registration, login, and profile
+│   │   ├── commentController.js          # Nested comment threads and reactions
+│   │   ├── pitchController.js            # Reader community pitches
+│   │   ├── reviewController.js           # Story reviews, star ratings, and analytics
+│   │   ├── sessionController.js          # Reading sessions and traversal state
+│   │   ├── storyController.js            # Stories, scene graph, and DAG validation
+│   │   └── userController.js             # User data, XP adjustments, and badges
+│   ├── middleware/
+│   │   └── authMiddleware.js             # JWT bearer verification and admin checks
+│   ├── models/
+│   │   ├── Comment.js                    # Comments Mongoose schema
+│   │   ├── ReaderStory.js                # Pitches Mongoose schema
+│   │   ├── Review.js                     # Story reviews Mongoose schema
+│   │   ├── Story.js                      # Stories, scene nodes, and choices schema
+│   │   ├── StorySession.js               # User traversal session schema
+│   │   └── User.js                       # User credentials and progression schema
+│   ├── Routes/
+│   │   ├── authRoutes.js                 # /register, /login, /profile
+│   │   ├── commentRoutes.js              # /Comments endpoints
+│   │   ├── pitchRoutes.js                # /ReaderStories endpoints
+│   │   ├── reviewRoutes.js               # /Reviews endpoints
+│   │   ├── sessionRoutes.js              # /StorySessions endpoints
+│   │   ├── storyRoutes.js                # /Stories endpoints
+│   │   └── userRoutes.js                 # /Users endpoints
+│   ├── scripts/
+│   │   └── migrate_db.js                 # Data migration utility
+│   ├── .env.example                      # Environment variable template
+│   ├── package.json                      # Backend dependencies
+│   ├── readme.md                         # Backend specific guide
+│   └── server.js                         # Application entrypoint
+│
+├── frontend/                             # Client-side Web Application
+│   ├── css/                              # Modular stylesheet system
+│   │   ├── admin.css                     # Admin panel and creator styles
+│   │   ├── components21st.css            # Specialized UI components & carousels
+│   │   ├── login.css                     # Authentication forms styling
+│   │   ├── profile.css                   # Profile metrics & skyline layout
+│   │   ├── reader.css                    # Story player & choice buttons
+│   │   ├── reviewsComments.css           # Review cards, breakdown bars, comments
+│   │   ├── signup.css                    # Registration form styling
+│   │   └── stories.css                   # Story library and metadata editor
+│   ├── js/                               # Client-side JavaScript modules
+│   │   ├── admin.js                      # Admin dashboard & pitch moderation
+│   │   ├── auth.js                       # Token storage & route guards
+│   │   ├── badgeCelebration.js           # Milestone badge notifications
+│   │   ├── config.js                     # Environment-aware API URL selector
+│   │   ├── login.js                      # Login logic
+│   │   ├── profile.js                    # Profile dashboard integration
+│   │   ├── reader.js                     # Traversal engine, retreat, and TTS
+│   │   ├── reviewsComments.js            # Reviews & YouTube-style comments
+│   │   ├── signup.js                     # User registration logic
+│   │   ├── skyline.js                    # Three.js 3D skyline activity graph
+│   │   └── stories.js                    # Story catalog and scene editor
+│   ├── pages/
+│   │   ├── admin/
+│   │   │   ├── add_stories.html          # Visual story graph authoring editor
+│   │   │   ├── admin.html                # Admin management dashboard
+│   │   │   └── preview.html              # Story preview page
+│   │   ├── auth/
+│   │   │   ├── login.html                # Login interface
+│   │   │   └── signup.html               # Registration interface
+│   │   └── reader/
+│   │       ├── play.html                 # Interactive story player
+│   │       ├── profile.html              # User profile and 3D skyline
+│   │       └── stories.html              # Story library and pitch studio
+│   ├── Landing.html                      # Public home and showcase page
+│   └── index.html                        # Root redirect to Landing page
+│
+├── docs/                                 # Documentation assets
+│   └── screenshots/                      # High-resolution application screenshots
+│
+├── package.json                          # Root repository package configuration
+└── README.md                             # Main repository documentation
+```
+
+---
+
+## Prerequisites
+
+Before starting, ensure you have the following installed on your machine:
+- **Node.js**: Version 18.0.0 or higher ([Download Node.js](https://nodejs.org/))
+- **npm**: Version 9.0.0 or higher (packaged with Node.js)
+- **MongoDB**: Either a free cloud [MongoDB Atlas](https://www.mongodb.com/atlas/database) account or a locally installed MongoDB community server.
+
+---
+
+## Installation and Setup
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Ani29hs/Dynamic_Story.git
+cd Dynamic_Story
+```
+
+---
+
+### 2. Install Dependencies
+
+Install the project root and backend dependencies:
+
+```bash
+# Install root utility dependencies
+npm install
+
+# Install backend server dependencies
+cd backend
+npm install
+cd ..
+```
+
+---
+
+### 3. Environment Configuration
+
+Because the repository does not track sensitive credentials, you must configure a local `.env` file for the backend server.
+
+A template is provided at `backend/.env.example`. Create your `.env` file inside the `backend` directory:
+
+#### On Windows (PowerShell):
+```powershell
+Copy-Item backend\.env.example backend\.env
+```
+
+#### On Linux / macOS:
+```bash
+cp backend/.env.example backend/.env
+```
+
+Open `backend/.env` in your text editor and specify your connection values:
+
+```env
+# Port on which the Express server will listen
+PORT=5000
+
+# MongoDB Connection String (Atlas Cluster URI or local MongoDB instance)
+MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/dynamic_stories?retryWrites=true&w=majority
+
+# Secret key used for signing JWT authentication tokens
+SECRET_KEY=PASSKEY
+```
+
+> **Setting Up MongoDB Atlas (Quick Guide)**:
+> 1. Create a free account at [mongodb.com/atlas](https://www.mongodb.com/atlas).
+> 2. Create a free Shared Cluster (M0).
+> 3. Under **Database Access**, create a user with read/write privileges (save the username and password).
+> 4. Under **Network Access**, add IP address `0.0.0.0/0` (allow access from anywhere).
+> 5. Click **Connect** -> **Drivers** -> Copy the connection string and paste it into `MONGO_URI` in `backend/.env`.
+> 
+> *Alternatively, for local MongoDB, set `MONGO_URI=mongodb://localhost:27017/dynamic_stories`.*
+
+---
+
+### 4. Start the Backend Server
+
+Start the Express API server:
 
 ```bash
 npm run dev:backend
-# or: cd backend && node server.js
 ```
 
-Backend API runs at: http://localhost:5000
+*Or directly from the backend directory:*
+```bash
+cd backend
+node server.js
+```
+
+Upon successful startup, the console will output:
+```
+Connected to MongoDB Atlas successfully
+Server running on http://localhost:5000 (maxHeaderSize: 1MB)
+```
 
 ---
 
-### Step 3 — Start the Frontend
+### 5. Start the Frontend Client
+
+Open a second terminal window in the root directory and start the client server:
 
 ```bash
 npm run dev:frontend
-# or: npx serve -p 5501 frontend
 ```
 
-Frontend app runs at: http://localhost:5501
-
----
-
-## Clean Project Structure
-
-```
-Dynamic_Story_Branching/
-├── backend/                  # Real Express + MongoDB Atlas Backend
-│   ├── config/               # db.js connection
-│   ├── controllers/          # auth, story, session, pitch, user controllers
-│   ├── middleware/           # authMiddleware, adminOnly (JWT)
-│   ├── models/               # User, Story, StorySession, ReaderStory
-│   ├── Routes/               # auth, story, session, pitch, user routes
-│   ├── package.json
-│   └── server.js             # Main server entrypoint
-│
-├── frontend/                 # Complete Client Application
-│   ├── pages/                # Admin, Auth & Reader Pages
-│   │   ├── admin/            # admin.html, add_stories.html, preview.html
-│   │   ├── auth/             # login.html, signup.html
-│   │   └── reader/           # stories.html, play.html
-│   ├── css/                  # Styling & Lottie animations
-│   ├── js/                   # auth.js, admin.js, reader.js, stories.js, etc.
-│   ├── Landing.html          # Public home showcase
-│   └── index.html            # Landing redirect entrypoint
-│
-├── package.json              # Root project scripts
-└── README.md
+*Or directly using npx serve:*
+```bash
+npx serve -p 8000 frontend
 ```
 
----
-
-## Login Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@gmail.com | admin123 |
-| Reader | Register a new account | Your chosen password |
+The frontend application will be hosted at `http://localhost:8000`.
 
 ---
 
-## User Flow
+### 6. Access the Application
 
-```
-Landing Page
-    |
-    |-- Sign Up --> login.html --> Reader Library
-    |
-    +-- Login
-          |
-          |-- Admin Role --> Admin Dashboard
-          |
-          +-- Reader Role --> Reader Library
-```
+1. Open your browser and navigate to:
+   ```
+   http://localhost:8000
+   ```
+2. The browser automatically opens `Landing.html`.
+3. To seed initial stories and scenes, log in with the Administrator account and click **"Restore Sample Story"** in the Admin Dashboard.
 
 ---
 
-# ADMIN FEATURES
+## Default Credentials
+
+| Role | Email Address | Password | Permissions |
+|---|---|---|---|
+| **Administrator** | `admin@gmail.com` | `admin123` | Author stories, edit scene graph, approve/reject pitches, moderate reviews |
+| **Reader** | *Self-registered via signup* | *User password* | Play stories, use retreat tokens, submit pitches, write reviews, post comments |
 
 ---
 
-## 1. Admin Dashboard — Stories Tab
+## API Reference
 
-Shows all stories (draft + published) as cards.
+The backend exposes a REST API running by default on `http://localhost:5000`.
 
-Each card shows:
-- Cover image, genre badge, status badge (PUBLISHED / DRAFT)
-- Title, Author, description snippet, scene count
-- 3 action buttons: Edit | Preview | Delete
+### Authentication
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `POST` | `/register` | Register a new user account | None |
+| `POST` | `/login` | Authenticate credentials and retrieve JWT | None |
+| `GET` | `/profile` | Fetch authenticated user profile data | `Bearer <token>` |
 
-Clicking "Read More" opens a Story Showcase Modal with full synopsis, cover art, scene count, and Edit/Back buttons.
+### Stories & Narrative Graph
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/Stories` | List stories (filterable by `?status=published` or `?genre=...`) | None |
+| `GET` | `/Stories/:id` | Retrieve full story object with scene nodes and choices | None |
+| `POST` | `/Stories` | Create a new story draft | Admin |
+| `PATCH` | `/Stories/:id` | Update story metadata or scene graph nodes | Admin |
+| `PUT` | `/Stories/:id` | Replace entire story document | Admin |
+| `DELETE` | `/Stories/:id` | Permanently delete a story | Admin |
+| `POST` | `/Stories/:id/view` | Increment live view counter for a story | None |
+| `POST` | `/Stories/restore-sample` | Reset and restore default sample stories dataset | Admin |
 
----
+### Reader Sessions
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/StorySessions` | Retrieve active reading session by `userId` and `storyId` | None |
+| `POST` | `/StorySessions` | Initialize or persist a reading session | None |
+| `PATCH` | `/StorySessions/:id` | Update current scene position and choice history | None |
 
-## 2. Admin Dashboard — Reader Pitches Tab
+### Community Pitches
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/ReaderStories` | List community story pitches | None |
+| `POST` | `/ReaderStories` | Submit a reader story proposal (+20 XP bounty) | User |
+| `PATCH` | `/ReaderStories/:id` | Update pitch status (`approved` / `rejected`) with feedback | Admin |
+| `DELETE` | `/ReaderStories/:id` | Delete a submitted pitch | User / Admin |
 
-Shows all reader-submitted story pitches.
-
-Admin can:
-- Approve — marks pitch as approved and notifies reader
-- Reject — marks pitch as rejected and notifies reader
-- Leave a comment (e.g. "Will Consider", "Loved the idea!")
-
----
-
-## 3. Story Editor
-
-Full story creation and editing interface.
-
-### Story Metadata
-
-Fill in:
-- Story Title — displayed on cards and in the library
-- Author Name — shown as "BY Author" on cards
-- Genre — Fantasy, Mystery, Horror, Adventure, Sci-Fi
-- Story Description — synopsis text shown in cards and the modal
-- Cover Image URL — cover art image
-
-Click "SAVE STORY METADATA" — saves the story as Draft (Private) to db.json.
-Readers cannot see draft stories. Only the admin sees them on the dashboard.
-
-### Scene Node Editor
-
-- Click "+ Add Scene Node" to add a scene.
-- Each node has: Title, Scene Text, Location, Characters, and an optional Ending toggle.
-- The first node added automatically becomes the Start Node.
-- Click "Set as Start" on any non-ending node to reassign the starting point.
-- Nodes connect via Choices (edges) forming the branching narrative graph.
-- Add / Edit / Remove choices and nodes inline.
-
-### Publishing a Story
-
-Click the "Publish Story" button at the top right.
-
-Requirements before publishing:
-1. Story metadata must be saved (title, author, genre, description)
-2. At least 1 Scene Node must be added
-
-Once published, the story status becomes "published" in db.json and it instantly appears in the Reader Library for all readers.
+### Reviews & Comments
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|---|
+| `GET` | `/Reviews` | List story reviews (filterable by `?storyId=...`) | None |
+| `POST` | `/Reviews` | Create or update a star review with rating | User |
+| `DELETE` | `/Reviews/:id` | Delete a user review | User / Admin |
+| `GET` | `/Comments` | Retrieve comments and nested reply threads for a story | None |
+| `POST` | `/Comments` | Post a new top-level comment or reply | User |
+| `POST` | `/Comments/:id/like` | Toggle like reaction on a comment | User |
+| `DELETE` | `/Comments/:id` | Delete a comment | User / Admin |
 
 ---
 
-# READER FEATURES
+## Troubleshooting
+
+### 1. MongoDB Connection Errors
+- **Symptom**: `MongoServerError: bad auth : Authentication failed` or `MongoDB connection failed`.
+- **Solution**: Check that the username and password in `backend/.env` match your MongoDB Atlas database user. If your password contains special characters (e.g. `@`, `:`, `#`), ensure they are URL-encoded (for example, `@` becomes `%40`).
+- **Symptom**: `MongooseServerSelectionError: connection timed out`.
+- **Solution**: In MongoDB Atlas, go to **Network Access** and verify that IP Address `0.0.0.0/0` (Allow Access from Anywhere) is active.
+
+### 2. Port Conflicts
+- **Symptom**: `Error: listen EADDRINUSE: address already in use :::5000`.
+- **Solution**: Terminate the process currently occupying port 5000, or edit `PORT=5001` in `backend/.env`.
+
+### 3. Audio Narration Not Playing
+- **Symptom**: Clicking "Enable Audio Mode" does not produce speech.
+- **Solution**: Ensure your browser allows autoplay audio. In Chromium browsers, click anywhere on the page first, as modern browsers require user interaction before playing Web Speech API audio.
 
 ---
 
-## 1. Reader Library
+## License
 
-Displays all published stories as a card grid.
-
-- Search bar — search by title or author name
-- Genre Filter — filter by Fantasy, Mystery, Horror, etc.
-- Click any story card to start playing
-
----
-
-## 2. Story Player
-
-- Story loads from db.json starting at the designated Start Node
-- Scene text, location, and characters are displayed
-- Choice buttons appear — clicking a choice navigates to the next scene
-- Ending nodes display a completion screen with the ending type (Good / Bad / Neutral)
-
-### XP System
-
-| Action | XP Earned |
-|---|---|
-| Complete a story (first time only) | +5 XP |
-| Submit a story pitch (once per day) | +20 XP |
-| Use Time-Warp Retreat | -5 XP (first use per story is FREE) |
-
-XP is saved to both localStorage and db.json so it persists across sessions.
-
----
-
-## 3. Time-Warp Retreat
-
-The Time-Warp Retreat button appears during story playback.
-
-- First use per story: FREE — no XP deducted
-- Subsequent uses: -5 XP each
-- Rewinds the reader back to the previous scene in the traversal path
-- Retreat history is synced to localStorage and db.json
-
----
-
-## 4. Submit a Story Pitch
-
-Switch to the "Submit Pitch" tab on the Reader Library page.
-
-Steps:
-1. Enter your Story Title
-2. Select a Genre
-3. Write a Pitch Description (minimum 20 characters)
-4. Click "SUBMIT MY PITCH"
-
-On success:
-- +20 XP is awarded (limited to once per calendar day)
-- Pitch is saved to db.json under ReaderStories
-- You are automatically redirected to My Pitches tab after 2 seconds
-
----
-
-## 5. My Pitches
-
-Track all your submitted pitches in the "My Pitches" tab.
-
-Each pitch card shows:
-- Title, genre badge, submission date
-- Status badge: PENDING | APPROVED | REJECTED
-- Admin comment if the admin left feedback
-- Delete button to permanently remove the pitch
-
-Note: If the admin removes a pitch from the Admin Dashboard, it appears as REJECTED in your My Pitches view so you always know the decision.
-
----
-
-## Project Structure
-
-```
-Dynamic_Story_Branching/
-|-- Landing.html              Landing / homepage
-|-- db.json                   JSON Server database file
-|-- package.json              npm dependencies
-|
-|-- css/
-|   |-- admin.css             Admin dashboard styles
-|   |-- reader.css            Reader page styles
-|   |-- stories.css           Story editor styles
-|   |-- login.css             Login and signup styles
-|   +-- style.css             Global / shared styles
-|
-|-- js/
-|   |-- admin.js              Admin dashboard logic (stories, pitches, modals)
-|   |-- stories.js            Story editor logic (metadata, nodes, choices, publish)
-|   |-- reader.js             Reader library, story player, XP, retreat, pitches
-|   |-- preview.js            Admin story preview logic
-|   |-- login.js              Login authentication
-|   +-- signup.js             User registration
-|
-+-- pages/
-    |-- admin/
-    |   |-- admin.html        Admin Dashboard (stories + pitches)
-    |   |-- add_stories.html  Story Editor (metadata + scene graph)
-    |   +-- preview.html      Admin Story Preview
-    |-- auth/
-    |   |-- login.html        Login Page
-    |   +-- signup.html       Signup / Registration Page
-    +-- reader/
-        |-- stories.html      Reader Library + Pitch Submission System
-        +-- play.html         Interactive Story Playback Engine
-```
-
----
-
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend Structure | HTML5 |
-| Styling | Vanilla CSS (custom design system) |
-| Logic | Vanilla JavaScript (ES6+) |
-| Backend / API | json-server v1 beta |
-| Database | db.json flat JSON file |
-| State Management | localStorage synced with json-server |
-
----
-
-## Data Schema (db.json)
-
-```json
-{
-  "Users": [
-    {
-      "id": "1",
-      "name": "Admin",
-      "email": "admin@gmail.com",
-      "password": "admin123",
-      "role": "Admin",
-      "xp": 100,
-      "completedStories": [],
-      "usedFreeRetreatStories": []
-    }
-  ],
-  "Stories": [
-    {
-      "id": "story_123",
-      "title": "The Lost Kingdom",
-      "author": "Admin",
-      "genre": "adventure",
-      "status": "published",
-      "description": "A branching adventure...",
-      "imageURL": "https://example.com/cover.jpg",
-      "nodes": [],
-      "startNodeId": null
-    }
-  ],
-  "ReaderStories": [
-    {
-      "id": "pitch_456",
-      "title": "My Story Idea",
-      "genre": "fantasy",
-      "description": "Once upon a time...",
-      "submittedBy": "Reader Name",
-      "submittedById": "user_id",
-      "status": "pending",
-      "adminComment": "",
-      "submittedAt": "2026-08-23T14:00:00.000Z"
-    }
-  ]
-}
-```
-
----
-
-Built with love — Slush Story Engine
+This project is open-source and available under the standard MIT License.
