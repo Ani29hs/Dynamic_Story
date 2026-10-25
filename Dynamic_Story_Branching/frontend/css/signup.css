@@ -328,45 +328,25 @@ input[type="submit"]:active {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
-    html, body {
-        overflow-x: hidden !important;
-        max-width: 100vw !important;
-    }
     .signup-wrapper {
-        padding: 16px 12px;
-        min-height: 100dvh;
+        padding: 20px 14px;
     }
     .signup-card {
         flex-direction: column;
-        max-width: 440px;
-        width: 100%;
-        border-radius: 20px;
-        box-shadow: 6px 6px 0px #000;
+        max-width: 460px;
     }
     .lottie-panel {
         border-right: none;
         border-bottom: 3px solid #000000;
-        padding: 18px 16px;
-    }
-    #lottieContainer {
-        height: 150px;
-    }
-    .form-panel {
         padding: 24px 20px;
     }
+    #lottieContainer {
+        height: 200px;
+    }
+    .form-panel {
+        padding: 28px 24px;
+    }
     .signup-title {
-        font-size: 22px;
-    }
-    .signup-subtitle {
-        font-size: 13px;
-        margin-bottom: 18px;
-    }
-    .input-field {
-        padding: 12px 14px 12px 42px;
-        font-size: 13.5px;
-    }
-    .signup-btn {
-        padding: 13px;
-        font-size: 14px;
+        font-size: 24px;
     }
 }
