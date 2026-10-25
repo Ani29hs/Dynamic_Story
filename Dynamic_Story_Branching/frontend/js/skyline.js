@@ -255,7 +255,7 @@
         const stats = computeStats(grid.cells);
         const months = monthLabels(grid.cells, grid.weeks);
 
-        let currentView = options.defaultView || '3d';
+        let currentView = localStorage.getItem('skyline_preferred_view') || options.defaultView || '2d';
         let targetViewT = currentView === '3d' ? 1 : 0;
         let t = targetViewT;
         let duration = options.duration || 1200;
@@ -265,6 +265,10 @@
         let tipW = 0;
         let raf = null, last = 0;
 
+        const todayKey = options.endDate || toKey(Date.now());
+        const todayCell = grid.cells.find(c => c.date === todayKey) || (grid.cells.length ? grid.cells[grid.cells.length - 1] : null);
+        const todayActions = todayCell ? todayCell.count : 0;
+
         containerEl.innerHTML = `
             <div class="skyline-wrapper" style="position: relative; width: 100%; border: 3px solid #000; background: #ffffff; border-radius: 16px; box-shadow: 6px 6px 0 #000; padding: 22px; font-family: inherit;">
                 <div class="skyline-top-bar" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
@@ -273,7 +277,7 @@
                             ⚡ DAILY STORY READING & ACTIVITY SKYLINE
                         </div>
                         <h3 style="margin: 4px 0 0; font-size: 21px; font-weight: 900; color: #0f172a;">
-                            <span id="skylineTotalCount" style="color: #4f46e5;">${stats.total}</span> Story Action${stats.total === 1 ? '' : 's'} Read Today <span style="font-size: 13px; font-weight: 700; color: #64748b;">(Previous days kept blank)</span>
+                            <span id="skylineTotalCount" style="color: #4f46e5;">${stats.total}</span> Stor${stats.total === 1 ? 'y' : 'ies'} Read
                         </h3>
                     </div>
                     <div style="display: flex; align-items: center; gap: 8px;">
@@ -301,20 +305,20 @@
                     <!-- Metrics row -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; padding: 14px 18px; border-top: 2.5px solid #000; background: #fff;">
                         <div>
-                            <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Actions Read Today</div>
-                            <div style="font-size: 22px; font-weight: 900; color: #4f46e5;">${stats.total} <span style="font-size: 12px; color: #64748b; font-weight: 700;">today</span></div>
+                            <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Stories Read Today</div>
+                            <div style="font-size: 22px; font-weight: 900; color: #4f46e5;">${todayActions} <span style="font-size: 12px; color: #64748b; font-weight: 700;">today</span></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Total Stories Read</div>
+                            <div style="font-size: 22px; font-weight: 900; color: #2563eb;">${stats.total} <span style="font-size: 12px; color: #64748b; font-weight: 700;">total</span></div>
                         </div>
                         <div>
                             <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Busiest Day</div>
-                            <div style="font-size: 22px; font-weight: 900; color: #059669;">${stats.busiest.count} <span style="font-size: 12px; color: #64748b; font-weight: 700;">chapters</span></div>
+                            <div style="font-size: 22px; font-weight: 900; color: #059669;">${stats.busiest.count} <span style="font-size: 12px; color: #64748b; font-weight: 700;">stor${stats.busiest.count === 1 ? 'y' : 'ies'}</span></div>
                         </div>
                         <div>
                             <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Active Streak</div>
-                            <div style="font-size: 22px; font-weight: 900; color: #d97706;">${stats.current.days} <span style="font-size: 12px; color: #64748b; font-weight: 700;">day 🔥</span></div>
-                        </div>
-                        <div>
-                            <div style="font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase;">Previous Days</div>
-                            <div style="font-size: 22px; font-weight: 900; color: #64748b;">0 <span style="font-size: 12px; color: #64748b; font-weight: 700;">blank</span></div>
+                            <div style="font-size: 22px; font-weight: 900; color: #d97706;">${stats.current.days} <span style="font-size: 12px; color: #64748b; font-weight: 700;">day${stats.current.days === 1 ? '' : 's'} 🔥</span></div>
                         </div>
                     </div>
 
@@ -598,6 +602,7 @@
 
         const setView = (v) => {
             currentView = v;
+            try { localStorage.setItem('skyline_preferred_view', v); } catch (e) {}
             targetViewT = v === '3d' ? 1 : 0;
             if (btn2D && btn3D) {
                 btn2D.style.background = v === '2d' ? '#000' : 'transparent';
@@ -651,12 +656,11 @@
                 if (found !== activeIdx) {
                     activeIdx = found;
                     if (activeIdx >= 0) {
-                        const cell = grid.cells[activeIdx];
-                        const isToday = cell.date === new Date().toISOString().slice(0, 10);
+                        const isToday = cell.date === (options.endDate || toKey(Date.now()));
                         if (cell.count > 0) {
-                            tipText.innerHTML = `<strong>${cell.count} chapter action${cell.count === 1 ? '' : 's'} read</strong> on ${cell.date}${isToday ? ' (Today)' : ''}`;
+                            tipText.innerHTML = `<strong>${cell.count} stor${cell.count === 1 ? 'y' : 'ies'} read</strong> on ${cell.date}${isToday ? ' (Today)' : ''}`;
                         } else {
-                            tipText.innerHTML = `<span style="color: #cbd5e1;">⚪ 0 actions on ${cell.date} (Blank)</span>`;
+                            tipText.innerHTML = `<span style="color: #cbd5e1;">⚪ 0 stories read on ${cell.date}</span>`;
                         }
                         tip.style.opacity = '1';
                     } else {

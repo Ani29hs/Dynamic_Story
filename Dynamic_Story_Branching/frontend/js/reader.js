@@ -1142,6 +1142,7 @@ async function loadStory() {
                         storySession.traversalPath = [{
                             nodeId: startingNode.id,
                             title: startingNode.title,
+                            location: startingNode.location || "",
                             choiceText: null
                         }];
                         historicalVisited.add(startingNode.id);
@@ -1158,6 +1159,7 @@ async function loadStory() {
                         storySession.traversalPath = [{
                             nodeId: startingNode.id,
                             title: startingNode.title,
+                            location: startingNode.location || "",
                             choiceText: null
                         }];
                         historicalVisited.add(startingNode.id);
@@ -1209,6 +1211,7 @@ async function createNewSession(startingNode, userId, preservedVisited = []) {
     traversalPath = [{
         nodeId: startingNode.id,
         title: startingNode.title,
+        location: startingNode.location || "",
         choiceText: null
     }];
 
@@ -1251,6 +1254,7 @@ async function createNewSession(startingNode, userId, preservedVisited = []) {
         console.warn("Could not post new session to MongoDB Atlas:", error);
     }
 
+    recordDailyReadingActivity(1);
     showStory();
 }
 
@@ -1786,6 +1790,7 @@ function restartStory() {
     traversalPath = [{
         nodeId: startingNode.id,
         title: startingNode.title,
+        location: startingNode.location || "",
         choiceText: null
     }];
 
@@ -1851,6 +1856,7 @@ function selectChoice(targetNodeId, choiceText) {
     traversalPath.push({
         nodeId: nextNode.id,
         title: nextNode.title || "Scene",
+        location: nextNode.location || "",
         choiceText: choiceText
     });
 
@@ -1864,20 +1870,52 @@ function selectChoice(targetNodeId, choiceText) {
         storySession.traversalPath = traversalPath;
     }
 
-    recordDailyReadingActivity(1);
+    recordDailyStoryRead(storyId);
     showStory();
     saveStorySession();
 }
 
-function recordDailyReadingActivity(count = 1) {
+function getLocalDateStr(d = new Date()) {
+    const date = new Date(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function recordDailyStoryRead(currentStoryId = storyId) {
     try {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        let log = JSON.parse(localStorage.getItem("story_reading_activity_log") || "{}");
-        log[todayStr] = (log[todayStr] || 0) + count;
+        const localDate = getLocalDateStr(new Date());
+        let uid = "";
+        if (window.Auth && typeof Auth.getUser === "function") {
+            const u = Auth.getUser();
+            if (u && (u.id || u._id)) uid = String(u.id || u._id);
+        }
+        if (!uid && typeof user !== "undefined" && user && (user.id || user._id)) {
+            uid = String(user.id || user._id);
+        }
+        if (!uid && typeof currentUser !== "undefined" && currentUser && (currentUser.id || currentUser._id)) {
+            uid = String(currentUser.id || currentUser._id);
+        }
+
+        const sid = currentStoryId ? String(currentStoryId) : (storyId ? String(storyId) : "story");
+        const storiesKey = uid ? `story_reading_stories_set_${uid}` : "story_reading_stories_set";
+        let dateStories = JSON.parse(localStorage.getItem(storiesKey) || "{}");
+        if (!Array.isArray(dateStories[localDate])) dateStories[localDate] = [];
+        if (!dateStories[localDate].includes(sid)) {
+            dateStories[localDate].push(sid);
+        }
+        localStorage.setItem(storiesKey, JSON.stringify(dateStories));
+
+        const userKey = uid ? `story_reading_activity_log_${uid}` : "story_reading_activity_log";
+        let log = JSON.parse(localStorage.getItem(userKey) || "{}");
+        log[localDate] = dateStories[localDate].length;
+        localStorage.setItem(userKey, JSON.stringify(log));
         localStorage.setItem("story_reading_activity_log", JSON.stringify(log));
     } catch (e) {}
 }
-window.recordDailyReadingActivity = recordDailyReadingActivity;
+window.recordDailyStoryRead = recordDailyStoryRead;
+window.recordDailyReadingActivity = recordDailyStoryRead;
 
 
 /* ============================================================
@@ -2707,6 +2745,54 @@ function replaySceneNarration() {
     narrateCurrentScene(true);
 }
 
+/* ── Audio Speech Sanitizer & Smart Sequencing Engine ── */
+function cleanSpeechText(raw) {
+    if (!raw || typeof raw !== "string") return "";
+
+    let text = raw;
+
+    // 1. Unescape HTML entities
+    text = text
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, " and ")
+        .replace(/&gt;=/gi, " at least ")
+        .replace(/&lt;=/gi, " at most ")
+        .replace(/&gt;/gi, " ")
+        .replace(/&lt;/gi, " ")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'")
+        .replace(/&#x27;/gi, "'");
+
+    // 2. Convert or strip arrows so speech synthesizer NEVER says "greater than equal to" or "dash greater than"
+    // e.g. ==>, -->, =>, ->, ➔, ➜, ➝, ➞, ➡, ➨, ⇨, ⇾, ⇛, →, ⟶
+    text = text.replace(/(?:==>|-->|=>|->|➔|➜|➝|➞|➡|➨|⇨|⇾|⇛|→|⟶)/g, ", ");
+
+    // 3. Clean comparisons and math operators BEFORE stripping tags
+    text = text.replace(/>=/g, " at least ");
+    text = text.replace(/<=/g, " at most ");
+    text = text.replace(/==/g, " is equal to ");
+    text = text.replace(/!=/g, " is not equal to ");
+
+    // 4. Strip HTML tags (including standard tags and stray angle brackets)
+    text = text.replace(/<\/?[a-z][a-z0-9]*[^>]*>/gi, " ");
+    text = text.replace(/[><]/g, " ");
+
+    // 5. Clean markdown formatting (*, _, ~, #, `) and symbols
+    text = text.replace(/[*_~#`^|\\]/g, " ");
+
+    // 6. Strip emojis (including star \u2B50, arrows, dingbats, pictographs)
+    text = text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2B50}\u{FE00}-\u{FE0F}]/gu, " ");
+
+    // 7. Strip any trailing arrows, dashes, comparisons or symbols at the end of the text
+    text = text.replace(/[\s\-_–—=><|/\\:;.,]+$/g, "");
+
+    // 8. Collapse repeated whitespace and commas
+    text = text.replace(/,\s*,+/g, ", ");
+    text = text.replace(/\s+/g, " ").trim();
+
+    return text;
+}
+
 function narrateCurrentScene(force = false) {
     // Audio narration is strictly for Readers/users, not for Admins
     if (user && user.role === "Admin") {
@@ -2724,16 +2810,61 @@ function narrateCurrentScene(force = false) {
 
     if (!currentNode) return;
 
-    let textToNarrate = "";
-    if (currentNode.isEnding) {
-        let endType = (currentNode.endingType || "good").toUpperCase();
-        textToNarrate = `${currentNode.title || 'Story Ending'}. ${endType} Ending achieved. ${currentNode.text || ''}`;
-    } else {
-        let loc = currentNode.location ? `Location: ${currentNode.location}. ` : "";
-        textToNarrate = `${currentNode.title || ''}. ${loc}${currentNode.text || ''}`;
+    // Determine if this is the initial scene / first choice
+    const isFirstScene = !traversalPath || traversalPath.length <= 1;
+
+    // Determine previous scene's location from traversalPath
+    let prevLoc = "";
+    if (traversalPath && traversalPath.length >= 2) {
+        const prevStep = traversalPath[traversalPath.length - 2];
+        if (prevStep && prevStep.location) {
+            prevLoc = cleanSpeechText(prevStep.location).toLowerCase();
+        } else if (prevStep && prevStep.nodeId && currentStory && Array.isArray(currentStory.nodes)) {
+            const prevNode = currentStory.nodes.find(n => String(n.id) === String(prevStep.nodeId));
+            if (prevNode && prevNode.location) {
+                prevLoc = cleanSpeechText(prevNode.location).toLowerCase();
+            }
+        }
     }
 
-    if (!textToNarrate.trim()) return;
+    const currLocClean = cleanSpeechText(currentNode.location || "");
+    const currLocNorm = currLocClean.toLowerCase();
+
+    // Smart rules:
+    // 1. Initial scene / first choice: speak Title, then Location, then Description
+    // 2. Subsequent choices: speak Title and Description, and Location ONLY when it changes from previous choice location
+    const shouldSpeakLocation = Boolean(
+        currLocClean && (isFirstScene || !prevLoc || currLocNorm !== prevLoc)
+    );
+
+    let parts = [];
+    if (currentNode.isEnding) {
+        const endType = (currentNode.endingType || "good").toUpperCase();
+        if (currentNode.title) {
+            const t = cleanSpeechText(currentNode.title);
+            if (t) parts.push(t);
+        }
+        parts.push(cleanSpeechText(`${endType} Ending achieved`));
+        if (currentNode.text) {
+            const desc = cleanSpeechText(currentNode.text);
+            if (desc) parts.push(desc);
+        }
+    } else {
+        if (currentNode.title) {
+            const t = cleanSpeechText(currentNode.title);
+            if (t) parts.push(t);
+        }
+        if (shouldSpeakLocation) {
+            parts.push(`Location: ${currLocClean}`);
+        }
+        if (currentNode.text) {
+            const desc = cleanSpeechText(currentNode.text);
+            if (desc) parts.push(desc);
+        }
+    }
+
+    const textToNarrate = parts.filter(Boolean).join(". ").trim();
+    if (!textToNarrate) return;
 
     let utterance = new SpeechSynthesisUtterance(textToNarrate);
     utterance.rate = audioNarratorRate || 1.0;

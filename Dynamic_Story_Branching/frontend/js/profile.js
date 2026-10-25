@@ -950,41 +950,105 @@ window.closeBadgeInspectModal = closeBadgeInspectModal;
    DAILY READING ACTIVITY SKYLINE INTEGRATION
    ============================================================ */
 
-function initReadingActivitySkyline() {
+function getLocalDateStr(d = new Date()) {
+    const date = new Date(d);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+async function initReadingActivitySkyline() {
     const mount = document.getElementById("skylineMount");
     if (!mount || !window.SlushSkyline) return;
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const endMs = Date.now();
+    const todayStr = getLocalDateStr(new Date());
 
-    // Check real activity log in localStorage
     let log = {};
-    try {
-        log = JSON.parse(localStorage.getItem("story_reading_activity_log") || "{}");
-    } catch (e) { log = {}; }
+    const uid = (currentUser && (currentUser.id || currentUser._id)) ? String(currentUser.id || currentUser._id) : "";
 
-    // If today has no recorded count yet, use real completed stories / endings count
-    let todayCount = log[todayStr] || 0;
-    if (todayCount === 0) {
-        const completedCount = (currentUser && currentUser.completedStories) ? currentUser.completedStories.length : 0;
-        todayCount = completedCount > 0 ? completedCount : 1;
-        log[todayStr] = todayCount;
-        try { localStorage.setItem("story_reading_activity_log", JSON.stringify(log)); } catch (e) {}
+    // 1. Read cached localStorage log
+    try {
+        if (uid) {
+            const userLog = localStorage.getItem(`story_reading_activity_log_${uid}`);
+            if (userLog) log = JSON.parse(userLog);
+        }
+        if (!log || Object.keys(log).length === 0) {
+            const genericLog = localStorage.getItem("story_reading_activity_log");
+            if (genericLog) log = JSON.parse(genericLog);
+        }
+    } catch (e) { log = {}; }
+    if (!log || typeof log !== "object") log = {};
+
+    // 2. Fetch real sessions from MongoDB Atlas via API to ensure cross-device accuracy and instant reflection
+    if (uid && typeof API_BASE !== "undefined") {
+        try {
+            const token = (window.Auth && Auth.getToken) ? Auth.getToken() : localStorage.getItem("token");
+            const res = await fetch(`${API_BASE}/StorySessions?userId=${encodeURIComponent(uid)}`, {
+                headers: token ? { "Authorization": `Bearer ${token}` } : {}
+            });
+            if (res.ok) {
+                const sessions = await res.json();
+                if (Array.isArray(sessions) && sessions.length > 0) {
+                    const storiesPerDate = {};
+                    for (const s of sessions) {
+                        const sDate = getLocalDateStr(s.updatedAt || s.createdAt || Date.now());
+                        if (!storiesPerDate[sDate]) storiesPerDate[sDate] = new Set();
+                        if (s.storyId) {
+                            storiesPerDate[sDate].add(String(s.storyId));
+                        }
+                    }
+                    log = {};
+                    for (const [dateKey, storySet] of Object.entries(storiesPerDate)) {
+                        log[dateKey] = storySet.size;
+                    }
+                    if (uid) {
+                        try {
+                            localStorage.setItem(`story_reading_activity_log_${uid}`, JSON.stringify(log));
+                            localStorage.setItem("story_reading_activity_log", JSON.stringify(log));
+                        } catch (e) {}
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Could not fetch sessions for reading activity:", err);
+        }
     }
 
-    // Build exactly 371-day grid where ALL PREVIOUS DAYS ARE BLANK (0 count)
+    // 3. Match total completed stories (LeetCode style)
+    const completedCount = (currentUser && currentUser.completedStories) ? currentUser.completedStories.length : 0;
+    const totalLogged = Object.values(log).reduce((a, b) => a + Number(b), 0);
+    if (completedCount > 0 && totalLogged === 0) {
+        log[todayStr] = completedCount;
+        if (uid) {
+            try {
+                localStorage.setItem(`story_reading_activity_log_${uid}`, JSON.stringify(log));
+            } catch (e) {}
+        }
+    }
+
+    // 4. Build 371-day grid in local calendar time ending on todayStr
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(todayStr);
+    const endMidnightMs = m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : Date.now();
+
     const realActivityData = [];
     for (let i = 370; i >= 0; i--) {
-        const dMs = endMs - i * 86400000;
-        const dStr = new Date(dMs).toISOString().slice(0, 10);
-        // Only today has real activity, all previous days are 0 (blank)
-        const count = (dStr === todayStr) ? todayCount : 0;
+        const dMs = endMidnightMs - i * 86400000;
+        const d = new Date(dMs);
+        const y = d.getUTCFullYear();
+        const mon = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const day = String(d.getUTCDate()).padStart(2, "0");
+        const dStr = `${y}-${mon}-${day}`;
+        const count = Number(log[dStr]) || 0;
         realActivityData.push({ date: dStr, count: count });
     }
+
+    const preferredView = localStorage.getItem("skyline_preferred_view") || "2d";
 
     SlushSkyline.render(mount, {
         data: realActivityData,
         endDate: todayStr,
-        defaultView: '3d'
+        defaultView: preferredView
     });
 }
+
