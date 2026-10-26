@@ -443,13 +443,13 @@ The backend exposes a REST API running by default on `http://localhost:5000`.
 ### Stories & Narrative Graph
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `GET` | `/Stories` | List stories (filterable by `?status=published` or `?genre=...`) | None |
-| `GET` | `/Stories/:id` | Retrieve full story object with scene nodes and choices | None |
+| `GET` | `/Stories` | List stories (filterable by `?status=published` or `?genre=...`) | User |
+| `GET` | `/Stories/:id` | Retrieve full story object with scene nodes and choices | User |
 | `POST` | `/Stories` | Create a new story draft | Admin |
 | `PATCH` | `/Stories/:id` | Update story metadata or scene graph nodes | Admin |
 | `PUT` | `/Stories/:id` | Replace entire story document | Admin |
 | `DELETE` | `/Stories/:id` | Permanently delete a story | Admin |
-| `POST` | `/Stories/:id/view` | Increment live view counter for a story | None |
+| `POST` | `/Stories/:id/view` | Increment live view counter for a story | Admin |
 | `POST` | `/Stories/restore-sample` | Reset and restore default sample stories dataset | Admin |
 
 ### Reader Sessions
@@ -462,7 +462,7 @@ The backend exposes a REST API running by default on `http://localhost:5000`.
 ### Community Pitches
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `GET` | `/ReaderStories` | List community story pitches | None |
+| `GET` | `/ReaderStories` | List community story pitches | Admin |
 | `POST` | `/ReaderStories` | Submit a reader story proposal (+20 XP bounty) | User |
 | `PATCH` | `/ReaderStories/:id` | Update pitch status (`approved` / `rejected`) with feedback | Admin |
 | `DELETE` | `/ReaderStories/:id` | Delete a submitted pitch | User / Admin |
