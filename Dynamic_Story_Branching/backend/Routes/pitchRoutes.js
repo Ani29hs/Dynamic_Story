@@ -5,17 +5,14 @@ const {
     updatePitch,
     deletePitch
 } = require("../controllers/pitchController");
-const { optionalAuth } = require("../middleware/authMiddleware");
+const { authMiddleware, adminOnly, optionalAuth } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// Pitch operations support optional authentication
-router.use(optionalAuth);
-
 // Pitch Routes
-router.get("/", getPitches);          // Get pitches list
-router.post("/", createPitch);        // Submit new pitch
-router.patch("/:id", updatePitch);    // Update pitch status (approve/reject)
-router.delete("/:id", deletePitch);   // Delete pitch
+router.get("/", authMiddleware, adminOnly, getPitches);          // Admin: Get reader stories / pitches list
+router.post("/", optionalAuth, createPitch);                     // User: Submit new pitch
+router.patch("/:id", optionalAuth, updatePitch);                 // Admin: Update pitch status (approve/reject)
+router.delete("/:id", optionalAuth, deletePitch);                // User / Admin: Delete pitch
 
 module.exports = router;
