@@ -443,8 +443,8 @@ The backend exposes a REST API running by default on `http://localhost:5000`.
 ### Stories & Narrative Graph
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `GET` | `/Stories` | List stories (filterable by `?status=published` or `?genre=...`) | User |
-| `GET` | `/Stories/:id` | Retrieve full story object with scene nodes and choices | User |
+| `GET` | `/Stories` | List stories (filterable by `?status=published` or `?genre=...`) | User / Admin |
+| `GET` | `/Stories/:id` | Retrieve full story object with scene nodes and choices | User / Admin |
 | `POST` | `/Stories` | Create a new story draft | Admin |
 | `PATCH` | `/Stories/:id` | Update story metadata or scene graph nodes | Admin |
 | `PUT` | `/Stories/:id` | Replace entire story document | Admin |
