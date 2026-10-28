@@ -6,10 +6,20 @@ const User = require("../models/User");
 const getPitches = async (req, res) => {
     try {
         const query = {};
-        const filterId = req.query.submittedById || req.query.authorId;
-        if (filterId) {
-            query.$or = [{ submittedById: String(filterId) }, { authorId: String(filterId) }];
+
+        // Role-Based Scoped Access:
+        // If not Admin, strictly scope query to the authenticated user's own pitches
+        if (req.user && req.user.role !== "Admin") {
+            const currentUserId = String(req.user.id);
+            query.$or = [{ submittedById: currentUserId }, { authorId: currentUserId }];
+        } else {
+            // Admin can view all pitches or filter by specific submitter
+            const filterId = req.query.submittedById || req.query.authorId;
+            if (filterId) {
+                query.$or = [{ submittedById: String(filterId) }, { authorId: String(filterId) }];
+            }
         }
+
         if (req.query.status) query.status = req.query.status;
 
         const data = await ReaderStory.find(query).sort({ createdAt: -1 });

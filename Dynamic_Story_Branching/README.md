@@ -462,7 +462,7 @@ The backend exposes a REST API running by default on `http://localhost:5000`.
 ### Community Pitches
 | Method | Endpoint | Description | Auth Required |
 |---|---|---|---|
-| `GET` | `/ReaderStories` | List community story pitches | Admin |
+| `GET` | `/ReaderStories` | List community story pitches (Admin sees all; User sees own) | User / Admin |
 | `POST` | `/ReaderStories` | Submit a reader story proposal (+20 XP bounty) | User |
 | `PATCH` | `/ReaderStories/:id` | Update pitch status (`approved` / `rejected`) with feedback | Admin |
 | `DELETE` | `/ReaderStories/:id` | Delete a submitted pitch | User / Admin |
